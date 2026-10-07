@@ -1,0 +1,23 @@
+# Non-public BBL plan data and everything derived from it (renders, overlays) stay local
+pilot/**/data/
+__pycache__/
+
+# Training and evaluation data stay local (BBL data is non-public, datasets have their own licences); only the README is tracked
+data/*
+!data/README.md
+# Curated plan set: the README and the manifest are tracked; images and plans.local.json (BBL plans) stay local
+!data/curated/
+data/curated/*
+!data/curated/README.md
+!data/curated/plans.json
+
+# Downloaded papers and saved web pages are for private reading only (publisher/arXiv/site copyright); the index is tracked
+research/papers-incoming/
+research/papers-original/
+research/papers-md/
+research/web/
+research/convert.log
+
+# Cloned code of the indexed papers and pipeline components is for private reading only (untrusted, licences vary, some none); only the README is tracked
+research/code/*
+!research/code/README.md

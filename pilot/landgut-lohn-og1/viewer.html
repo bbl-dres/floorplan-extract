@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pilot Overlay Viewer</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1d2330; --muted: #5b6475; --border: #d9dde5;
+    --accent: #2f5bd3; --high: #2e9e5b; --medium: #d99a1e; --low: #d0433b; --ref: #8e3fc7;
+    --rejected: #8a8f99; --wall2d: #2b3a55; --wall3d: #d6d9df; --void: #1f78b4;
+    --label-bg: rgba(255, 255, 255, 0.85);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171c; --panel: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --border: #323844;
+      --accent: #7c9cff; --high: #4cc27f; --medium: #e8b24a; --low: #ef6a62; --ref: #c48bf0;
+      --rejected: #6c7380; --wall2d: #2b3a55; --wall3d: #c9ced8; --void: #5aa9e6;
+      --label-bg: rgba(29, 33, 40, 0.85);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c; --panel: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --border: #323844;
+    --accent: #7c9cff; --high: #4cc27f; --medium: #e8b24a; --low: #ef6a62; --ref: #c48bf0;
+    --rejected: #6c7380; --wall2d: #2b3a55; --wall3d: #c9ced8; --void: #5aa9e6;
+    --label-bg: rgba(29, 33, 40, 0.85);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app { display: grid; grid-template-columns: 320px 1fr; height: 100%; }
+  #panel { background: var(--panel); border-right: 1px solid var(--border); padding: 16px; overflow: auto; }
+  #stage { position: relative; overflow: hidden; min-height: 320px; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  .field { display: block; margin: 14px 0 0; }
+  .field > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  select, input[type="range"] { width: 100%; }
+  select { padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; padding: 6px 16px; background: var(--panel); color: var(--text); cursor: pointer; font: inherit; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .chk { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .chk.disabled { opacity: 0.45; }
+  .card { margin-top: 16px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; min-height: 64px; }
+  .card table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .card td { padding: 2px 0; vertical-align: top; }
+  .card td:first-child { color: var(--muted); padding-right: 8px; white-space: nowrap; }
+  .legend { margin-top: 14px; font-size: 13px; }
+  .legend .row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .lbl { background: var(--label-bg); color: var(--text); border-radius: 4px; padding: 1px 5px; font-size: 11px;
+    white-space: nowrap; pointer-events: none; text-align: center; line-height: 1.25; }
+  .lbl small { color: var(--muted); }
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; }
+  code { background: var(--bg); padding: 1px 4px; border-radius: 4px; }
+  @media (max-width: 760px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    #panel { border-right: 0; border-bottom: 1px solid var(--border); max-height: 45vh; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>Landgut Lohn · 1. OG pilot</h1>
+    <div class="muted">Original sheet with the extracted rooms overlaid, in plan metres.</div>
+
+    <label class="field"><span>Sheet</span><select id="sheet"></select></label>
+    <div class="field"><span>View</span>
+      <div class="seg" role="group" aria-label="View">
+        <button type="button" data-view="2d" class="on">2D</button><button type="button" data-view="3d">3D</button>
+      </div>
+    </div>
+    <label class="field"><span>Colour rooms by</span>
+      <select id="colour">
+        <option value="room">Room</option>
+        <option value="confidence">Confidence (QA, no reference needed)</option>
+        <option value="accuracy">Accuracy vs reference (IoU)</option>
+      </select>
+    </label>
+    <label class="chk"><input type="checkbox" id="walls" checked> Extracted walls</label>
+    <label class="chk"><input type="checkbox" id="labels" checked> Room labels</label>
+    <label class="chk"><input type="checkbox" id="ref"> 2005 reference (outlines; walls in 3D)</label>
+    <label class="chk"><input type="checkbox" id="rejected"> Rejected fragments</label>
+    <label class="chk" id="snapRow"><input type="checkbox" id="snap"> Snap to wall face (+10 cm)</label>
+    <label class="field"><span>Plan opacity</span><input type="range" id="opacity" min="0" max="1" step="0.05" value="1"></label>
+
+    <div class="legend" id="legend"></div>
+    <div class="card" id="info"><span class="muted">Hover a room for details.</span></div>
+    <div class="note">3D heights are for display only (rooms 2.8 m, reference walls 3.0 m). Plan data is non-public and stays local (<code>data/</code>, gitignored).</div>
+  </aside>
+  <main id="stage"></main>
+</div>
+
+<script src="data/out/viewer-data.js"></script>
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+
+const stage = document.getElementById("stage");
+const D = window.VIEWER_DATA;
+if (!D) {
+  stage.innerHTML = '<div class="empty"><div>No data found.<br>Run <code>python scripts/05_export_viewer.py</code>, then reload.</div></div>';
+  throw new Error("viewer-data.js missing");
+}
+
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);                       // plan x/y on the ground, z up
+const ROOM_H = 2.8, WALL_H = 3.0;
+const PALETTE = ["#4e79a7", "#f28e2b", "#59a14f", "#e15759", "#76b7b2", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#86bcb6"];
+const state = { sheet: 0, view: "2d", colour: "room", walls: true, labels: true, ref: false, rejected: false, snap: false, opacity: 1 };
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// renderers, cameras, scene
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+stage.appendChild(renderer.domElement);
+const labelRenderer = new CSS2DRenderer();
+Object.assign(labelRenderer.domElement.style, { position: "absolute", top: "0", left: "0", pointerEvents: "none" });
+stage.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+sun.position.set(-20, -30, 40);
+scene.add(sun);
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+ortho.up.set(0, 1, 0);                                         // top-down: screen up = plan north (+y)
+const persp = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
+let camera = ortho, controls = null, halfH = 10;
+const root = new THREE.Group();
+scene.add(root);
+let roomMeshes = [], hovered = null;              // all hoverable meshes (rooms, walls, voids)
+const textures = {};
+
+function size() { return [stage.clientWidth || 1, stage.clientHeight || 1]; }
+
+function disposeTree(obj) {
+  obj.traverse((o) => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose());
+    if (o.isCSS2DObject && o.element) o.element.remove();
+  });
+}
+
+function shapeOf(ring, holes = []) {
+  const shape = new THREE.Shape(ring.map(([x, y]) => new THREE.Vector2(x, y)));
+  shape.holes = holes.map((h) => new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y))));
+  return shape;
+}
+
+function outline(ring, z, color) {
+  const pts = ring.map(([x, y]) => new THREE.Vector3(x, y, z));
+  return new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color }));
+}
+
+function level(room) {
+  if (state.colour === "confidence") return state.snap && room.confSnapped ? room.confSnapped : room.conf;
+  const v = state.snap && room.iouSnapped != null ? room.iouSnapped : room.iou;
+  return v >= 0.8 ? "high" : v >= 0.5 ? "medium" : "low";
+}
+
+function roomColor(room, i) {
+  return state.colour === "room" ? PALETTE[i % PALETTE.length] : css(`--${level(room)}`);
+}
+
+function planTexture(sheet) {
+  if (!textures[sheet.id]) {
+    const t = new THREE.TextureLoader().load(sheet.image);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    textures[sheet.id] = t;
+  }
+  return textures[sheet.id];
+}
+
+function build() {
+  disposeTree(root);
+  root.clear();
+  roomMeshes = [];
+  hovered = null;
+  const sheet = D.sheets[state.sheet];
+  const is3d = state.view === "3d";
+  const [x0, y0, x1, y1] = sheet.extent;
+
+  // original sheet as a textured ground plane
+  const plan = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0),
+    new THREE.MeshBasicMaterial({ map: planTexture(sheet), transparent: true, opacity: state.opacity, depthWrite: false }));
+  plan.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
+  plan.renderOrder = 0;
+  root.add(plan);
+
+  // rejected fragments
+  if (state.rejected) {
+    for (const ring of sheet.rejected) {
+      const m = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(ring)),
+        new THREE.MeshBasicMaterial({ color: css("--rejected"), transparent: true, opacity: 0.35, depthWrite: false }));
+      m.position.z = 0.01;
+      root.add(m);
+    }
+  }
+
+  // reference: room and wall outlines; walls also extruded (translucent) in 3D
+  if (state.ref) {
+    for (const r of D.reference.rooms) for (const ring of r.polygons) root.add(outline(ring, 0.03, css("--ref")));
+    for (const ring of D.reference.walls) {
+      root.add(outline(ring, 0.035, css("--ref")));
+      if (is3d) {
+        root.add(new THREE.Mesh(new THREE.ExtrudeGeometry(shapeOf(ring), { depth: WALL_H, bevelEnabled: false }),
+          new THREE.MeshLambertMaterial({ color: css("--ref"), transparent: true, opacity: 0.25, depthWrite: false })));
+      }
+    }
+  }
+
+  // extracted walls: filled in 2D, extruded in 3D
+  if (state.walls && sheet.walls) {
+    for (const [ring, ...holes] of sheet.walls.polygons) {
+      const shape = shapeOf(ring, holes);
+      const base = is3d ? 0.95 : 0.7;
+      const mesh = new THREE.Mesh(
+        is3d ? new THREE.ExtrudeGeometry(shape, { depth: WALL_H, bevelEnabled: false }) : new THREE.ShapeGeometry(shape),
+        is3d ? new THREE.MeshLambertMaterial({ color: css("--wall3d"), transparent: true, opacity: base })
+             : new THREE.MeshBasicMaterial({ color: css("--wall2d"), transparent: true, opacity: base, depthWrite: false }));
+      mesh.position.z = is3d ? 0 : 0.015;
+      mesh.renderOrder = 1;
+      mesh.userData = { wall: sheet.walls, base };
+      root.add(mesh);
+      roomMeshes.push(mesh);
+    }
+  }
+
+  // voids (e.g. the air space over a stair): marked separately, not floor area
+  for (const v of sheet.voids || []) {
+    for (const ring of v.polygons) {
+      const z = is3d ? 0.05 : 0.03;
+      const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(ring)),
+        new THREE.MeshBasicMaterial({ color: css("--void"), transparent: true, opacity: 0.4, depthWrite: false }));
+      mesh.position.z = z;
+      mesh.renderOrder = 3;
+      mesh.userData = { void: v, base: 0.4 };
+      root.add(mesh);
+      roomMeshes.push(mesh);
+      root.add(outline(ring, z + 0.01, css("--void")));
+      if (state.labels) {
+        const div = document.createElement("div");
+        div.className = "lbl";
+        div.innerHTML = `${v.name}<br><small>${v.area.toFixed(1)} m²</small>`;
+        const lbl = new CSS2DObject(div);
+        const cx = ring.reduce((s, p) => s + p[0], 0) / ring.length, cy = ring.reduce((s, p) => s + p[1], 0) / ring.length;
+        lbl.position.set(cx, cy, z + 0.1);
+        root.add(lbl);
+      }
+    }
+  }
+
+  // extracted rooms
+  sheet.rooms.forEach((room, i) => {
+    const color = roomColor(room, i);
+    const rings = state.snap && room.polygonsSnapped ? room.polygonsSnapped : room.polygons;
+    for (const ring of rings) {
+      const geom = is3d ? new THREE.ExtrudeGeometry(shapeOf(ring), { depth: ROOM_H, bevelEnabled: false })
+                        : new THREE.ShapeGeometry(shapeOf(ring));
+      const base = is3d ? 0.5 : 0.45;
+      const mesh = new THREE.Mesh(geom, new (is3d ? THREE.MeshLambertMaterial : THREE.MeshBasicMaterial)(
+        { color, transparent: true, opacity: base, depthWrite: false, side: THREE.DoubleSide }));
+      mesh.position.z = is3d ? 0 : 0.02;
+      mesh.userData = { room, base };
+      mesh.renderOrder = 2;
+      root.add(mesh);
+      roomMeshes.push(mesh);
+      const edgeZ = is3d ? ROOM_H : 0.04;
+      root.add(outline(ring, edgeZ, color));
+      if (is3d) root.add(outline(ring, 0.02, color));
+    }
+    if (state.labels) {
+      const div = document.createElement("div");
+      div.className = "lbl";
+      const area = state.snap && room.areaSnapped != null ? room.areaSnapped : room.area;
+      div.innerHTML = `${room.name}<br><small>${area.toFixed(1)} m²</small>`;
+      const lbl = new CSS2DObject(div);
+      lbl.position.set(room.label[0], room.label[1], is3d ? ROOM_H + 0.3 : 0.1);
+      root.add(lbl);
+    }
+  });
+
+  renderLegend(sheet);
+  info(null);
+}
+
+function fit() {
+  const [w, h] = size();
+  const aspect = w / h;
+  const [x0, y0, x1, y1] = D.sheets[state.sheet].extent;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const ew = x1 - x0, eh = y1 - y0;
+  if (controls) controls.dispose();
+  if (state.view === "2d") {
+    camera = ortho;
+    halfH = (Math.max(eh, ew / aspect) / 2) * 1.05;
+    setOrtho(aspect);
+    ortho.zoom = 1;
+    ortho.position.set(cx, cy, 100);
+    ortho.lookAt(cx, cy, 0);
+    ortho.updateProjectionMatrix();
+  } else {
+    camera = persp;
+    persp.aspect = aspect;
+    persp.updateProjectionMatrix();
+    const d = Math.max(ew, eh);
+    persp.position.set(cx - 0.35 * d, cy - 0.95 * d, 0.75 * d);
+  }
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(cx, cy, 0);
+  controls.enableDamping = true;
+  if (state.view === "2d") {
+    controls.enableRotate = false;
+    controls.screenSpacePanning = true;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
+  } else {
+    controls.maxPolarAngle = Math.PI * 0.49;
+  }
+  controls.update();
+}
+
+function setOrtho(aspect) {
+  ortho.left = -halfH * aspect; ortho.right = halfH * aspect; ortho.top = halfH; ortho.bottom = -halfH;
+}
+
+function resize() {
+  const [w, h] = size();
+  renderer.setSize(w, h);
+  labelRenderer.setSize(w, h);
+  if (camera === ortho) { setOrtho(w / h); ortho.updateProjectionMatrix(); }
+  else { persp.aspect = w / h; persp.updateProjectionMatrix(); }
+}
+
+function renderLegend(sheet) {
+  const el = document.getElementById("legend");
+  const layers = [];
+  if (state.walls && sheet.walls) layers.push(`<div class="row"><span class="sw" style="background:${css("--wall2d")}"></span>Extracted walls <span class="muted">(IoU ${sheet.walls.iou.toFixed(2)} vs 2005 walls)</span></div>`);
+  if ((sheet.voids || []).length) layers.push(`<div class="row"><span class="sw" style="background:${css("--void")}"></span>Void, not floor area</div>`);
+  if (state.ref) layers.push(`<div class="row"><span class="sw" style="border:2px solid ${css("--ref")}"></span>2005 reference</div>`);
+  const tail = layers.length ? `<div style="margin-top:8px">${layers.join("")}</div>` : "";
+  if (state.colour === "room") { el.innerHTML = '<div class="muted">Each extracted room in its own colour.</div>' + tail; return; }
+  const names = state.colour === "confidence" ? ["High", "Medium", "Low"] : ["IoU ≥ 0.8", "0.5 – 0.8", "< 0.5"];
+  const counts = { high: 0, medium: 0, low: 0 };
+  sheet.rooms.forEach((r) => counts[level(r)]++);
+  const rows = ["high", "medium", "low"].map((k, i) =>
+    `<div class="row"><span class="sw" style="background:${css(`--${k}`)}"></span>${names[i]} <span class="muted">(${counts[k]})</span></div>`).join("");
+  const note = state.colour === "confidence" ? sheet.confidenceNote : sheet.accuracyNote;
+  el.innerHTML = rows + `<div class="muted" style="margin-top:6px">${note}</div>` + tail;
+}
+
+function info(ud) {
+  const el = document.getElementById("info");
+  if (!ud) { el.innerHTML = '<span class="muted">Hover a room, wall or void for details.</span>'; return; }
+  if (ud.wall) {
+    const w = ud.wall;
+    el.innerHTML = `<b>Extracted walls</b><div class="muted">Wall pixels vectorised from this sheet</div><table>
+      <tr><td>Wall area</td><td>${w.area.toFixed(1)} m²</td></tr>
+      <tr><td>2005 reference walls</td><td>${w.refArea.toFixed(1)} m²</td></tr>
+      <tr><td>IoU vs reference</td><td>${w.iou.toFixed(2)}</td></tr></table>`;
+    return;
+  }
+  if (ud.void) {
+    el.innerHTML = `<b>${ud.void.name}</b><table><tr><td>Area</td><td>${ud.void.area.toFixed(2)} m²</td></tr></table><div class="muted" style="margin-top:6px">${ud.void.note}</div>`;
+    return;
+  }
+  const room = ud.room;
+  const snapped = state.snap && room.areaSnapped != null;
+  const area = snapped ? room.areaSnapped : room.area;
+  const iou = snapped ? room.iouSnapped : room.iou;
+  const conf = snapped ? room.confSnapped : room.conf;
+  const reason = snapped ? room.reasonSnapped : room.reason;
+  const rows = [
+    ["Polygon area", `${area.toFixed(2)} m²${snapped ? " (snapped)" : ""}`],
+    room.stamp !== null || room.stampRef !== null ? ["Stamp read", room.stamp != null ? `${room.stamp.toFixed(2)} m²` : "not readable"] : null,
+    room.stampRef != null ? ["Stamp (reference)", `${room.stampRef.toFixed(2)} m²`] : null,
+    ["IoU vs reference", iou.toFixed(2)],
+    ["Confidence", `<span style="color:${css(`--${conf}`)}">${conf}</span> – ${reason}`],
+  ].filter(Boolean);
+  el.innerHTML = `<b>${room.name}</b>${room.sub ? `<div class="muted">${room.sub}</div>` : ""}<table>${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>`;
+}
+
+// hover
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+renderer.domElement.addEventListener("pointermove", (e) => {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(roomMeshes, false)[0];
+  const mesh = hit ? hit.object : null;
+  if (mesh === hovered) return;
+  if (hovered) hovered.material.opacity = hovered.userData.base;
+  hovered = mesh;
+  if (mesh) mesh.material.opacity = Math.min(0.85, mesh.userData.base + 0.3);
+  info(mesh ? mesh.userData : null);
+});
+
+// controls panel
+const sheetSel = document.getElementById("sheet");
+D.sheets.forEach((s, i) => sheetSel.add(new Option(s.title, i)));
+function syncSnap() {
+  const has = D.sheets[state.sheet].rooms.some((r) => r.polygonsSnapped);
+  const row = document.getElementById("snapRow");
+  row.classList.toggle("disabled", !has);
+  document.getElementById("snap").disabled = !has;
+  if (!has) { state.snap = false; document.getElementById("snap").checked = false; }
+}
+sheetSel.addEventListener("change", () => { state.sheet = +sheetSel.value; syncSnap(); build(); fit(); });
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".seg button").forEach((x) => x.classList.toggle("on", x === b));
+  state.view = b.dataset.view; build(); fit();
+}));
+document.getElementById("colour").addEventListener("change", (e) => { state.colour = e.target.value; build(); });
+for (const id of ["walls", "labels", "ref", "rejected", "snap"]) {
+  document.getElementById(id).addEventListener("change", (e) => { state[id] = e.target.checked; build(); });
+}
+document.getElementById("opacity").addEventListener("input", (e) => {
+  state.opacity = +e.target.value;
+  root.children.forEach((o) => { if (o.material && o.material.map) o.material.opacity = state.opacity; });
+});
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", build);
+new ResizeObserver(resize).observe(stage);
+
+// initial state from the URL hash, e.g. #sheet=s2&view=3d&colour=confidence&ref=1
+const params = new URLSearchParams(location.hash.slice(1));
+if (params.has("sheet")) state.sheet = Math.max(0, D.sheets.findIndex((s) => s.id === params.get("sheet")));
+if (params.get("view") === "3d") state.view = "3d";
+if (["room", "confidence", "accuracy"].includes(params.get("colour"))) state.colour = params.get("colour");
+for (const k of ["ref", "rejected", "snap"]) if (params.get(k) === "1") state[k] = true;
+for (const k of ["walls", "labels"]) if (params.get(k) === "0") state[k] = false;
+sheetSel.value = state.sheet;
+document.getElementById("colour").value = state.colour;
+for (const k of ["walls", "labels", "ref", "rejected", "snap"]) document.getElementById(k).checked = state[k];
+document.querySelectorAll(".seg button").forEach((x) => x.classList.toggle("on", x.dataset.view === state.view));
+
+syncSnap();
+resize();
+build();
+fit();
+renderer.setAnimationLoop(() => {
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

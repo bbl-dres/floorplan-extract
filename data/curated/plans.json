@@ -1,0 +1,2950 @@
+{
+ "meta": {
+  "schema_version": "1.0",
+  "updated": "2026-10-07",
+  "description": "Curated floor plans of maximum variety for the pilot v2 viewer and for spot checks of the pipeline: drawing styles, eras, building types and the known weak spots (hatching, ornament, columns, open plan, stamps, poché scans). Each plan carries its licence, its permitted use, its scale (where known), its reference (where one exists) and categorical tags from the vocabularies below. Images are copies in data/curated/images (gitignored); this index is tracked. BBL plans go only into data/curated/plans.local.json (same schema, gitignored, never published or sent anywhere). pilot/v2-pipeline/curated.py validates both files and loads the plans; data/curated/README.md explains how to add one.",
+  "fields": {
+   "id": "Short stable slug (lowercase, digits, hyphens): source prefix (cc, cvc, wf, cm, syn) and a few words; also the stem of `file`",
+   "title": "What the sheet shows: building, floor, date of the drawing where known",
+   "source": "Dataset or archive the image comes from; one value from meta.vocabularies.source",
+   "origin": "The original file: a path relative to the repository root (a dataset under data/), or the URL it was downloaded from; for renders the IFC model or Swiss Dwellings table the floor was cut from",
+   "file": "The copy in data/curated/: images/<id>.<ext>, byte-identical to the origin except for renders (synthetic floors, and PDF pages rendered to PNG: origin <pdf>#page=N); a label map that comes with the plan is copied next to it as images/<id>_label.png",
+   "licence": "Exact licence of this image as stated by its source (per image for Wikimedia Commons, per dataset otherwise; for renders the licence of the model the floor comes from)",
+   "attribution": "{author, date, page}: author as credited by the source, date of the work as recorded there (null when unknown), and the page to credit; required for `use` attribution and share-alike",
+   "use": "Whether and how the image may ever be shown publicly; one value from meta.vocabularies.use, implied by the licence (checked by curated.py)",
+   "scale": "{px_per_m, method}: pixels per metre of the image file and how they are known; px_per_m null and method 'unknown: proposed by the pipeline ...' when the pipeline has to estimate it (the method then names the cues the sheet offers)",
+   "reference": "{content, source}: what ground truth exists (meta.vocabularies.reference) and where it comes from; curated.load() returns it in image pixels",
+   "category": "Viewer group (the optgroup in the sheet picker); one value from meta.vocabularies.category, in the order listed there",
+   "drawing_type": "What kind of drawing the sheet is, by purpose and look; one value from meta.vocabularies.drawing_type",
+   "input": "How the image was produced; one value from meta.vocabularies.input",
+   "wall_style": "How walls are drawn (all that apply); values from meta.vocabularies.wall_style",
+   "era": "When the drawing was made (its graphical conventions), not when the building was built: the date recorded on the source page, otherwise judged from the drawing; one value from meta.vocabularies.era",
+   "building_type": "Use of the building drawn; one value from meta.vocabularies.building_type",
+   "content": "What the sheet shows besides walls and openings (all that apply, may be empty); values from meta.vocabularies.content",
+   "language": "Languages of the text on the sheet as ISO 639-1 codes, or ['none']; values from meta.vocabularies.language",
+   "challenges": "What the plan tests in the pipeline (all that apply); values from meta.vocabularies.challenges",
+   "why": "One sentence: why this plan is in the set",
+   "render": "Only for renders: {floors, floor_id, seed, style}: the floors pickle (path relative to the repository), the floor in it, the random seed and the synth.Renderer style choices that `python curated.py render` uses to draw the image, label map and rooms again"
+  },
+  "vocabularies": {
+   "source": {
+    "CubiCasa5K": "Finnish residential plans with SVG ground truth (Zenodo 10.5281/zenodo.2613548); data/benchmark/cubicasa5k",
+    "CVC-FP": "Residential plan scans with SVG ground truth (de las Heras et al. 2015); data/benchmark/cvc-fp",
+    "WAFFLE benchmark": "Wikimedia Commons plans (SVG, rasterised) with dense masks (Ganon et al. 2025); data/benchmark/waffle",
+    "Wikimedia Commons": "Files from Wikimedia Commons: most from Category:Floor plans of Switzerland (data/benchmark/commons-plans or downloaded for this set), US federal NARA and HABS drawings in data/benchmark/construction-plans",
+    "US federal drawings": "U.S. Army Corps of Engineers standard-design PDFs (vector, public domain under 17 U.S.C. 105), pages rendered at 200 dpi; data/benchmark/construction-plans",
+    "FloorPlanCAD": "Chinese construction CAD drawings, 10 m x 10 m test blocks with line labels (Fan et al. 2021, CC BY-NC 4.0), rendered at 100 px/m with six-class masks; data/benchmark/floorplancad/sample",
+    "IFC-Bench render": "A storey of a permissively licensed IFC-Bench model (data/public/ifc-bench, cut by ifc_prepare.py) drawn whole by synth.Renderer",
+    "Swiss Dwellings render": "A held-out Swiss Dwellings v3.0.0 test floor (data/floors-test.pkl) drawn whole by synth.Renderer",
+    "BBL": "BBL plans: only in plans.local.json, never in the tracked manifest"
+   },
+   "use": {
+    "benchmark only": "Non-commercial licence (CC BY-NC, CC BY-NC-SA): evaluation only; never shown publicly, never used to train or select a deployed model without legal clearance",
+    "public domain or CC0": "May be shown publicly and used freely; credit the source as good practice",
+    "attribution": "May be shown publicly with the credit (author, licence, source page): CC BY, MIT",
+    "share-alike": "May be shown publicly with the credit; adaptations such as overlays under the same licence: CC BY-SA, GPL",
+    "BBL internal": "BBL plans: never published, never sent to external services; plans.local.json only"
+   },
+   "reference": {
+    "none": "No ground truth: the plan is for visual inspection",
+    "walls+openings+rooms": "Polygons of walls, doors, windows and rooms (CubiCasa5K and CVC-FP SVG; bench.load_cubicasa, bench.load_cvcfp)",
+    "walls+openings+interior": "Pixel masks of walls, doors, windows and the building interior (WAFFLE benchmark; bench.load_waffle)",
+    "walls+openings+columns+stairs+rooms": "The renderer's label map (walls, doors, windows, columns, stairs) and the floor's room polygons, stored with the render",
+    "walls+openings+columns+stairs": "A six-class label map without rooms: FloorPlanCAD line labels filled (wall, door with its swing, window, stairs; columns from CAD layers, unverified), copied as images/<id>_label.png"
+   },
+   "category": {
+    "Construction drawings": "Working and construction sheets: dimension chains, axes, door and window tags, section markers, notes, stage overlays",
+    "FM and safety plans": "Area, occupancy, life-safety and security plans: name and area stamps, symbols on a simplified base plan, few dimensions",
+    "Administrative and public buildings": "Parliament, courts, post, council chamber, museum, theatre, observatory: closest to BBL's portfolio",
+    "Hospitals and hotels": "Hospitals, sanatoria, hotels: long corridors of small rooms",
+    "Industry and transport": "Stations, mills, power stations: halls, machinery, columns",
+    "Monuments and churches": "Castles, palaces, churches, convents: massive walls, vaults, ornament",
+    "Housing": "Flats and houses, mostly with ground truth (CubiCasa5K, CVC-FP, WAFFLE)",
+    "Synthetic renders": "Whole floors drawn by synth.Renderer with a complete label map: office, clinic, housing"
+   },
+   "input": {
+    "scan 1-bit": "Bitonal scan (black and white only)",
+    "scan grey": "Greyscale scan of a drawing or of a printed reproduction",
+    "scan colour": "Colour scan of a drawing (paper tone, coloured inks, pencil, stamps)",
+    "photo": "Camera photograph of a sheet (perspective, uneven light, folds)",
+    "born-digital raster": "Exported from CAD or a drawing program (PNG, JPEG, SVG rasterised): no scan noise",
+    "vector PDF": "PDF with vector content (and possibly a text layer)",
+    "render": "Synthetic render with a known label map"
+   },
+   "wall_style": {
+    "poché": "Walls filled solid black or dark",
+    "outlined": "Walls as two lines with an empty (or near-empty) core",
+    "hatched": "Walls filled with a hatch or material pattern",
+    "grey": "Walls filled grey",
+    "coloured": "Walls filled or drawn in colour",
+    "single line": "Walls as single lines without thickness"
+   },
+   "era": {
+    "before 1850": "Drawn before 1850: manuscripts, engravings, early lithographs",
+    "1850–1899": "Drawn 1850–1899",
+    "1900–1949": "Drawn 1900–1949",
+    "1950–1989": "Drawn 1950–1989: late hand drafting",
+    "CAD era (1990 onwards)": "Drawn with CAD or a drawing program",
+    "synthetic": "Render: the style is the renderer's (see render.style)",
+    "unknown": "No date recorded and none judged safely from the drawing"
+   },
+   "building_type": {
+    "residential": "Flats, houses, apartment blocks",
+    "office/administrative": "Offices, parliament, courts, post offices, council chambers",
+    "public/institutional": "Museums, theatres, exhibition halls, observatories, libraries, charities",
+    "palace/monument": "Palaces, castles, fortresses, manor houses",
+    "religious": "Churches, chapels, mosques, convents, crypts",
+    "industrial": "Mills, power stations, factories, workshops",
+    "transport": "Railway stations and other transport buildings",
+    "hospital": "Hospitals, clinics, sanatoria",
+    "school": "Schools, universities, research institutes",
+    "hotel": "Hotels and guest houses"
+   },
+   "content": {
+    "room stamps": "Room names, numbers or letters written inside the rooms",
+    "area values": "Room areas in m² inside the rooms (the stamp-area scale cue)",
+    "dimensions": "Dimension chains or dimension strings",
+    "furniture": "Furniture, fixtures or sanitary objects",
+    "machinery": "Machines, turbines, wheels or shafts drawn in plan",
+    "seating": "Rows of seats, pews or benches",
+    "several drawings": "More than one drawing on the sheet (floors, elevation, section, detail)",
+    "title block": "Title, title block or stamp of the office",
+    "legend": "Legend or key to numbers, letters or colours",
+    "scale bar": "Graphical scale bar",
+    "scale note": "Written scale (1:50, 0,001 = 1 m, Masstab ...)",
+    "north arrow": "North arrow or compass rose",
+    "ornament": "Ceiling ornament, floor patterns, garden parterres drawn in the plan",
+    "ceiling lines": "Vaults, ribs, beams or skylights projected into the plan",
+    "colour zones": "Rooms or building phases filled with colours",
+    "site context": "Streets, neighbouring buildings, terrain, water around the building",
+    "annotations": "Handwritten notes, pen marks or overlays added to the drawing",
+    "axes": "Grid axes or centre lines",
+    "tags": "Door, window, wall-type or room tags: codes in ovals, circles, hexagons or next to openings",
+    "section markers": "Section and detail flags, callout bubbles with sheet references",
+    "key plan": "Key plan or matchlines that tie the sheet to a larger floor",
+    "notes": "General notes, code summaries or construction notes as text blocks or leaders",
+    "level marks": "Level and elevation marks (±0.00, H-0.050, 5.300)",
+    "symbols": "Fire-safety, security or electrical symbols, usually with a symbol key",
+    "floor hatches": "Floor-finish, tile or paving patterns inside rooms"
+   },
+   "language": {
+    "de": "German",
+    "fr": "French",
+    "it": "Italian",
+    "en": "English",
+    "fi": "Finnish",
+    "es": "Spanish",
+    "pl": "Polish",
+    "ru": "Russian",
+    "zh": "Chinese",
+    "none": "No text on the sheet"
+   },
+   "challenges": {
+    "baseline": "A clean plan in a common style: the control for the others",
+    "hatching that is not wall": "Hatched terraces, roofs, floor tiles, paving or terrain next to walls",
+    "ornament": "Ornament, vaults or floor patterns inside rooms that can be read as walls or split rooms",
+    "columns": "Free-standing columns or piers",
+    "open plan": "Rooms separated only by furniture, level changes or virtual lines",
+    "curved walls": "Curved or round walls",
+    "non-orthogonal walls": "Walls at angles other than 90°",
+    "courtyards": "Courtyards, light wells or open passages inside the footprint",
+    "stairs and voids": "Stairs, stairwells, voids",
+    "thin walls": "Partitions drawn as thin or single lines",
+    "massive walls": "Very thick masonry or poché masses",
+    "small rooms": "Many small cells (offices, hotel rooms, WCs) where one missed wall merges rooms",
+    "several floors": "More than one floor on the sheet: the pipeline assumes one floor per sheet",
+    "seating": "Seating or pews that can split a hall into small rooms",
+    "colour fills": "Walls or rooms in colour",
+    "overlaid symbols": "Electrical layers, machinery or numbers drawn over walls and rooms",
+    "hand lettering": "Handwritten or calligraphic labels for OCR",
+    "rotated text": "Text upside down or at angles",
+    "site context": "Neighbouring buildings, streets or terrain drawn like the building",
+    "non-metric units": "Dimensions or scale in feet, Schuh, pieds",
+    "low resolution": "Under about 1000 px across: walls only a few pixels thick",
+    "large sheet": "Very large or very elongated sheet",
+    "low contrast": "Faint, yellowed or pencil drawing",
+    "perspective": "Photographed sheet: perspective, folds, uneven light",
+    "dimension chains": "Dimension chains and extension lines crossing rooms and touching walls",
+    "crossing lines": "Axes, section lines, matchlines, routes or overhead edges drawn across rooms",
+    "tags and callouts": "Tags, stamps in boxes and callout bubbles: small closed shapes next to or over walls that look like rooms or columns",
+    "complex wall hatches": "Material hatches, insulation bands or several hatch patterns in the walls",
+    "inverted polarity": "Light lines on a dark ground (blueprints, negatives)",
+    "scale note invalid": "The written scale does not hold for the image (reduced or enlarged print)",
+    "renovation overlay": "Existing, new and demolished work or construction stages drawn over each other"
+   },
+   "drawing_type": {
+    "construction drawing": "Working or execution drawing (Werkplan, Ausführungsplan, trade plan): dimension chains, tags, section markers, notes",
+    "FM plan": "Facility-management style plan: area, occupancy, CAFM, life-safety or security plan on a simplified base plan; stamps with names and areas, symbols, few dimensions",
+    "survey drawing": "Measured drawing or record plan of an existing building (Bestandesaufnahme, HABS, restoration survey)",
+    "permit or design drawing": "Design, competition or building-permit plan (Bauprojekt, Baugesuch): rooms, main dimensions, few construction details",
+    "publication plan": "Plan drawn or reduced for a book, journal, guide or prospectus",
+    "marketing plan": "Real-estate or sales plan: coloured rooms, furniture, areas, 'not to scale'",
+    "diagram": "Schematic or reconstruction plan drawn for an encyclopedia or a study (phases, zoning, typology)",
+    "synthetic": "Render by synth.Renderer"
+   }
+  }
+ },
+ "plans": [
+  {
+   "id": "cp-usace-acsc-a103",
+   "title": "Army Community Service Center (extra large), A-103 Enlarged Floor Plan, Area A, 3/16\" = 1'-0\" (USACE standard design, 2011)",
+   "source": "US federal drawings",
+   "origin": "data/benchmark/construction-plans/pdf/usace-hnc-acsc-standard-drawings-2011.pdf#page=14",
+   "file": "images/cp-usace-acsc-a103.png",
+   "licence": "Public domain (17 U.S.C. 105: work of the U.S. Government)",
+   "attribution": {
+    "author": "U.S. Army Corps of Engineers, Engineering and Support Center, Huntsville",
+    "date": "2011-04",
+    "page": "https://rfpwizard.mrsi.erdc.dren.mil/MRSI/content/cos/hnc/acsc/Library/Standard%20Designs/Standard%20Drawings%20-%20ACSC%20(Apr%2011).pdf"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": 123.03,
+    "method": "known: 3/16\" = 1'-0\" on a 34 × 22 in sheet (PDF page size), rendered at 200 dpi"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "vector PDF",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "public/institutional",
+   "content": [
+    "dimensions",
+    "tags",
+    "section markers",
+    "key plan",
+    "notes",
+    "furniture",
+    "title block",
+    "scale bar",
+    "north arrow"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "dimension chains",
+    "tags and callouts",
+    "crossing lines",
+    "small rooms",
+    "columns",
+    "large sheet",
+    "non-metric units",
+    "thin walls"
+   ],
+   "why": "The densest real working sheet in the set: dimension chains in feet and inches, oval door tags, section flags, steel-column callouts, matchlines and a key plan around outlined walls."
+  },
+  {
+   "id": "cp-nara-juneau-1911",
+   "title": "U.S. Executive Mansion, Juneau (Alaska): first floor plan with interior elevations, working drawing, 1911",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/construction-plans/images/cp07.jpg",
+   "file": "images/cp-nara-juneau-1911.jpg",
+   "licence": "Public domain (PD-USGov; NARA 12013985)",
+   "attribution": {
+    "author": "Office of the Supervising Architect, U.S. Treasury Department (NARA, Record Group 121)",
+    "date": "1911",
+    "page": "https://commons.wikimedia.org/wiki/File:First_Floor_Plan_-_NARA_-_12013985.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note and dimension strings in feet; Commons rendition 3840 px wide)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "hatched"
+   ],
+   "era": "1900–1949",
+   "building_type": "residential",
+   "content": [
+    "dimensions",
+    "notes",
+    "tags",
+    "room stamps",
+    "several drawings",
+    "floor hatches",
+    "title block"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "hand lettering",
+    "dimension chains",
+    "tags and callouts",
+    "hatching that is not wall",
+    "low contrast",
+    "non-metric units"
+   ],
+   "why": "An ink working drawing from the federal architect's office: hatched walls, parquet details, numbered doors, notes and dimensions everywhere, with interior elevations on the same sheet."
+  },
+  {
+   "id": "cp-habs-naval-hospital-blueprint",
+   "title": "U.S. Naval Hospital San Diego, Contagious Ward: first floor plan, Drawing No. 101843 (blueprint)",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/construction-plans/images/cp10.jpg",
+   "file": "images/cp-habs-naval-hospital-blueprint.jpg",
+   "licence": "Public domain (PD-USGov-NPS; HABS CAL,37-SANDI,27-N-18)",
+   "attribution": {
+    "author": "U.S. Navy Bureau of Yards and Docks (HABS)",
+    "date": null,
+    "page": "https://commons.wikimedia.org/wiki/File:FIRST_FLOOR_PLAN,_DRAWING_NO._101843_-_U.S._Naval_Hospital,_Contagious_Ward,_Park_Boulevard,_Balboa_Park,_San_Diego,_San_Diego_County,_CA_HABS_CAL,37-SANDI,27-N-18.tif"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (dimension strings in feet and inches; Commons rendition 3840 px wide)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "photo",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "unknown",
+   "building_type": "hospital",
+   "content": [
+    "dimensions",
+    "tags",
+    "room stamps",
+    "notes",
+    "title block"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "inverted polarity",
+    "dimension chains",
+    "tags and callouts",
+    "small rooms",
+    "perspective",
+    "non-metric units"
+   ],
+   "why": "A blueprint photographed on its sheet: white lines on a dark ground, dense dimensions and door tags, a polarity no training render has."
+  },
+  {
+   "id": "cp-habs-stamford-po-1939",
+   "title": "Stamford (Connecticut) Post Office: first floor plan of 31 July 1939 with the 1940–41 construction stages overlaid",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/construction-plans/images/cp15.jpg",
+   "file": "images/cp-habs-stamford-po-1939.jpg",
+   "licence": "Public domain (PD-USGov-NPS; HABS CONN,1-STAMF,13-55)",
+   "attribution": {
+    "author": "unknown (federal drawing, photocopy in HABS)",
+    "date": "1939-07-31",
+    "page": "https://commons.wikimedia.org/wiki/File:Photocopy_of_first_floor_plan_dated_July_31,_1939._Plans_and_renovations_required_for_the_1940-1941_addition_are_overlaid_on_the_original_plan_-_Stamford_Post_Office,_421_HABS_CONN,1-STAMF,13-55.tif"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (dimension strings in feet and inches; Commons rendition 3840 px wide)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "photo",
+   "wall_style": [
+    "outlined",
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "office/administrative",
+   "content": [
+    "notes",
+    "dimensions",
+    "tags",
+    "annotations",
+    "title block"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "renovation overlay",
+    "crossing lines",
+    "overlaid symbols",
+    "dimension chains",
+    "thin walls",
+    "non-metric units"
+   ],
+   "why": "Construction stages, temporary partitions and X-crossed areas drawn over an existing federal post office: the conversion plan, where many lines are not walls of either state."
+  },
+  {
+   "id": "fpcad-0060-0042",
+   "title": "FloorPlanCAD 0060-0042: school art classroom with desks and a brick-pattern floor hatch",
+   "source": "FloorPlanCAD",
+   "origin": "data/benchmark/floorplancad/sample/0060-0042.png",
+   "file": "images/fpcad-0060-0042.png",
+   "licence": "CC BY-NC 4.0 (annotations; the drawings remain with their original owners)",
+   "attribution": {
+    "author": "Fan et al. (FloorPlanCAD, ICCV 2021); the drawings remain with their original owners",
+    "date": "2021",
+    "page": "https://floorplancad.github.io/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100,
+    "method": "known: 10 SVG units per metre (checked per drawing by dimension text and door sizes), rendered at 100 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs",
+    "source": "FloorPlanCAD line labels filled into six classes (doors include the swing; columns from CAD layers, unverified): data/benchmark/floorplancad/sample/0060-0042_label.png"
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "school",
+   "content": [
+    "tags",
+    "dimensions",
+    "level marks",
+    "axes",
+    "floor hatches",
+    "furniture",
+    "room stamps",
+    "notes"
+   ],
+   "language": [
+    "zh"
+   ],
+   "challenges": [
+    "hatching that is not wall",
+    "dimension chains",
+    "crossing lines",
+    "tags and callouts",
+    "thin walls"
+   ],
+   "why": "A classroom whose brick-pattern floor hatch and desks fill the room between axes and dimension lines, with light partitions left unlabelled: school construction CAD with ground truth."
+  },
+  {
+   "id": "fpcad-0081-0038",
+   "title": "FloorPlanCAD 0081-0038: hospital wards with beds and en-suite toilets",
+   "source": "FloorPlanCAD",
+   "origin": "data/benchmark/floorplancad/sample/0081-0038.png",
+   "file": "images/fpcad-0081-0038.png",
+   "licence": "CC BY-NC 4.0 (annotations; the drawings remain with their original owners)",
+   "attribution": {
+    "author": "Fan et al. (FloorPlanCAD, ICCV 2021); the drawings remain with their original owners",
+    "date": "2021",
+    "page": "https://floorplancad.github.io/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100,
+    "method": "known: 10 SVG units per metre (checked per drawing by dimension text and door sizes), rendered at 100 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs",
+    "source": "FloorPlanCAD line labels filled into six classes (doors include the swing; columns from CAD layers, unverified): data/benchmark/floorplancad/sample/0081-0038_label.png"
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "hospital",
+   "content": [
+    "tags",
+    "dimensions",
+    "axes",
+    "furniture",
+    "room stamps"
+   ],
+   "language": [
+    "zh"
+   ],
+   "challenges": [
+    "tags and callouts",
+    "dimension chains",
+    "small rooms",
+    "thin walls"
+   ],
+   "why": "A row of hospital wards with a door or window tag (M1324, C1527) on every opening and dimension chains across the rooms, with ground truth."
+  },
+  {
+   "id": "fpcad-0757-0057",
+   "title": "FloorPlanCAD 0757-0057: office units with toilets, tea kitchens and shafts",
+   "source": "FloorPlanCAD",
+   "origin": "data/benchmark/floorplancad/sample/0757-0057.png",
+   "file": "images/fpcad-0757-0057.png",
+   "licence": "CC BY-NC 4.0 (annotations; the drawings remain with their original owners)",
+   "attribution": {
+    "author": "Fan et al. (FloorPlanCAD, ICCV 2021); the drawings remain with their original owners",
+    "date": "2021",
+    "page": "https://floorplancad.github.io/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100,
+    "method": "known: 10 SVG units per metre (checked per drawing by dimension text and door sizes), rendered at 100 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs",
+    "source": "FloorPlanCAD line labels filled into six classes (doors include the swing; columns from CAD layers, unverified): data/benchmark/floorplancad/sample/0757-0057_label.png"
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "outlined",
+    "hatched"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "area values",
+    "tags",
+    "furniture",
+    "dimensions"
+   ],
+   "language": [
+    "zh"
+   ],
+   "challenges": [
+    "tags and callouts",
+    "hatching that is not wall",
+    "small rooms",
+    "complex wall hatches"
+   ],
+   "why": "Office units with name and area stamps (办公 9.75), long door tags, cross-hatched shafts and hatched wall segments: FM-like stamps inside a construction drawing."
+  },
+  {
+   "id": "fpcad-0829-0111",
+   "title": "FloorPlanCAD 0829-0111: hospital consulting rooms with a hexagon tile pattern, beside a courtyard",
+   "source": "FloorPlanCAD",
+   "origin": "data/benchmark/floorplancad/sample/0829-0111.png",
+   "file": "images/fpcad-0829-0111.png",
+   "licence": "CC BY-NC 4.0 (annotations; the drawings remain with their original owners)",
+   "attribution": {
+    "author": "Fan et al. (FloorPlanCAD, ICCV 2021); the drawings remain with their original owners",
+    "date": "2021",
+    "page": "https://floorplancad.github.io/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100,
+    "method": "known: 10 SVG units per metre (checked per drawing by dimension text and door sizes), rendered at 100 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs",
+    "source": "FloorPlanCAD line labels filled into six classes (doors include the swing; columns from CAD layers, unverified): data/benchmark/floorplancad/sample/0829-0111_label.png"
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "hospital",
+   "content": [
+    "floor hatches",
+    "level marks",
+    "dimensions",
+    "room stamps",
+    "furniture"
+   ],
+   "language": [
+    "zh"
+   ],
+   "challenges": [
+    "hatching that is not wall",
+    "dimension chains",
+    "courtyards"
+   ],
+   "why": "Consulting rooms filled wall to wall with a hexagon tile pattern next to a courtyard with level marks: floor hatches that touch every wall."
+  },
+  {
+   "id": "fpcad-0035-0071",
+   "title": "FloorPlanCAD 0035-0071: school stair core with a curved stair, lift and fire doors",
+   "source": "FloorPlanCAD",
+   "origin": "data/benchmark/floorplancad/sample/0035-0071.png",
+   "file": "images/fpcad-0035-0071.png",
+   "licence": "CC BY-NC 4.0 (annotations; the drawings remain with their original owners)",
+   "attribution": {
+    "author": "Fan et al. (FloorPlanCAD, ICCV 2021); the drawings remain with their original owners",
+    "date": "2021",
+    "page": "https://floorplancad.github.io/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100,
+    "method": "known: 10 SVG units per metre (checked per drawing by dimension text and door sizes), rendered at 100 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs",
+    "source": "FloorPlanCAD line labels filled into six classes (doors include the swing; columns from CAD layers, unverified): data/benchmark/floorplancad/sample/0035-0071_label.png"
+   },
+   "category": "Construction drawings",
+   "drawing_type": "construction drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "school",
+   "content": [
+    "tags",
+    "dimensions",
+    "axes",
+    "notes",
+    "furniture"
+   ],
+   "language": [
+    "zh"
+   ],
+   "challenges": [
+    "stairs and voids",
+    "curved walls",
+    "tags and callouts",
+    "dimension chains",
+    "crossing lines"
+   ],
+   "why": "A curved stair core with a fire-door tag (FM乙1623), lift, shaft crosses, axes and dimension chains: the circulation core of a school."
+  },
+  {
+   "id": "cp-usace-acsc-life-safety",
+   "title": "Army Community Service Center (extra large), A-102 Life Safety Plan, 3/32\" = 1'-0\" (USACE standard design, 2011)",
+   "source": "US federal drawings",
+   "origin": "data/benchmark/construction-plans/pdf/usace-hnc-acsc-standard-drawings-2011.pdf#page=13",
+   "file": "images/cp-usace-acsc-life-safety.png",
+   "licence": "Public domain (17 U.S.C. 105: work of the U.S. Government)",
+   "attribution": {
+    "author": "U.S. Army Corps of Engineers, Engineering and Support Center, Huntsville",
+    "date": "2011-04",
+    "page": "https://rfpwizard.mrsi.erdc.dren.mil/MRSI/content/cos/hnc/acsc/Library/Standard%20Designs/Standard%20Drawings%20-%20ACSC%20(Apr%2011).pdf"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": 61.52,
+    "method": "known: 3/32\" = 1'-0\" on a 34 × 22 in sheet (PDF page size), rendered at 200 dpi"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "FM and safety plans",
+   "drawing_type": "FM plan",
+   "input": "vector PDF",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "public/institutional",
+   "content": [
+    "symbols",
+    "legend",
+    "notes",
+    "title block",
+    "scale bar",
+    "north arrow",
+    "room stamps"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "overlaid symbols",
+    "crossing lines",
+    "low contrast",
+    "thin walls",
+    "large sheet"
+   ],
+   "why": "A Brandschutzplan analogue: red egress routes with travel distances and rated partitions drawn across a faint grey base plan, with a code summary and symbol key beside it."
+  },
+  {
+   "id": "cp-usace-bde-hq-1f",
+   "title": "Brigade headquarters (USACE standard design Rev 7.0), Small Brigade First Floor Plan, 1/8\" = 1'-0\", 2026",
+   "source": "US federal drawings",
+   "origin": "data/benchmark/construction-plans/pdf/usace-sas-bde-bn-hq-standard-design-rev7-2026.pdf#page=56",
+   "file": "images/cp-usace-bde-hq-1f.png",
+   "licence": "Public domain (17 U.S.C. 105: work of the U.S. Government)",
+   "attribution": {
+    "author": "U.S. Army Corps of Engineers, Savannah District (Center of Standardization)",
+    "date": "2026-06-22",
+    "page": "https://mrsi.erdc.dren.mil/content/cos/sas/bn-bde-hq/Library/Standard%20Designs/BDE-BN%20HQ%20Standard%20Design%20Rev%207.0%20dated%2020260622.pdf"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": 82.02,
+    "method": "known: 1/8\" = 1'-0\" on a 34 × 22 in sheet (PDF page size), rendered at 200 dpi"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "FM and safety plans",
+   "drawing_type": "FM plan",
+   "input": "vector PDF",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "area values",
+    "furniture",
+    "dimensions",
+    "notes",
+    "title block",
+    "scale bar"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "small rooms",
+    "open plan",
+    "thin walls",
+    "large sheet",
+    "non-metric units"
+   ],
+   "why": "A current federal office headquarters with a name and area stamp in every room (\"TEAM RM 150 SF\"), workstations and cores: the closest public analogue to an FM area plan."
+  },
+  {
+   "id": "cp-usace-hq-2f",
+   "title": "Consolidated battalion/brigade headquarters (USACE standard design Rev 7.0), Second Floor Plan, 1/16\" = 1'-0\", 2026",
+   "source": "US federal drawings",
+   "origin": "data/benchmark/construction-plans/pdf/usace-sas-bde-bn-hq-standard-design-rev7-2026.pdf#page=65",
+   "file": "images/cp-usace-hq-2f.png",
+   "licence": "Public domain (17 U.S.C. 105: work of the U.S. Government)",
+   "attribution": {
+    "author": "U.S. Army Corps of Engineers, Savannah District (Center of Standardization)",
+    "date": "2026-06-22",
+    "page": "https://mrsi.erdc.dren.mil/content/cos/sas/bn-bde-hq/Library/Standard%20Designs/BDE-BN%20HQ%20Standard%20Design%20Rev%207.0%20dated%2020260622.pdf"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": 41.01,
+    "method": "known: 1/16\" = 1'-0\" on a 34 × 22 in sheet (PDF page size), rendered at 200 dpi"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "FM and safety plans",
+   "drawing_type": "FM plan",
+   "input": "vector PDF",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "area values",
+    "furniture",
+    "title block",
+    "scale bar"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "small rooms",
+    "open plan",
+    "thin walls",
+    "large sheet",
+    "non-metric units"
+   ],
+   "why": "About 100 offices and open workstation fields at 41 px/m with name and area stamps a few pixels high: an FM floor at the small end of the scale range."
+  },
+  {
+   "id": "cp-usace-acsc-security",
+   "title": "Army Community Service Center (large), Electronic Security System plan (Exhibit C-4), reduced to 11 × 8.5 in, 2011",
+   "source": "US federal drawings",
+   "origin": "data/benchmark/construction-plans/pdf/usace-hnc-acsc-standard-drawings-2011.pdf#page=11",
+   "file": "images/cp-usace-acsc-security.png",
+   "licence": "Public domain (17 U.S.C. 105: work of the U.S. Government)",
+   "attribution": {
+    "author": "U.S. Army Corps of Engineers, Engineering and Support Center, Huntsville",
+    "date": "2011-04",
+    "page": "https://rfpwizard.mrsi.erdc.dren.mil/MRSI/content/cos/hnc/acsc/Library/Standard%20Designs/Standard%20Drawings%20-%20ACSC%20(Apr%2011).pdf"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (the sheet states 1/8\" = 1'-0\", but it is an 11 × 8.5 in exhibit reduced from the full sheet, so the note does not hold; room sizes such as 15' x 14' remain)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "FM and safety plans",
+   "drawing_type": "FM plan",
+   "input": "vector PDF",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "public/institutional",
+   "content": [
+    "symbols",
+    "legend",
+    "room stamps",
+    "area values",
+    "furniture",
+    "notes",
+    "title block"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "scale note invalid",
+    "overlaid symbols",
+    "small rooms",
+    "non-metric units"
+   ],
+   "why": "A security-device plan on a furnished floor, printed reduced so that its written 1/8\" scale is wrong: the test for scale notes that must not be trusted."
+  },
+  {
+   "id": "cm-bundeshaus-1902",
+   "title": "Bundeshaus Bern, main floor (Hauptgeschoss) with both chambers, 1902",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c02.png",
+   "file": "images/cm-bundeshaus-1902.png",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "unknown author",
+    "date": "1902",
+    "page": "https://commons.wikimedia.org/wiki/File:Bundeshaus_1902_unten.png"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (the sheet has a scale bar but no scale note)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "seating",
+    "ornament",
+    "title block",
+    "scale bar",
+    "axes",
+    "floor hatches"
+   ],
+   "language": [
+    "de",
+    "fr"
+   ],
+   "challenges": [
+    "seating",
+    "ornament",
+    "hatching that is not wall",
+    "courtyards",
+    "stairs and voids",
+    "columns",
+    "small rooms"
+   ],
+   "why": "The federal parliament itself: poché walls with patterned paving, rosettes and curved chamber seating, the review's case of seats split into rooms."
+  },
+  {
+   "id": "cm-bundesgericht-1927",
+   "title": "Federal Supreme Court, Lausanne: upper and ground floor plans, 1:650, 1927",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c03.jpg",
+   "file": "images/cm-bundesgericht-1927.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Jacques Béguin, Louis-Ernest Prince",
+    "date": "1927-11",
+    "page": "https://commons.wikimedia.org/wiki/File:Bundesgerichtsgebäude_Lausanne,_Grundriss.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note 1:650 and scale bars on the sheet; the scan resolution of the print is not known)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "office/administrative",
+   "content": [
+    "several drawings",
+    "furniture",
+    "scale note",
+    "scale bar",
+    "title block"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "several floors",
+    "small rooms",
+    "columns",
+    "courtyards",
+    "stairs and voids"
+   ],
+   "why": "A federal administrative building in BBL's portfolio: two floors on one sheet, rows of furnished offices along corridors, columned hall and courtyards."
+  },
+  {
+   "id": "cm-post-zuerich",
+   "title": "Zürich: the new post office building and the projected Poststrasse, with surroundings (1830s)",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c07.jpg",
+   "file": "images/cm-post-zuerich.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": null,
+    "date": null,
+    "page": "https://commons.wikimedia.org/wiki/File:Zuerich_Plan_Postgebaude.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the visible sheet)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "permit or design drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "before 1850",
+   "building_type": "office/administrative",
+   "content": [
+    "site context",
+    "legend",
+    "title block",
+    "room stamps"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "site context",
+    "hatching that is not wall",
+    "courtyards",
+    "low contrast"
+   ],
+   "why": "A public administrative building drawn inside its city block: hatched neighbours and streets at the same weight as the building, on sepia paper."
+  },
+  {
+   "id": "cm-rathaus-bern-ratsstube",
+   "title": "Rathaus Bern, council chamber (Ratsstube) as of 1784, published 1915",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c09.jpg",
+   "file": "images/cm-rathaus-bern-ratsstube.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "anonymous",
+    "date": "1915",
+    "page": "https://commons.wikimedia.org/wiki/File:Rathaus_Bern,_Ratsstube,_Grundriss_1784.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale bar in Bern Schuh, 1 Schuh = 0.2933 m)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "ornament",
+    "scale bar",
+    "seating",
+    "floor hatches"
+   ],
+   "language": [
+    "de",
+    "fr"
+   ],
+   "challenges": [
+    "hatching that is not wall",
+    "non-metric units",
+    "low resolution",
+    "seating"
+   ],
+   "why": "A single government hall whose diagonal paving fills the room, with numbered seats along the walls and a scale bar in Bern Schuh."
+  },
+  {
+   "id": "cm-landesmuseum-eg",
+   "title": "Swiss National Museum (Landesmuseum) Zürich, ground floor, ink on yellowed paper",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c04.jpg",
+   "file": "images/cm-landesmuseum-eg.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "unknown author",
+    "date": null,
+    "page": "https://commons.wikimedia.org/wiki/File:Ritningar_över_Schweizerisches_Landesmuseum_-_Hallwylska_museet_-_105316.tif"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (Commons rendition 3840 px wide; no scale on the sheet)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "survey drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "poché",
+    "outlined"
+   ],
+   "era": "unknown",
+   "building_type": "public/institutional",
+   "content": [
+    "colour zones",
+    "title block",
+    "ceiling lines",
+    "annotations"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "low contrast",
+    "large sheet",
+    "columns",
+    "courtyards",
+    "non-orthogonal walls"
+   ],
+   "why": "A federal museum building managed by BBL, drawn faintly on yellowed paper with red marked rooms: the low-contrast archive sheet in the set."
+  },
+  {
+   "id": "cm-theatre-geneve-1880",
+   "title": "Grand Théâtre de Genève, parterre and premières (two halves), 1880",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c15.jpg",
+   "file": "images/cm-theatre-geneve-1880.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Jacques-Elysée Goss (1839–1921)",
+    "date": "1880-01-03",
+    "page": "https://commons.wikimedia.org/wiki/File:Goss_Grand_Theatre_Geneve_1880_Plan_Parterre_Premier.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (dimension strings in metres, e.g. 18,46)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "permit or design drawing",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1850–1899",
+   "building_type": "public/institutional",
+   "content": [
+    "room stamps",
+    "legend",
+    "seating",
+    "dimensions",
+    "ornament",
+    "floor hatches"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "curved walls",
+    "seating",
+    "several floors",
+    "stairs and voids",
+    "hatching that is not wall"
+   ],
+   "why": "A public theatre split down its axis into two floors, with a horseshoe auditorium of seats, curved stairs and hatched corridor floors."
+  },
+  {
+   "id": "cm-goetheanum-1",
+   "title": "First Goetheanum, Dornach: hall storey (Saalgeschoss), c. 1913–1922",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c17.jpg",
+   "file": "images/cm-goetheanum-1.jpg",
+   "licence": "CC0",
+   "attribution": {
+    "author": "Alabasterstein",
+    "date": "2011-12-17",
+    "page": "https://commons.wikimedia.org/wiki/File:Erstes_Goetheanum_-_Riss_des_Saalgeschosses.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "public/institutional",
+   "content": [
+    "seating"
+   ],
+   "language": [
+    "none"
+   ],
+   "challenges": [
+    "curved walls",
+    "columns",
+    "seating",
+    "massive walls"
+   ],
+   "why": "Two intersecting domed halls drawn as curved poché ringed by columns and filled with seats: no straight wall and no text to anchor the scale."
+  },
+  {
+   "id": "cm-observatoire-geneve-1830",
+   "title": "Geneva observatory built in 1830: south elevation above the plan",
+   "source": "Wikimedia Commons",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/1/10/Geneve_old_Observatory_plan.jpg",
+   "file": "images/cm-observatoire-geneve-1830.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Alfred Gautier",
+    "date": "c. 1830",
+    "page": "https://commons.wikimedia.org/wiki/File:Geneve_old_Observatory_plan.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale bar of 40 pieds de roi, 1 pied = 0.3248 m)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "publication plan",
+   "input": "scan 1-bit",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "before 1850",
+   "building_type": "public/institutional",
+   "content": [
+    "several drawings",
+    "scale bar",
+    "title block"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "several floors",
+    "non-metric units",
+    "low resolution",
+    "non-orthogonal walls",
+    "stairs and voids"
+   ],
+   "why": "A small institutional building with an elevation drawn above the plan and a scale in French feet, at under 500 px wide."
+  },
+  {
+   "id": "cp-habs-nhdvs-admin-2011",
+   "title": "National Home for Disabled Volunteer Soldiers, Mountain Branch, Administration Building (Johnson City, Tennessee): first floor, HABS measured drawing, 2011",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/construction-plans/images/cp14.jpg",
+   "file": "images/cp-habs-nhdvs-admin-2011.jpg",
+   "licence": "Public domain (PD-USGov-NPS; HABS TN-254-Y)",
+   "attribution": {
+    "author": "Jason W. McNatt (HABS)",
+    "date": "2011",
+    "page": "https://commons.wikimedia.org/wiki/File:First_Floor_Plan_-_National_Home_for_Disabled_Volunteer_Soldiers,_Mountain_Branch,_Administration_Building,_Lamont_and_Veterans_Way,_Johnson_City,_Washington_County,_TN_HABS_TN-254-Y_(sheet_2_of_5).png"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale bars in feet and in metres; Commons rendition 3840 px wide)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "survey drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "hatched"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "dimensions",
+    "section markers",
+    "floor hatches",
+    "scale bar",
+    "north arrow",
+    "title block"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "complex wall hatches",
+    "hatching that is not wall",
+    "massive walls",
+    "dimension chains",
+    "small rooms"
+   ],
+   "why": "A modern CAD measured drawing of an administration building: hatched masonry walls, a patterned vestibule floor, dimension chains, section flags and room sizes."
+  },
+  {
+   "id": "cm-sporthotel-1og",
+   "title": "Sporthotel (Bernina road), first floor (I. Etage), 1900",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c11.jpg",
+   "file": "images/cm-sporthotel-1og.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "unknown author",
+    "date": "1900",
+    "page": "https://commons.wikimedia.org/wiki/File:Sporthotel_Grundriss_1_Etage.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet; door widths and room numbers only)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Hospitals and hotels",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "hotel",
+   "content": [
+    "room stamps",
+    "title block"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "small rooms",
+    "stairs and voids",
+    "hand lettering"
+   ],
+   "why": "Thirty-odd numbered guest rooms and baths along a corridor in heavy poché: the cellular layout of an administrative floor at hotel scale."
+  },
+  {
+   "id": "cm-altein-1917",
+   "title": "Sanatorium Altein, Arosa: ground floor and first floor, 1917",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c14.jpg",
+   "file": "images/cm-altein-1917.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Das Werk. Architektur und Kunst, vol. 4 (1917)",
+    "date": "1917",
+    "page": "https://commons.wikimedia.org/wiki/File:Altein_Grundriss_EG.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale bar on the sheet)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Hospitals and hotels",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "hospital",
+   "content": [
+    "several drawings",
+    "room stamps",
+    "scale bar",
+    "furniture"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "several floors",
+    "small rooms",
+    "thin walls",
+    "low resolution"
+   ],
+   "why": "A hospital building with two floors stacked on one small journal page, thin partitions and tiny room names."
+  },
+  {
+   "id": "cm-kantonsspital-zh",
+   "title": "Old cantonal hospital Zürich (Fig. 4, Hospital in Zürich), 1835",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c16.jpg",
+   "file": "images/cm-kantonsspital-zh.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Gustav Albert Wegmann",
+    "date": "1835",
+    "page": "https://commons.wikimedia.org/wiki/File:Zuerich_Altes_Kantonsspital_ZfB.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note '0,001 = 1m', i.e. 1:1000, and a scale bar)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Hospitals and hotels",
+   "drawing_type": "publication plan",
+   "input": "scan colour",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "before 1850",
+   "building_type": "hospital",
+   "content": [
+    "room stamps",
+    "scale note",
+    "title block"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "large sheet",
+    "small rooms",
+    "low contrast",
+    "stairs and voids"
+   ],
+   "why": "A public hospital as a 4:1 strip of wards and numbered rooms in sepia lithography: an elongated sheet with walls only a few pixels thick."
+  },
+  {
+   "id": "cm-hauptbahnhof-wanner",
+   "title": "Zürich main station (Wanner plans): ground and upper floor, 1865–1871",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c08.jpg",
+   "file": "images/cm-hauptbahnhof-wanner.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Jakob Friedrich Wanner",
+    "date": "1865–1871",
+    "page": "https://commons.wikimedia.org/wiki/File:CH-NB_-_Zürich_-_Hauptbahnhof_-_Wannerpläne_-_EAD-151466.tif"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (Commons rendition; scale bar on the sheet)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Industry and transport",
+   "drawing_type": "permit or design drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1850–1899",
+   "building_type": "transport",
+   "content": [
+    "several drawings",
+    "legend",
+    "title block",
+    "scale bar"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "several floors",
+    "columns",
+    "open plan",
+    "low contrast"
+   ],
+   "why": "A station hall with long colonnades and two floors on yellowed paper: open halls bounded by columns instead of walls."
+  },
+  {
+   "id": "cm-neumuehle-1850",
+   "title": "Neumühle Zürich: arrangement of the mill wheels (ground plan), c. 1850",
+   "source": "Wikimedia Commons",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Neum%C3%BChle_ZH_Anordnung_der_M%C3%BChler%C3%A4der_1850.jpg",
+   "file": "images/cm-neumuehle-1850.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "unknown author (Staatsarchiv des Kantons Zürich, PLAN E 238)",
+    "date": "c. 1850",
+    "page": "https://commons.wikimedia.org/wiki/File:Neumühle_ZH_Anordnung_der_Mühleräder_1850.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale visible; original file 3072 px wide)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Industry and transport",
+   "drawing_type": "survey drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1850–1899",
+   "building_type": "industrial",
+   "content": [
+    "machinery",
+    "colour zones",
+    "site context"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "overlaid symbols",
+    "colour fills",
+    "massive walls",
+    "site context"
+   ],
+   "why": "An industrial plan where water channels and mill machinery in colour wash cross the walls, with only part of the building in poché."
+  },
+  {
+   "id": "cm-kw-matte-1891",
+   "title": "Matte power station, Bern: turbine and generator hall, 1891 (published 1893)",
+   "source": "Wikimedia Commons",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/c/cb/Grundriss_KW_Matte_1891.png",
+   "file": "images/cm-kw-matte-1891.png",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "unknown author (Schweizerische Bauzeitung 1893, Heft 15)",
+    "date": "1893",
+    "page": "https://commons.wikimedia.org/wiki/File:Grundriss_KW_Matte_1891.png"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (a few dimension strings, mostly on the machines)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Industry and transport",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "1850–1899",
+   "building_type": "industrial",
+   "content": [
+    "machinery",
+    "dimensions",
+    "site context"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "overlaid symbols",
+    "low resolution",
+    "thin walls",
+    "curved walls"
+   ],
+   "why": "Three turbines and generators fill a hall drawn in thin lines on a halftone-grey page: machinery that is neither wall nor room, at 534 px."
+  },
+  {
+   "id": "cm-schloss-wart-1894",
+   "title": "Schloss Wart near Neftenbach: ground floor, 1:300, 1894",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c12.jpg",
+   "file": "images/cm-schloss-wart-1894.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "unknown author",
+    "date": "1894",
+    "page": "https://commons.wikimedia.org/wiki/File:Schloss_Wart_-_Grundriss_Ergeschoss.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note Masstab 1:300 and a 10 m scale bar)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1850–1899",
+   "building_type": "palace/monument",
+   "content": [
+    "ornament",
+    "legend",
+    "room stamps",
+    "scale bar",
+    "scale note",
+    "title block",
+    "north arrow"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "ornament",
+    "curved walls",
+    "stairs and voids",
+    "massive walls"
+   ],
+   "why": "Coffered and stuccoed ceilings drawn inside every room, the ornament gap of pilot finding 7, with a legend and a 10 m scale bar to check the scale."
+  },
+  {
+   "id": "cm-capucins-solothurn",
+   "title": "Capuchin convent Solothurn (Architectura Capucinorum, fol. 6r), 17th century",
+   "source": "Wikimedia Commons",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Architectura_Capucinorum_06r.jpg",
+   "file": "images/cm-capucins-solothurn.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Probus Heine (Württembergische Landesbibliothek, Cod. Don. 879)",
+    "date": "17th century",
+    "page": "https://commons.wikimedia.org/wiki/File:Architectura_Capucinorum_06r.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale bar numbered 20 to 90 along the bottom edge, unit not stated)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "survey drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "hatched"
+   ],
+   "era": "before 1850",
+   "building_type": "religious",
+   "content": [
+    "title block",
+    "scale bar"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "hand lettering",
+    "low contrast",
+    "stairs and voids",
+    "courtyards"
+   ],
+   "why": "A hand-drawn 17th-century manuscript plan with cross-hatched walls, a cloister and stair flights on stained paper: the oldest drawing in the set."
+  },
+  {
+   "id": "cm-hallwyl-1913",
+   "title": "Schloss Hallwyl, restoration of the Neues Schloss: first floor, 1:50, 1913",
+   "source": "Wikimedia Commons",
+   "origin": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Ritning_p%C3%A5_Schloss_Hallwyl%2C_f%C3%B6rsta_v%C3%A5ningen_-_Hallwylska_museet_-_102188.tif/lossy-page1-3840px-Ritning_p%C3%A5_Schloss_Hallwyl%2C_f%C3%B6rsta_v%C3%A5ningen_-_Hallwylska_museet_-_102188.tif.jpg",
+   "file": "images/cm-hallwyl-1913.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "unknown author (Hallwylska museet, LSH 102188)",
+    "date": "1913",
+    "page": "https://commons.wikimedia.org/wiki/File:Ritning_på_Schloss_Hallwyl,_första_våningen_-_Hallwylska_museet_-_102188.tif"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note Maßstab 1:50; Commons rendition 3840 px wide of a 4490 px scan)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "survey drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "hatched"
+   ],
+   "era": "1900–1949",
+   "building_type": "palace/monument",
+   "content": [
+    "room stamps",
+    "annotations",
+    "scale note",
+    "title block",
+    "dimensions"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "hand lettering",
+    "low contrast",
+    "massive walls",
+    "non-orthogonal walls",
+    "stairs and voids"
+   ],
+   "why": "A 1:50 survey for a restoration with hatched masonry, pencil notes and a calligraphic title: the kind of historical survey sheet BBL holds for its monuments."
+  },
+  {
+   "id": "cm-netstal-photo",
+   "title": "Reformed church Netstal (built 1811–1813): plan photographed on yellowed paper",
+   "source": "Wikimedia Commons",
+   "origin": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Kirche_Netstal_Grundriss.JPG/3840px-Kirche_Netstal_Grundriss.JPG",
+   "file": "images/cm-netstal-photo.jpg",
+   "licence": "CC0",
+   "attribution": {
+    "author": "Michael D. Schmid",
+    "date": "2014-04-30",
+    "page": "https://commons.wikimedia.org/wiki/File:Kirche_Netstal_Grundriss.JPG"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (photograph: no stable scale; Commons rendition 3840 px wide)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "survey drawing",
+   "input": "photo",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "unknown",
+   "building_type": "religious",
+   "content": [
+    "seating",
+    "north arrow",
+    "site context"
+   ],
+   "language": [
+    "none"
+   ],
+   "challenges": [
+    "perspective",
+    "seating",
+    "low contrast",
+    "non-orthogonal walls",
+    "columns"
+   ],
+   "why": "The only camera photo: a yellowed, creased sheet in slight perspective and uneven light, pews filling the nave of an octagonal church."
+  },
+  {
+   "id": "wf-velim-church",
+   "title": "St. Lawrence church, Velim: plan with vaults and spiral stair",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Kostel_svatého_Vavřince_Velim_Půdorys.png",
+   "file": "images/wf-velim-church.png",
+   "licence": "CC BY-SA 3.0",
+   "attribution": {
+    "author": "Kloin",
+    "date": "2012-09-02",
+    "page": "https://commons.wikimedia.org/wiki/File:Kostel_svatého_Vavřince_Velim_Půdorys.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "grey"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "religious",
+   "content": [
+    "ceiling lines"
+   ],
+   "language": [
+    "none"
+   ],
+   "challenges": [
+    "ornament",
+    "massive walls",
+    "stairs and voids"
+   ],
+   "why": "Grey massive walls with window splays and vault ribs crossing every bay, a spiral stair and ground truth to score them."
+  },
+  {
+   "id": "wf-mosquee",
+   "title": "Mosque: prayer hall with column grid, courtyard and minaret (schematic)",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Mosquée.png",
+   "file": "images/wf-mosquee.png",
+   "licence": "CC BY-SA 3.0",
+   "attribution": {
+    "author": "Kimdime (Mosquée.png); derivative work Malyszkz",
+    "date": "2012-02-18",
+    "page": "https://commons.wikimedia.org/wiki/File:Mosquée.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "religious",
+   "content": [
+    "room stamps"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "columns",
+    "courtyards",
+    "open plan",
+    "low resolution"
+   ],
+   "why": "A prayer hall that is one room defined by a grid of columns next to an open courtyard, with ground truth."
+  },
+  {
+   "id": "wf-crypte-st-victor",
+   "title": "Crypt of the abbey of Saint-Victor, Marseille: building phases in colour",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Crypte_de_saint-Victor.png",
+   "file": "images/wf-crypte-st-victor.png",
+   "licence": "CC BY-SA 3.0",
+   "attribution": {
+    "author": "Robert Valette",
+    "date": "2009-06-09",
+    "page": "https://commons.wikimedia.org/wiki/File:Crypte_de_saint-Victor.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (10 m scale bar on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "coloured"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "religious",
+   "content": [
+    "colour zones",
+    "legend",
+    "room stamps",
+    "scale bar",
+    "north arrow"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "colour fills",
+    "stairs and voids",
+    "non-orthogonal walls",
+    "columns"
+   ],
+   "why": "Walls coloured by building phase with a legend, rock in beige, letters and numbers in circles: colour that means age, not use."
+  },
+  {
+   "id": "wf-burg-krems",
+   "title": "Krems castle (Otto Piper, Österreichische Burgen, fig. 103), 1908",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Grundriss_der_Burg_Krems_(Otto_Piper).png",
+   "file": "images/wf-burg-krems.png",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Otto Piper",
+    "date": "1908",
+    "page": "https://commons.wikimedia.org/wiki/File:Grundriss_der_Burg_Krems_(Otto_Piper).svg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (25 m scale bar on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "publication plan",
+   "input": "born-digital raster",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "palace/monument",
+   "content": [
+    "room stamps",
+    "scale bar",
+    "north arrow",
+    "site context"
+   ],
+   "language": [
+    "none"
+   ],
+   "challenges": [
+    "hatching that is not wall",
+    "site context",
+    "non-orthogonal walls",
+    "massive walls"
+   ],
+   "why": "An engraving traced to vector: terrain hachures surround the poché castle on every side, the purest test of hatching that is not wall."
+  },
+  {
+   "id": "wf-hofburg",
+   "title": "Hofburg, Vienna: wings coloured by period",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Hofburg_Vienna_plan.png",
+   "file": "images/wf-hofburg.png",
+   "licence": "CC BY-SA 4.0",
+   "attribution": {
+    "author": "Gryffindor; vectorised by Gothika",
+    "date": "2008",
+    "page": "https://commons.wikimedia.org/wiki/File:Hofburg_Vienna_plan.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "coloured"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "palace/monument",
+   "content": [
+    "colour zones",
+    "room stamps"
+   ],
+   "language": [
+    "none"
+   ],
+   "challenges": [
+    "colour fills",
+    "courtyards",
+    "non-orthogonal walls",
+    "massive walls"
+   ],
+   "why": "A palace drawn as solid colour masses around courtyards, out of domain in the review (wall IoU 0.05–0.11) and kept as the hard end of the scale."
+  },
+  {
+   "id": "wf-pio-monte",
+   "title": "Pio Monte della Misericordia, Naples: church and charity complex",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Complesso_del_Pio_Monte_della_Misericordia.png",
+   "file": "images/wf-pio-monte.png",
+   "licence": "CC BY-SA 4.0",
+   "attribution": {
+    "author": "IlSistemone",
+    "date": "2016-12-13",
+    "page": "https://commons.wikimedia.org/wiki/File:Complesso_del_Pio_Monte_della_Misericordia.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Monuments and churches",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "religious",
+   "content": [
+    "room stamps",
+    "ceiling lines"
+   ],
+   "language": [
+    "none"
+   ],
+   "challenges": [
+    "low resolution",
+    "curved walls",
+    "columns",
+    "ornament"
+   ],
+   "why": "Soft blurred double outlines with no fill around an octagonal church and its wings, at 284 px wide."
+  },
+  {
+   "id": "cc-col-11260",
+   "title": "CubiCasa5K colorful/11260: flat 3H+K+S, 72 m², with coloured rooms",
+   "source": "CubiCasa5K",
+   "origin": "data/benchmark/cubicasa5k/colorful/11260/F1_scaled.png",
+   "file": "images/cc-col-11260.png",
+   "licence": "CC BY-NC-SA 4.0",
+   "attribution": {
+    "author": "Kalervo, Ylioinas, Häikiö, Karhu, Kannala (CubiCasa5K)",
+    "date": "2019",
+    "page": "https://doi.org/10.5281/zenodo.2613548"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100.0,
+    "method": "known: CubiCasa5K F1_scaled.png at 1 cm per pixel (room dimension labels)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CubiCasa5K model.svg polygons, bench.load_cubicasa"
+   },
+   "category": "Housing",
+   "drawing_type": "marketing plan",
+   "input": "born-digital raster",
+   "wall_style": [
+    "grey"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "area values",
+    "furniture",
+    "colour zones",
+    "dimensions"
+   ],
+   "language": [
+    "fi"
+   ],
+   "challenges": [
+    "colour fills",
+    "hatching that is not wall",
+    "open plan"
+   ],
+   "why": "A real-estate plan with coloured rooms, area stamps and furniture, and a hatched terrace band above it: stamp areas against a known scale."
+  },
+  {
+   "id": "cc-col-11962",
+   "title": "CubiCasa5K colorful/11962: two-storey house, both floors on one sheet",
+   "source": "CubiCasa5K",
+   "origin": "data/benchmark/cubicasa5k/colorful/11962/F1_scaled.png",
+   "file": "images/cc-col-11962.png",
+   "licence": "CC BY-NC-SA 4.0",
+   "attribution": {
+    "author": "Kalervo, Ylioinas, Häikiö, Karhu, Kannala (CubiCasa5K)",
+    "date": "2019",
+    "page": "https://doi.org/10.5281/zenodo.2613548"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100.0,
+    "method": "known: CubiCasa5K F1_scaled.png at 1 cm per pixel (room dimension labels)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CubiCasa5K model.svg polygons, bench.load_cubicasa"
+   },
+   "category": "Housing",
+   "drawing_type": "marketing plan",
+   "input": "born-digital raster",
+   "wall_style": [
+    "coloured"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "several drawings",
+    "furniture"
+   ],
+   "language": [
+    "fi"
+   ],
+   "challenges": [
+    "several floors",
+    "stairs and voids",
+    "colour fills"
+   ],
+   "why": "Two floors in green walls on one sheet with spiral stairs and a carport: one sheet, two floors, as on many archive plans."
+  },
+  {
+   "id": "cc-hq-8380",
+   "title": "CubiCasa5K high_quality/8380: flat with a curved facade and ballpoint edits",
+   "source": "CubiCasa5K",
+   "origin": "data/benchmark/cubicasa5k/high_quality/8380/F1_scaled.png",
+   "file": "images/cc-hq-8380.png",
+   "licence": "CC BY-NC-SA 4.0",
+   "attribution": {
+    "author": "Kalervo, Ylioinas, Häikiö, Karhu, Kannala (CubiCasa5K)",
+    "date": "2019",
+    "page": "https://doi.org/10.5281/zenodo.2613548"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100.0,
+    "method": "known: CubiCasa5K F1_scaled.png at 1 cm per pixel (room dimension labels)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CubiCasa5K model.svg polygons, bench.load_cubicasa"
+   },
+   "category": "Housing",
+   "drawing_type": "marketing plan",
+   "input": "scan colour",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "unknown",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "annotations",
+    "furniture"
+   ],
+   "language": [
+    "fi"
+   ],
+   "challenges": [
+    "curved walls",
+    "hand lettering",
+    "overlaid symbols"
+   ],
+   "why": "Partitions and room names added in blue ballpoint over a poché plan with a curved facade: hand edits that are, partly, walls."
+  },
+  {
+   "id": "cc-hq-1025",
+   "title": "CubiCasa5K high_quality/1025: terraced house, two floors, hatched walls",
+   "source": "CubiCasa5K",
+   "origin": "data/benchmark/cubicasa5k/high_quality/1025/F1_scaled.png",
+   "file": "images/cc-hq-1025.png",
+   "licence": "CC BY-NC-SA 4.0",
+   "attribution": {
+    "author": "Kalervo, Ylioinas, Häikiö, Karhu, Kannala (CubiCasa5K)",
+    "date": "2019",
+    "page": "https://doi.org/10.5281/zenodo.2613548"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100.0,
+    "method": "known: CubiCasa5K F1_scaled.png at 1 cm per pixel (room dimension labels)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CubiCasa5K model.svg polygons, bench.load_cubicasa"
+   },
+   "category": "Housing",
+   "drawing_type": "permit or design drawing",
+   "input": "scan grey",
+   "wall_style": [
+    "hatched",
+    "outlined"
+   ],
+   "era": "unknown",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "several drawings",
+    "furniture"
+   ],
+   "language": [
+    "fi"
+   ],
+   "challenges": [
+    "hatching that is not wall",
+    "stairs and voids",
+    "several floors",
+    "rotated text"
+   ],
+   "why": "Hatched walls next to a hatched roof and winding stairs on two floors, text upside down: only the hatch between wall lines is wall."
+  },
+  {
+   "id": "cc-hqa-366",
+   "title": "CubiCasa5K high_quality_architectural/366: house, building permit sheet, rotated",
+   "source": "CubiCasa5K",
+   "origin": "data/benchmark/cubicasa5k/high_quality_architectural/366/F1_scaled.png",
+   "file": "images/cc-hqa-366.png",
+   "licence": "CC BY-NC-SA 4.0",
+   "attribution": {
+    "author": "Kalervo, Ylioinas, Häikiö, Karhu, Kannala (CubiCasa5K)",
+    "date": "2019",
+    "page": "https://doi.org/10.5281/zenodo.2613548"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100.0,
+    "method": "known: CubiCasa5K F1_scaled.png at 1 cm per pixel (room dimension labels)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CubiCasa5K model.svg polygons, bench.load_cubicasa"
+   },
+   "category": "Housing",
+   "drawing_type": "permit or design drawing",
+   "input": "scan grey",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "area values",
+    "dimensions",
+    "furniture",
+    "title block",
+    "site context"
+   ],
+   "language": [
+    "fi"
+   ],
+   "challenges": [
+    "rotated text",
+    "hatching that is not wall",
+    "non-orthogonal walls",
+    "site context",
+    "dimension chains"
+   ],
+   "why": "An upside-down permit drawing with a hatched terrace, cars, dimension chains and stamped areas around a skewed wing."
+  },
+  {
+   "id": "cc-hqa-4014",
+   "title": "CubiCasa5K high_quality_architectural/4014: flat with the electrical layout drawn over it",
+   "source": "CubiCasa5K",
+   "origin": "data/benchmark/cubicasa5k/high_quality_architectural/4014/F1_scaled.png",
+   "file": "images/cc-hqa-4014.png",
+   "licence": "CC BY-NC-SA 4.0",
+   "attribution": {
+    "author": "Kalervo, Ylioinas, Häikiö, Karhu, Kannala (CubiCasa5K)",
+    "date": "2019",
+    "page": "https://doi.org/10.5281/zenodo.2613548"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 100.0,
+    "method": "known: CubiCasa5K F1_scaled.png at 1 cm per pixel (room dimension labels)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CubiCasa5K model.svg polygons, bench.load_cubicasa"
+   },
+   "category": "Housing",
+   "drawing_type": "construction drawing",
+   "input": "scan grey",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "annotations",
+    "furniture",
+    "floor hatches",
+    "symbols"
+   ],
+   "language": [
+    "fi"
+   ],
+   "challenges": [
+    "overlaid symbols",
+    "hatching that is not wall",
+    "thin walls"
+   ],
+   "why": "Circuits drawn as arcs across the rooms, fixture symbols on every wall and tiled wet rooms: lines that are not walls everywhere."
+  },
+  {
+   "id": "cvc-10",
+   "title": "CVC-FP 10: villa with garage, terraces and dimension chains",
+   "source": "CVC-FP",
+   "origin": "data/benchmark/cvc-fp/ImagesGT/10.png",
+   "file": "images/cvc-10.png",
+   "licence": "CC BY-NC 4.0",
+   "attribution": {
+    "author": "de las Heras, Terrades, Robles, Sánchez (CVC-FP)",
+    "date": "2015",
+    "page": "https://dag.cvc.uab.es/dataset/cvc-fp-database-for-structural-floor-plan-analysis/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 81.2,
+    "method": "estimated from the reference: 12 door symbols taken as 0.85 m leaves (rough: CVC-FP doors cover the swing)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CVC-FP SVG ground truth (doors cover the swing), bench.load_cvcfp"
+   },
+   "category": "Housing",
+   "drawing_type": "permit or design drawing",
+   "input": "scan grey",
+   "wall_style": [
+    "outlined",
+    "hatched"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "area values",
+    "dimensions",
+    "furniture",
+    "site context",
+    "title block"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "hatching that is not wall",
+    "non-orthogonal walls",
+    "thin walls",
+    "complex wall hatches"
+   ],
+   "why": "French CAD plan with stamped areas, dimension chains, cars and hatched terraces: the stamp parser must take '10.95 m²', not '3.70'."
+  },
+  {
+   "id": "cvc-image014",
+   "title": "CVC-FP image014: terraced house, ground and upper floors on an A-size sheet",
+   "source": "CVC-FP",
+   "origin": "data/benchmark/cvc-fp/ImagesGT/image014.png",
+   "file": "images/cvc-image014.png",
+   "licence": "CC BY-NC 4.0",
+   "attribution": {
+    "author": "de las Heras, Terrades, Robles, Sánchez (CVC-FP)",
+    "date": "2015",
+    "page": "https://dag.cvc.uab.es/dataset/cvc-fp-database-for-structural-floor-plan-analysis/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 231.76,
+    "method": "estimated from the reference: 13 door symbols taken as 0.85 m leaves (rough: CVC-FP doors cover the swing)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CVC-FP SVG ground truth (doors cover the swing), bench.load_cvcfp"
+   },
+   "category": "Housing",
+   "drawing_type": "permit or design drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "hatched"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "several drawings",
+    "dimensions",
+    "title block",
+    "furniture"
+   ],
+   "language": [
+    "es"
+   ],
+   "challenges": [
+    "large sheet",
+    "several floors",
+    "thin walls",
+    "dimension chains"
+   ],
+   "why": "A 5671 × 7383 px sheet of thin grey CAD lines with two floors, dimension chains and a title block: size and faint lines."
+  },
+  {
+   "id": "cvc-ic-ca0501",
+   "title": "CVC-FP Ic_CA0501 (sommaire): ground floor with angled wings",
+   "source": "CVC-FP",
+   "origin": "data/benchmark/cvc-fp/ImagesGT/Ic_CA0501_sommaire.png",
+   "file": "images/cvc-ic-ca0501.png",
+   "licence": "CC BY-NC 4.0",
+   "attribution": {
+    "author": "de las Heras, Terrades, Robles, Sánchez (CVC-FP)",
+    "date": "2015",
+    "page": "https://dag.cvc.uab.es/dataset/cvc-fp-database-for-structural-floor-plan-analysis/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 118.86,
+    "method": "estimated from the reference: 10 door symbols taken as 0.85 m leaves (rough: CVC-FP doors cover the swing)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CVC-FP SVG ground truth (doors cover the swing), bench.load_cvcfp"
+   },
+   "category": "Housing",
+   "drawing_type": "permit or design drawing",
+   "input": "scan 1-bit",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "area values",
+    "furniture",
+    "title block",
+    "dimensions"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "non-orthogonal walls",
+    "thin walls",
+    "open plan"
+   ],
+   "why": "Bitonal poché plan with angled wings, swing-only doors and stamped areas, from the subset where rooms merge through thin door arcs."
+  },
+  {
+   "id": "cvc-iia-gc0801",
+   "title": "CVC-FP IIa_GC0801: ground floor with garage and stamped areas",
+   "source": "CVC-FP",
+   "origin": "data/benchmark/cvc-fp/ImagesGT/IIa_GC0801.png",
+   "file": "images/cvc-iia-gc0801.png",
+   "licence": "CC BY-NC 4.0",
+   "attribution": {
+    "author": "de las Heras, Terrades, Robles, Sánchez (CVC-FP)",
+    "date": "2015",
+    "page": "https://dag.cvc.uab.es/dataset/cvc-fp-database-for-structural-floor-plan-analysis/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 119.42,
+    "method": "estimated from the reference: 8 door symbols taken as 0.85 m leaves (rough: CVC-FP doors cover the swing)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CVC-FP SVG ground truth (doors cover the swing), bench.load_cvcfp"
+   },
+   "category": "Housing",
+   "drawing_type": "permit or design drawing",
+   "input": "scan 1-bit",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "area values",
+    "dimensions",
+    "furniture",
+    "title block"
+   ],
+   "language": [
+    "fr"
+   ],
+   "challenges": [
+    "baseline",
+    "open plan"
+   ],
+   "why": "A typical clean CVC-FP plan with poché walls, stamps and overall dimensions: the control for the styled sheets around it."
+  },
+  {
+   "id": "cvc-p3",
+   "title": "CVC-FP p3: second floor of a US house model, imperial units",
+   "source": "CVC-FP",
+   "origin": "data/benchmark/cvc-fp/ImagesGT/p3.jpg",
+   "file": "images/cvc-p3.jpg",
+   "licence": "CC BY-NC 4.0",
+   "attribution": {
+    "author": "de las Heras, Terrades, Robles, Sánchez (CVC-FP)",
+    "date": "2015",
+    "page": "https://dag.cvc.uab.es/dataset/cvc-fp-database-for-structural-floor-plan-analysis/"
+   },
+   "use": "benchmark only",
+   "scale": {
+    "px_per_m": 196.58,
+    "method": "estimated from the reference: 9 door symbols taken as 0.85 m leaves (rough: CVC-FP doors cover the swing)"
+   },
+   "reference": {
+    "content": "walls+openings+rooms",
+    "source": "CVC-FP SVG ground truth (doors cover the swing), bench.load_cvcfp"
+   },
+   "category": "Housing",
+   "drawing_type": "marketing plan",
+   "input": "scan 1-bit",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "dimensions",
+    "title block",
+    "furniture"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "non-metric units",
+    "stairs and voids",
+    "thin walls",
+    "hand lettering"
+   ],
+   "why": "Room sizes in feet and inches (17'4\" x 10'6\") and ceiling heights under the names, in a thin-walled US plan with a stair: stamps the metric parser must not misread."
+  },
+  {
+   "id": "wf-rzut-budynku",
+   "title": "Plan of a residential building fragment (Rzut poziomy fragmentu budynku mieszkalnego), 1:50",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Rzut_budynku.png",
+   "file": "images/wf-rzut-budynku.png",
+   "licence": "CC BY-SA 3.0",
+   "attribution": {
+    "author": "Avalokitesvara",
+    "date": "2008-05-22",
+    "page": "https://commons.wikimedia.org/wiki/File:Rzut_budynku.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note Skala 1:50, but the raster has no resolution)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Housing",
+   "drawing_type": "permit or design drawing",
+   "input": "born-digital raster",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "title block",
+    "scale note"
+   ],
+   "language": [
+    "pl"
+   ],
+   "challenges": [
+    "baseline"
+   ],
+   "why": "A clean poché flat with door swings and casement windows and a written scale that cannot be used on a raster: the WAFFLE control."
+  },
+  {
+   "id": "wf-dogtrot",
+   "title": "Typical dogtrot house: two rooms either side of an open breezeway",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Typical_Dogtrot_Floorplan.png",
+   "file": "images/wf-dogtrot.png",
+   "licence": "CC BY-SA 3.0",
+   "attribution": {
+    "author": "Altairisfar (original); vector mwoehlke",
+    "date": "2019-05-25",
+    "page": "https://commons.wikimedia.org/wiki/File:Typical_Dogtrot_Floorplan.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Housing",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "title block"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "courtyards",
+    "thin walls"
+   ],
+   "why": "Outlined walls around an open breezeway and a porch: outdoor space inside the footprint that is not a room."
+  },
+  {
+   "id": "wf-houseflrplan",
+   "title": "House floor plan: single-line walls and a stair, 291 px wide",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/HouseFlrPlan.png",
+   "file": "images/wf-houseflrplan.png",
+   "licence": "GPL",
+   "attribution": {
+    "author": "MrDrew508 (original); vector Malyszkz",
+    "date": "2012-02-14",
+    "page": "https://commons.wikimedia.org/wiki/File:HouseFlrPlan.svg"
+   },
+   "use": "share-alike",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Housing",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "single line"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [],
+   "language": [
+    "none"
+   ],
+   "challenges": [
+    "thin walls",
+    "low resolution",
+    "stairs and voids"
+   ],
+   "why": "Walls as single lines with gaps for doors at 291 × 201 px: the thinnest walls and the lowest resolution in the set."
+  },
+  {
+   "id": "wf-zoning-flat",
+   "title": "Functional zoning of a flat (Схема функционального зонирования квартиры)",
+   "source": "WAFFLE benchmark",
+   "origin": "data/benchmark/waffle/data/benchmark/pngs/Зонирование_квартиры.png",
+   "file": "images/wf-zoning-flat.png",
+   "licence": "CC0",
+   "attribution": {
+    "author": "Андрей Перцев",
+    "date": "2019-02-05",
+    "page": "https://commons.wikimedia.org/wiki/File:Зонирование_квартиры.svg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
+   },
+   "reference": {
+    "content": "walls+openings+interior",
+    "source": "WAFFLE benchmark masks (segmented_descrete_pngs), bench.load_waffle"
+   },
+   "category": "Housing",
+   "drawing_type": "diagram",
+   "input": "born-digital raster",
+   "wall_style": [
+    "grey"
+   ],
+   "era": "CAD era (1990 onwards)",
+   "building_type": "residential",
+   "content": [
+    "colour zones",
+    "legend",
+    "title block"
+   ],
+   "language": [
+    "ru"
+   ],
+   "challenges": [
+    "colour fills",
+    "open plan"
+   ],
+   "why": "Rooms filled by use with a Cyrillic legend, grey walls and green built-in storage that is not wall."
+  },
+  {
+   "id": "cm-globus-heimeli-1932",
+   "title": "Globus-Heimeli: small house plan with furniture and dimensions, 1932",
+   "source": "Wikimedia Commons",
+   "origin": "data/benchmark/commons-plans/images/c18.png",
+   "file": "images/cm-globus-heimeli-1932.png",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Magazine zum Globus (\"Globus-Heimeli\")",
+    "date": "1932",
+    "page": "https://commons.wikimedia.org/wiki/File:Globus-Heimeli_Grundriss.png"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (overall dimension 11.00 m and room sizes such as 4.10 x 4.50)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Housing",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché",
+    "outlined"
+   ],
+   "era": "1900–1949",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "dimensions",
+    "furniture"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "hand lettering",
+    "thin walls",
+    "stairs and voids"
+   ],
+   "why": "A 1930s Swiss house with stencilled room names and sizes, furniture and an overall 11.00 m dimension: dimension-string scale on a small scan."
+  },
+  {
+   "id": "syn-ifc-ac20-1og",
+   "title": "Render: KIT institute building (IFC ac20), first floor, historical poché style",
+   "source": "IFC-Bench render",
+   "origin": "data/public/ifc-bench/projects/ac20/arc.ifc",
+   "file": "images/syn-ifc-ac20-1og.png",
+   "licence": "CC BY 4.0",
+   "attribution": {
+    "author": "Institute for Automation and Applied Informatics (IAI), Karlsruhe Institute of Technology (KIT)",
+    "date": null,
+    "page": "https://www.ifcwiki.org/index.php?title=KIT_IFC_Examples"
+   },
+   "use": "attribution",
+   "scale": {
+    "px_per_m": 50,
+    "method": "known: rendered at 50 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs+rooms",
+    "source": "renderer label map and the storey's IfcSpace polygons, stored with the render (images/<id>_label.png, _rooms.json)"
+   },
+   "category": "Synthetic renders",
+   "drawing_type": "synthetic",
+   "input": "render",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "synthetic",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "area values",
+    "annotations",
+    "furniture"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "small rooms",
+    "stairs and voids"
+   ],
+   "why": "A German office floor of single offices along a corridor in the poché, paper tone and serif stamps of historical federal plans, with a complete reference.",
+   "render": {
+    "floors": "pilot/v2-pipeline/data/floors-ifc.pkl",
+    "floor_id": "ac20/1. Obergeschoss",
+    "seed": 11,
+    "style": {
+     "era": "historical",
+     "walls": "solid",
+     "text": true,
+     "doors": "gap",
+     "windows": "two",
+     "ornament": false,
+     "multi": false,
+     "keyplan": false
+    }
+   }
+  },
+  {
+   "id": "syn-ifc-dental-1f",
+   "title": "Render: medical-dental clinic (IFC dental_clinic), first floor, CAD outline style",
+   "source": "IFC-Bench render",
+   "origin": "data/public/ifc-bench/projects/dental_clinic/arc.ifc",
+   "file": "images/syn-ifc-dental-1f.png",
+   "licence": "CC BY 4.0",
+   "attribution": {
+    "author": "BSI (2020), Medical-Dental Test Files, buildingSMART International",
+    "date": "2020",
+    "page": "https://github.com/buildingsmart-community/Community-Sample-Test-Files"
+   },
+   "use": "attribution",
+   "scale": {
+    "px_per_m": 50,
+    "method": "known: rendered at 50 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs+rooms",
+    "source": "renderer label map and the storey's IfcSpace polygons, stored with the render (images/<id>_label.png, _rooms.json)"
+   },
+   "category": "Synthetic renders",
+   "drawing_type": "synthetic",
+   "input": "render",
+   "wall_style": [
+    "outlined"
+   ],
+   "era": "synthetic",
+   "building_type": "hospital",
+   "content": [
+    "room stamps",
+    "area values",
+    "axes",
+    "furniture",
+    "floor hatches"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "small rooms",
+    "columns",
+    "large sheet",
+    "hatching that is not wall",
+    "hand lettering",
+    "thin walls"
+   ],
+   "why": "A 57 × 52 m clinic floor with 150 rooms in thin CAD outlines, tiled floors and a scan fold: the scale of a large federal building, with every room known.",
+   "render": {
+    "floors": "pilot/v2-pipeline/data/floors-ifc.pkl",
+    "floor_id": "dental_clinic/First Floor",
+    "seed": 12,
+    "style": {
+     "era": "cad",
+     "walls": "outline",
+     "doors": "arc",
+     "windows": "three",
+     "text": true,
+     "dims": true,
+     "column_style": "x",
+     "multi": false,
+     "keyplan": false
+    }
+   }
+  },
+  {
+   "id": "syn-ifc-digitalhub-e01",
+   "title": "Render: Digital Hub (IFC digital_hub), upper floor of group offices, hatched CAD style",
+   "source": "IFC-Bench render",
+   "origin": "data/public/ifc-bench/projects/digital_hub/arc.ifc",
+   "file": "images/syn-ifc-digitalhub-e01.png",
+   "licence": "MIT",
+   "attribution": {
+    "author": "RWTH Aachen University, E3D Institute of Energy Efficiency and Sustainable Building (2020)",
+    "date": "2020",
+    "page": "https://github.com/RWTH-E3D/DigitalHub"
+   },
+   "use": "attribution",
+   "scale": {
+    "px_per_m": 50,
+    "method": "known: rendered at 50 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs+rooms",
+    "source": "renderer label map and the storey's IfcSpace polygons, stored with the render (images/<id>_label.png, _rooms.json)"
+   },
+   "category": "Synthetic renders",
+   "drawing_type": "synthetic",
+   "input": "render",
+   "wall_style": [
+    "hatched"
+   ],
+   "era": "synthetic",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "area values",
+    "axes",
+    "dimensions"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "columns",
+    "open plan"
+   ],
+   "why": "Group offices on a column grid behind a glazed facade, drawn with hatched walls: columns and open plan with a full reference.",
+   "render": {
+    "floors": "pilot/v2-pipeline/data/floors-ifc.pkl",
+    "floor_id": "digital_hub/E01_OKRD",
+    "seed": 13,
+    "style": {
+     "era": "cad",
+     "walls": "hatch",
+     "doors": "arc",
+     "windows": "glass",
+     "text": true,
+     "column_style": "solid",
+     "column_grid": true,
+     "axes": true,
+     "multi": false,
+     "keyplan": false
+    }
+   }
+  },
+  {
+   "id": "syn-sd-14357",
+   "title": "Render: Swiss Dwellings test floor 14357 (apartment block, eight flats), colour style",
+   "source": "Swiss Dwellings render",
+   "origin": "data/public/swiss-dwellings-v3.0.0/geometries.csv",
+   "file": "images/syn-sd-14357.png",
+   "licence": "CC BY 4.0",
+   "attribution": {
+    "author": "Archilyse AG (Swiss Dwellings v3.0.0)",
+    "date": "2023",
+    "page": "https://doi.org/10.5281/zenodo.7788422"
+   },
+   "use": "attribution",
+   "scale": {
+    "px_per_m": 50,
+    "method": "known: rendered at 50 px/m"
+   },
+   "reference": {
+    "content": "walls+openings+columns+stairs+rooms",
+    "source": "renderer label map and the floor's areas from Swiss Dwellings, stored with the render (images/<id>_label.png, _rooms.json)"
+   },
+   "category": "Synthetic renders",
+   "drawing_type": "synthetic",
+   "input": "render",
+   "wall_style": [
+    "coloured"
+   ],
+   "era": "synthetic",
+   "building_type": "residential",
+   "content": [
+    "room stamps",
+    "colour zones",
+    "furniture",
+    "title block"
+   ],
+   "language": [
+    "de",
+    "fr",
+    "it"
+   ],
+   "challenges": [
+    "colour fills",
+    "stairs and voids",
+    "hatching that is not wall"
+   ],
+   "why": "A held-out Swiss apartment floor with loggias and several stairs in a colour style with hatched outdoor areas, scored against its own geometry.",
+   "render": {
+    "floors": "pilot/v2-pipeline/data/floors-test.pkl",
+    "floor_id": "14357",
+    "seed": 14,
+    "style": {
+     "era": "colour",
+     "walls": "colour",
+     "room_fill": true,
+     "text": true,
+     "doors": "leaf",
+     "windows": "rect",
+     "multi": false,
+     "keyplan": false
+    }
+   }
+  }
+ ]
+}

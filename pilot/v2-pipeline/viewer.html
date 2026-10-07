@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pilot v2 Viewer</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f6f7; --panel: #ffffff; --text: #1a1d21; --muted: #646b74; --border: #dfe2e6; --line: #f0f1f3;
+    --grid: #e3e6ea; --track: #eef0f2; --hover: #f5f6f7; --disabled: #9aa1ab;
+    --accent: #007daa; --accent-ink: #00567d; --accent-soft: #e2f1fa; --on-accent: #ffffff;
+    --high: #2e9e5b; --medium: #d99a1e; --low: #d0433b; --ref: #8e3fc7;
+    --wall2d: #2b3a55; --wall3d: #d6d9df; --void: #1f78b4; --door: #d0433b; --window: #2f8fd8;
+    --passage: #f08a24; --stair: #c23fbf; --gf: #111827; --graph: #0f766e; --frag: #8a8f99;
+    --tip-bg: #1a1d21; --tip-text: #ffffff; --ok-bg: #e6f4ec; --ok-ink: #1f7a45;
+    --warn-bg: #fdf6e3; --warn-border: #e8c777; --warn-ink: #5c3d00;
+    --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #14171c; --panel: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --border: #323844; --line: #272c35;
+      --grid: #1f242c; --track: #2c323c; --hover: #262b34; --disabled: #6c7380;
+      --accent: #2b9fd0; --accent-ink: #8fd0f0; --accent-soft: #16313e; --wall3d: #c9ced8;
+      --tip-bg: #0b0d10; --ok-bg: #173325; --ok-ink: #7ad3a0; --warn-bg: #362c12; --warn-border: #7a6224; --warn-ink: #f3d68a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #14171c; --panel: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --border: #323844; --line: #272c35;
+    --grid: #1f242c; --track: #2c323c; --hover: #262b34; --disabled: #6c7380;
+    --accent: #2b9fd0; --accent-ink: #8fd0f0; --accent-soft: #16313e; --wall3d: #c9ced8;
+    --tip-bg: #0b0d10; --ok-bg: #173325; --ok-ink: #7ad3a0; --warn-bg: #362c12; --warn-border: #7a6224; --warn-ink: #f3d68a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.45 var(--font); }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  code { background: var(--hover); padding: 0 4px; border-radius: 4px; font-size: 12px; }
+  a { color: var(--accent-ink); }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .id { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .help { cursor: help; }
+  .warn { color: var(--low); }
+  #app { display: grid; grid-template-rows: 52px minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); height: 100%; }
+  #top, #body { display: grid; grid-template-columns: 280px minmax(0, 1fr) 360px; }
+  #top { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 16px; font-weight: 600; white-space: nowrap; }
+  .logo { width: 22px; height: 22px; border-radius: 5px; background: var(--accent); color: #fff; display: grid; place-items: center;
+    font-size: 11px; font-weight: 600; flex: none; }
+  .sheets { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 0 8px; }
+  .nav { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--muted); flex: none; }
+  .tabs { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel); min-width: 0; }
+  .tab { border: 0; border-left: 1px solid var(--border); background: none; padding: 5px 14px; display: flex; flex-direction: column;
+    align-items: center; line-height: 1.2; min-width: 0; max-width: 230px; flex: 0 1 auto; }
+  .tab:first-child { border-left: 0; }
+  .tab > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab .sub { font-size: 10px; color: var(--muted); }
+  .tab.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .tab.on .sub { color: inherit; opacity: .8; font-weight: 500; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px; }
+  .btn { height: 30px; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); white-space: nowrap; }
+  .btn:disabled { background: var(--hover); color: var(--disabled); }
+  .btn:not(:disabled):hover, .nav:hover, .sbtn:not(:disabled):hover { background: var(--hover); }
+  .pop { position: fixed; z-index: 20; background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .14); }
+  .menu { width: 420px; max-width: calc(100vw - 16px); max-height: 72vh; overflow: auto; padding: 8px; }
+  .mfilter { display: flex; gap: 6px; padding: 4px 4px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .mfilter select { flex: 1; min-width: 0; height: 30px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); padding: 0 6px; }
+  .mgroup { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 10px 8px 4px; }
+  .mitem { display: flex; flex-direction: column; width: 100%; border: 0; background: none; text-align: left; padding: 6px 8px; border-radius: 6px; }
+  .mitem:hover { background: var(--hover); }
+  .mitem.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .mitem .mm { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .helppop { width: 380px; max-width: calc(100vw - 16px); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .helppop p { margin: 0; color: var(--muted); font-size: 12px; }
+  #body { min-height: 0; }
+  #left { background: var(--panel); border-right: 1px solid var(--border); padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 18px; }
+  .cap { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .col { display: flex; flex-direction: column; gap: 6px; }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--panel); }
+  .seg button { border: 0; border-left: 1px solid var(--border); padding: 6px 0; background: none; font-size: 12px; }
+  .seg button:first-child { border-left: 0; }
+  .seg button.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .seg button:disabled { color: var(--disabled); }
+  .legend { display: flex; flex-direction: column; gap: 3px; font-size: 12px; padding-top: 4px; }
+  .legend:empty { display: none; }
+  .lrow { display: flex; align-items: center; gap: 8px; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; display: inline-block; }
+  .n { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .hrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #layers { display: flex; flex-direction: column; gap: 2px; }
+  .ghead { display: flex; align-items: center; gap: 8px; padding: 8px 0 2px; font-weight: 600; background: none; border: 0; text-align: left; }
+  .ghead .tri { color: var(--muted); font-size: 10px; width: 8px; }
+  .layer { display: flex; align-items: center; gap: 8px; padding: 4px 0 4px 16px; cursor: pointer; }
+  .layer input { margin: 0; accent-color: var(--accent); }
+  .layer.dis { color: var(--disabled); cursor: default; }
+  .lname { min-width: 0; }
+  .note { margin-top: auto; font-size: 11px; color: var(--muted); }
+  #stage { position: relative; overflow: hidden; min-height: 320px; background-color: var(--bg);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px; }
+  #plan { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  #tip { position: absolute; transform: translate(-50%, calc(-100% - 14px)); background: var(--tip-bg); color: var(--tip-text); border-radius: 6px;
+    padding: 6px 10px; font-size: 12px; line-height: 1.35; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); white-space: nowrap; pointer-events: none; z-index: 2; }
+  #tip .hint { opacity: .7; }
+  .toolbar { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, .1);
+    font-size: 12px; white-space: nowrap; z-index: 3; max-width: calc(100% - 16px); }
+  .toolbar .seg button { padding: 5px 12px; }
+  .toolbar input[type="range"] { width: 110px; margin: 0; accent-color: var(--accent); }
+  .opv { display: flex; align-items: center; gap: 8px; }
+  .opv output { width: 34px; }
+  .vsep { width: 1px; height: 20px; background: var(--border); flex: none; }
+  .link { border: 0; background: none; padding: 0; color: var(--text); }
+  .link:hover { color: var(--accent-ink); }
+  .link.on { color: var(--accent-ink); font-weight: 600; }
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+  #right { background: var(--panel); border-left: 1px solid var(--border); overflow: auto; display: flex; flex-direction: column; }
+  #inspector { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+  .ititle { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+  .isub { font-size: 11px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  .badge { padding: 1px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .x { width: 24px; height: 24px; border: 0; border-radius: 6px; background: var(--hover); color: var(--muted); flex: none; }
+  table.kv { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.kv td { padding: 3px 0; vertical-align: top; overflow-wrap: anywhere; }
+  table.kv td:first-child { color: var(--muted); padding-right: 10px; white-space: nowrap; width: 1%; }
+  .ibtns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sbtn { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); font-size: 12px; white-space: nowrap; }
+  .sbtn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .sbtn:disabled { color: var(--disabled); }
+  .review { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .hint { font-size: 11px; color: var(--muted); }
+  .rtabs { display: flex; gap: 18px; padding: 0 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); z-index: 1; }
+  .rtab { border: 0; background: none; padding: 10px 0 8px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .rtab.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .block { padding: 18px 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+  .block:first-child { border-top: 0; }
+  h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok-ink); }
+  .pill.ok::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--high); }
+  .grid2 { display: grid; grid-template-columns: auto 1fr; row-gap: 6px; column-gap: 16px; font-size: 13px; }
+  .grid2 > :nth-child(odd) { color: var(--muted); }
+  .grid2 > :nth-child(even) { text-align: right; justify-self: end; }
+  .bar { width: 72px; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; display: inline-block; vertical-align: middle; }
+  .bar > span { display: block; height: 100%; }
+  .barcell { display: inline-flex; align-items: center; gap: 8px; }
+  .strip { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; }
+  .strip b { color: var(--text); font-weight: 600; }
+  .flags { display: flex; flex-direction: column; gap: 6px; }
+  .flag { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--panel); text-align: left; width: 100%; }
+  .flag:hover { border-color: var(--accent); }
+  .flag.on { border-color: var(--accent); background: var(--accent-soft); }
+  .flag .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .flag .ft { display: block; font-weight: 600; overflow-wrap: anywhere; }
+  .flag .msg { display: block; color: var(--muted); font-size: 12px; }
+  .flag .chev { color: var(--muted); }
+  .flag.done .ft, .flag.done .msg { opacity: .55; }
+  .flag.done .chev { color: var(--high); font-weight: 600; }
+  .wide { height: 40px; border: 0; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .more { align-self: flex-start; color: var(--accent-ink); font-size: 12px; }
+  .exp { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 10px; }
+  .exp .btn { height: 32px; border-radius: 8px; }
+  .rhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 20px 8px; }
+  .chips { display: flex; gap: 4px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; font-size: 11px; background: var(--panel); color: var(--muted); line-height: 1.6; }
+  .chip.on { background: var(--text); border-color: var(--text); color: var(--panel); }
+  .rlist { display: flex; flex-direction: column; }
+  .rrow { display: grid; grid-template-columns: 12px minmax(0, 1fr) 64px 78px; align-items: center; gap: 10px; padding: 6px 20px; border: 0;
+    border-top: 1px solid var(--line); background: none; text-align: left; font-size: 12px; width: 100%; }
+  .rrow:hover { background: var(--hover); }
+  .rrow.on { background: var(--accent-soft); font-weight: 600; }
+  .rn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ra { text-align: right; color: var(--muted); }
+  .iou { display: flex; align-items: center; gap: 6px; }
+  .iou .bar { flex: 1; height: 5px; }
+  .iou > span:last-child { width: 28px; text-align: right; }
+  .conf { text-align: right; font-weight: 600; }
+  .big { font-size: 20px; font-weight: 600; }
+  .warnbox { border: 1px solid var(--warn-border); background: var(--warn-bg); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--warn-ink); }
+  .pillbtn { height: 36px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); font-size: 13px; font-weight: 600; }
+  .pillbtn.on { border-color: var(--accent); color: var(--accent-ink); }
+  .step { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 12px; font-weight: 600; }
+  .step b { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; flex: none; }
+  .realin { width: 84px; height: 30px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); padding: 0 8px; text-align: right; }
+  .accentbig { font-size: 17px; font-weight: 600; color: var(--accent-ink); }
+  .why { margin: 0; font-style: italic; color: var(--muted); font-size: 12px; }
+  @media (max-width: 1180px) {
+    #body { grid-template-columns: 240px minmax(0, 1fr) 320px; }
+    .tab { padding: 5px 10px; }
+  }
+  @media (max-width: 860px) {
+    html, body { height: auto; }
+    #app { grid-template-rows: auto auto; height: auto; }
+    #top { grid-template-columns: minmax(0, 1fr) auto; padding: 8px 0; row-gap: 8px; }
+    .actions { padding: 0 16px 0 0; }
+    .long { display: none; }
+    .sheets { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; overflow-x: auto; padding: 0 16px; }
+    .tabs, .tab { flex: none; }
+    #body { grid-template-columns: minmax(0, 1fr); }
+    #stage { grid-row: 1; height: 62vh; }
+    #left, #right { border: 0; border-top: 1px solid var(--border); overflow: visible; }
+    .toolbar { flex-wrap: wrap; justify-content: center; row-gap: 6px; gap: 10px; padding: 6px 10px; width: calc(100% - 16px); bottom: 8px; }
+    .vsep { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand"><span class="logo">fpx</span><span>Pilot v2 viewer</span></div>
+    <nav class="sheets" aria-label="Sheets">
+      <button type="button" class="nav" id="prev" title="Previous sheet ([)" aria-label="Previous sheet">‹</button>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <button type="button" class="nav" id="next" title="Next sheet (])" aria-label="Next sheet">›</button>
+    </nav>
+    <div class="actions">
+      <button type="button" class="btn" id="copylink">Copy link<span class="long"> to view</span></button>
+      <button type="button" class="btn" id="helpbtn" aria-expanded="false">Help</button>
+    </div>
+  </header>
+  <div id="body">
+    <aside id="left">
+      <div class="col">
+        <div class="cap">Colour rooms by</div>
+        <div class="seg" id="colour" role="group" aria-label="Colour rooms by">
+          <button type="button" data-colour="room">Room</button><button type="button" data-colour="confidence">Confidence</button><button type="button" data-colour="accuracy">Accuracy</button>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div id="layers"></div>
+      <div class="note">3D heights are for display only. Plan data stays local (<code>data/</code>, gitignored); curated sheets show their
+        licence, and benchmark-only and BBL sheets must never be shown publicly.</div>
+    </aside>
+    <main id="stage">
+      <canvas id="plan" aria-label="Plan with extracted rooms, walls and openings"></canvas>
+      <div id="tip" hidden></div>
+      <div class="toolbar" id="toolbar">
+        <div class="seg" id="view" role="group" aria-label="View"><button type="button" data-view="2d">2D</button><button type="button" data-view="3d">3D</button></div>
+        <div class="vsep"></div>
+        <label class="opv"><span class="muted">Plan</span><input type="range" id="opacity" min="0" max="1" step="0.05" value="1"><output id="opout">100%</output></label>
+        <div class="vsep"></div>
+        <button type="button" class="link" id="fitrooms" title="Fit to rooms (F)">Fit to rooms</button>
+        <button type="button" class="link" id="fitsheet">Fit to sheet</button>
+        <div class="vsep"></div>
+        <button type="button" class="link" id="measure" title="Measure a distance on the plan">Measure</button>
+      </div>
+    </main>
+    <aside id="right">
+      <div id="inspector" hidden></div>
+      <div class="rtabs" role="tablist">
+        <button type="button" class="rtab" data-tab="results" role="tab">Results</button>
+        <button type="button" class="rtab" data-tab="rooms" role="tab">Rooms</button>
+        <button type="button" class="rtab" data-tab="sheet" role="tab">Sheet</button>
+      </div>
+      <div id="pane"></div>
+    </aside>
+  </div>
+</div>
+<div id="menu" class="pop menu" role="menu" hidden></div>
+<div id="help" class="pop helppop" hidden>
+  <h3>Using the viewer</h3>
+  <table class="kv">
+    <tr><td>Drag</td><td>Pan (2D) or rotate (3D; right-drag or Shift-drag pans)</td></tr>
+    <tr><td>Wheel</td><td>Zoom at the cursor</td></tr>
+    <tr><td>Click</td><td>Pin a room, opening or void in the inspector; Esc clears</td></tr>
+    <tr><td>1–9, 0</td><td>Toggle the first ten layers in list order</td></tr>
+    <tr><td>[ and ]</td><td>Previous and next sheet</td></tr>
+    <tr><td>F</td><td>Fit to rooms</td></tr>
+  </table>
+  <p>Everything shown is read from <code>data/out/viewer-data.js</code> (written by <code>export_viewer.py</code>) on this machine; nothing is
+    uploaded. Review checks are kept in this browser only. Upload, the confirmation steps before a run, editing and the downloads of the
+    workflow study need the app and are not part of this viewer.</p>
+</div>
+
+<script src="data/out/viewer-data.js"></script>
+<script>
+"use strict";
+const D = window.VIEWER_DATA;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const num = (v, d = 1) => (v == null || Number.isNaN(+v) ? "–" : (+v).toFixed(d));
+const cap1 = (t) => (t ? t[0].toUpperCase() + t.slice(1) : "");
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const store = {     // per-viewer review checks; storage can be blocked (private window, file:// policies)
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* not kept */ } },
+};
+
+const PALETTE = ["#4e79a7", "#f28e2b", "#59a14f", "#e15759", "#76b7b2", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#86bcb6"];
+const WALL_H = 3.0, RAD = Math.PI / 180;
+const LABEL = { bg: "rgba(255, 255, 255, 0.88)", text: "#1d2330", muted: "#5b6475" };     // labels sit on the (white) sheet
+// tag axes of the curated set (data/curated/plans.json), in the order the filter and the sheet pane list them
+const AXES = { category: "Category", drawing_type: "Drawing type", challenges: "Challenges", building_type: "Building type",
+               wall_style: "Wall style", input: "Input", era: "Era", content: "Content", language: "Language", use: "Use",
+               source: "Source" };
+const DATASETS = { cubicasa: "CubiCasa", cvcfp: "CVC-FP", waffle: "WAFFLE", commons: "Commons" };
+const LAYERS = [
+  ["walls", "Walls", "Structure", true], ["doors", "Doors", "Structure", true], ["windows", "Windows", "Structure", true],
+  ["passages", "Passages, interior openings", "Structure", true], ["stairs", "Stairs", "Structure", true],
+  ["voids", "Voids (not floor area)", "Structure", true], ["rooms", "Room fill", "Rooms", true],
+  ["labels", "Labels (name, area, stamp)", "Rooms", true], ["fragments", "Small unlabelled regions", "Rooms", false],
+  ["graph", "Room connections", "Analysis", false], ["gf", "GF outline", "Analysis", false], ["ref", "Reference", "Analysis", false],
+].map(([key, name, group, on]) => ({ key, name, group, on }));
+const OLD_KEYS = { openings: ["doors", "windows", "passages"], stairs: ["stairs", "voids"] };     // hash keys of the earlier viewer
+const KIND_COLOUR = { doors: "door", windows: "window", passages: "passage" };
+const CONF_TIP = { high: "Stamp area within 5 % and exactly one stamp", medium: "No contradiction found, e.g. no stamp to check against",
+                   low: "Area more than 15 % off the stamp, several stamps, or under 2 m²" };
+
+const state = { i: 0, view: "2d", colour: "room", opacity: 1, tag: "", tab: "results", L: {}, pin: null, hover: null, sort: null,
+                focus: false, compare: false, menu: null, help: false, measure: null, allFlags: false, closed: {} };
+LAYERS.forEach((l) => (state.L[l.key] = l.on));
+
+const S = () => D.sheets[state.i];
+const isBench = (s) => !!(s.summary && s.summary.kind === "bench");
+// several runs of one sheet (e.g. model v1 and v2) are separate entries; label them by run or model, else by position
+const runOf = (s) => { if (s.run || s.model) return String(s.run || s.model);
+  const twins = D.sheets.filter((x) => x.id === s.id); return twins.length > 1 ? `run ${twins.indexOf(s) + 1}` : ""; };
+const refOf = (s) => s.reference || (isBench(s) || !D.reference ? { rooms: [], walls: [] }
+  : { rooms: D.reference.rooms.flatMap((r) => r.polygons), walls: D.reference.walls, named: D.reference.rooms });
+const hasRef = (s) => refOf(s).rooms.length + refOf(s).walls.length > 0;
+const hasRoomRef = (s) => refOf(s).rooms.length > 0;
+const refName = (s) => (isBench(s) ? "Reference" : "2005 reference");
+const kindOf = (o) => (o.kind === "window" ? "windows" : o.kind.includes("door") ? "doors" : "passages");
+const hasTag = (s, tag) => { if (!tag) return true; const i = tag.indexOf(":");
+  return !!s.curated && (s.curated.tags[tag.slice(0, i)] || []).includes(tag.slice(i + 1)); };
+const same = (a, b) => !!a && !!b && a.type === b.type && a.id === b.id && a.idx === b.idx;
+const roomById = (s, id) => s.rooms.find((r) => r.id === id);
+
+let C = {};
+function readColours() {
+  for (const k of ["high", "medium", "low", "ref", "wall2d", "wall3d", "void", "door", "window", "passage", "stair", "gf", "graph", "frag", "accent"]) {
+    C[k] = css(`--${k}`);
+  }
+  C.font = css("--font");
+}
+const level = (r, mode) => (mode === "confidence" ? r.conf : r.iou >= 0.8 ? "high" : r.iou >= 0.5 ? "medium" : "low");
+const colourMode = () => (state.colour === "accuracy" && !hasRoomRef(S()) ? "confidence" : state.colour);
+const roomColour = (r, i) => (colourMode() === "room" ? PALETTE[i % PALETTE.length] : C[level(r, colourMode())]);
+
+// ---------- geometry ----------
+const geoCache = new Map();
+function prep(polys) {
+  const path = new Path2D(), box = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const poly of polys) for (const ring of poly) {
+    ring.forEach(([x, y], k) => {
+      if (k) path.lineTo(x, y); else path.moveTo(x, y);
+      box[0] = Math.min(box[0], x); box[1] = Math.min(box[1], y); box[2] = Math.max(box[2], x); box[3] = Math.max(box[3], y);
+    });
+    path.closePath();
+  }
+  return { polys, path, box };
+}
+const union = (boxes) => boxes.filter((b) => b[0] <= b[2]).reduce((u, b) =>
+  [Math.min(u[0], b[0]), Math.min(u[1], b[1]), Math.max(u[2], b[2]), Math.max(u[3], b[3])], [Infinity, Infinity, -Infinity, -Infinity]);
+const signedArea = (ring) => ring.reduce((a, [x, y], k) => { const [u, v] = ring[(k + 1) % ring.length]; return a + x * v - u * y; }, 0) / 2;
+const centroid = (ring) => ring.reduce((c, [x, y]) => [c[0] + x / ring.length, c[1] + y / ring.length], [0, 0]);
+
+function geo(s) {
+  let g = geoCache.get(s);
+  if (g) return g;
+  const ref = refOf(s);
+  g = { rooms: s.rooms.map((r) => prep(r.polygons)), openings: s.openings.map((o) => prep(o.polygons)), voids: s.voids.map((v) => prep(v.polygons)),
+        walls: prep(s.walls.polygons), stairs: prep(s.stairs), gf: prep(s.gf.polygons), frags: prep(s.fragments),
+        refRooms: prep(ref.rooms), refWalls: prep(ref.walls), named: (ref.named || []).map((n) => ({ name: n.name, ...prep(n.polygons) })),
+        img: null, solids: null };
+  const rb = union(g.rooms.map((p) => p.box));
+  g.roomBox = rb[0] <= rb[2] ? rb : s.extent.slice();
+  geoCache.set(s, g);
+  return g;
+}
+
+function image(s) {
+  const g = geo(s);
+  if (!g.img) { g.img = new Image(); g.img.onload = () => draw(); g.img.src = s.image; }
+  return g.img;
+}
+
+// walls and openings as prisms for 3D: outer rings counter-clockwise, holes clockwise, so the solid is left of every edge
+function solids(s) {
+  const g = geo(s);
+  if (g.solids) return g.solids;
+  const orient = (ring, ccw) => ((signedArea(ring) > 0) === ccw ? ring : ring.slice().reverse());
+  const out = [];
+  for (const poly of s.walls.polygons) poly.forEach((ring, k) => out.push({ ring: orient(ring, k === 0), z0: 0, z1: WALL_H, layer: "walls" }));
+  for (const o of s.openings) {
+    const [z0, z1] = o.kind === "window" ? [0.9, 2.2] : [0, 2.1];
+    for (const poly of o.polygons) out.push({ ring: orient(poly[0], true), z0, z1, layer: kindOf(o) });
+  }
+  return (g.solids = out);
+}
+
+function inside(polys, x, y) {
+  let c = false;
+  for (const poly of polys) for (const ring of poly) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+    }
+  }
+  return c;
+}
+const inBox = (b, x, y) => x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3];
+
+// ---------- camera: orthographic, plan metres; 2D is the top view (elevation 90°) ----------
+const stage = $("stage"), canvas = $("plan"), ctx = canvas.getContext("2d");
+const cam = { cx: 0, cy: 0, s: 10, az: 0, el: 90 };
+let W = 1, H = 1, dpr = 1, raf = 0;
+
+function basis(z = 0) {         // affine plan (x, y) at height z -> screen px: [a, b, c, d, e, f] as in setTransform
+  const t = cam.az * RAD, p = cam.el * RAD, s = cam.s;
+  const a = s * Math.cos(t), c = -s * Math.sin(t), b = -s * Math.sin(p) * Math.sin(t), d = -s * Math.sin(p) * Math.cos(t);
+  return [a, b, c, d, W / 2 - a * cam.cx - c * cam.cy, H / 2 - b * cam.cx - d * cam.cy - s * Math.cos(p) * z];
+}
+const project = (M, x, y) => [M[0] * x + M[2] * y + M[4], M[1] * x + M[3] * y + M[5]];
+function unproject(X, Y) {
+  const [a, b, c, d, e, f] = basis(0), det = a * d - b * c, u = X - e, v = Y - f;
+  return [(d * u - c * v) / det, (-b * u + a * v) / det];
+}
+function pan(dX, dY) {
+  const [a, b, c, d] = basis(0), det = a * d - b * c;
+  cam.cx -= (d * dX - c * dY) / det;
+  cam.cy -= (-b * dX + a * dY) / det;
+}
+function zoomAt(X, Y, f) {
+  const [x, y] = unproject(X, Y);
+  cam.s = clamp(cam.s * f, 0.2, 4000);
+  const [x2, y2] = unproject(X, Y);
+  cam.cx += x - x2; cam.cy += y - y2;
+}
+function fit(box, margin = 0) {
+  const [x0, y0, x1, y1] = [box[0] - margin, box[1] - margin, box[2] + margin, box[3] + margin];
+  Object.assign(cam, { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, s: 1 });
+  const zt = state.view === "3d" ? WALL_H : 0, xs = [], ys = [];
+  for (const z of [0, zt]) { const M = basis(z); for (const x of [x0, x1]) for (const y of [y0, y1]) { const [X, Y] = project(M, x, y); xs.push(X); ys.push(Y); } }
+  const w = Math.max(...xs) - Math.min(...xs) || 1, h = Math.max(...ys) - Math.min(...ys) || 1;
+  const mx = (Math.max(...xs) + Math.min(...xs)) / 2, my = (Math.max(...ys) + Math.min(...ys)) / 2;
+  cam.s = Math.max(0.2, Math.min((W - 80) / w, (H - 120) / h));                 // 40 px around, 80 px below for the toolbar
+  pan(-(mx - W / 2) * cam.s, H / 2 - 20 - (H / 2 + (my - H / 2) * cam.s));
+  draw();
+}
+const fitRooms = () => fit(geo(S()).roomBox, 1);
+const zoomTo = (b, k = 0.4) => b && fit(b, Math.max(3, k * Math.max(b[2] - b[0], b[3] - b[1])));
+const fitSheet = () => fit(S().extent);
+function reveal(box) {
+  const [X, Y] = project(basis(0), (box[0] + box[2]) / 2, (box[1] + box[3]) / 2);
+  if (X < 40 || X > W - 40 || Y < 40 || Y > H - 90) { pan(W / 2 - X, H / 2 - 20 - Y); draw(); }
+}
+function setView(v) {
+  state.view = v;
+  Object.assign(cam, v === "3d" ? { az: 20, el: 37 } : { az: 0, el: 90 });
+  renderToolbar(); writeHash(); fitRooms();
+}
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  W = Math.max(1, r.width); H = Math.max(1, r.height); dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  draw();
+}
+
+// ---------- drawing ----------
+const draw = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
+const LIGHT = [-0.45, -0.89];
+const shades = {};
+function shade(hex, f) {
+  const k = `${hex}|${Math.round(f * 40)}`;
+  if (!shades[k]) {
+    const n = parseInt(hex.replace("#", ""), 16), q = Math.round(f * 40) / 40;
+    shades[k] = `rgb(${Math.round(((n >> 16) & 255) * q)},${Math.round(((n >> 8) & 255) * q)},${Math.round((n & 255) * q)})`;
+  }
+  return shades[k];
+}
+
+function paint() {
+  const s = D && D.sheets && S();
+  if (!s) return;
+  const g = geo(s), L = state.L, is3d = state.view === "3d", u = 1 / cam.s, M = basis(0);
+  const T = (m) => ctx.setTransform(m[0] * dpr, m[1] * dpr, m[2] * dpr, m[3] * dpr, m[4] * dpr, m[5] * dpr);
+  const fill = (path, colour, alpha) => { ctx.globalAlpha = alpha; ctx.fillStyle = colour; ctx.fill(path, "evenodd"); };
+  const stroke = (path, colour, px, dash, alpha = 1) => {
+    ctx.globalAlpha = alpha; ctx.strokeStyle = colour; ctx.lineWidth = px * u;
+    ctx.setLineDash(dash ? dash.map((v) => v * u) : []); ctx.stroke(path);
+  };
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.lineJoin = "round";
+  T(M);
+  const [x0, y0, x1, y1] = s.extent;
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.10)"; ctx.shadowBlur = 12 * dpr; ctx.shadowOffsetY = 2 * dpr;
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.restore();
+  const img = image(s);
+  if (img.complete && img.naturalWidth && state.opacity > 0) {
+    ctx.save();
+    ctx.globalAlpha = state.opacity; ctx.imageSmoothingQuality = "high";
+    ctx.translate(x0, y1); ctx.scale((x1 - x0) / img.naturalWidth, -(y1 - y0) / img.naturalHeight);
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
+  }
+
+  const pinRoom = state.pin && state.pin.type === "room" ? state.pin.id : null;
+  const hov = state.hover;
+  s.rooms.forEach((r, i) => {
+    const col = roomColour(r, i), on = r.id === pinRoom, hv = !!hov && hov.type === "room" && hov.id === r.id;
+    if (L.rooms) {
+      fill(g.rooms[i].path, col, Math.min(0.9, (on ? 0.75 : pinRoom ? 0.18 : 0.4) + (hv ? 0.2 : 0)));
+      stroke(g.rooms[i].path, col, on ? 2.5 : hv ? 2 : 1.5, null, pinRoom && !on && !hv ? 0.45 : 1);
+    } else if (on || hv) stroke(g.rooms[i].path, col, 2.5);
+  });
+  if (L.stairs) fill(g.stairs.path, C.stair, 0.35);
+  if (L.voids) s.voids.forEach((v, i) => {
+    const on = state.pin && state.pin.type === "void" && state.pin.idx === i;
+    fill(g.voids[i].path, C.void, on ? 0.7 : 0.45);
+    if (on || (hov && hov.type === "void" && hov.idx === i)) stroke(g.voids[i].path, C.void, 2.5);
+  });
+  if (L.fragments) { fill(g.frags.path, C.frag, 0.6); stroke(g.frags.path, C.low, 1.5, [4, 3]); }
+  if (L.ref && hasRef(s)) {
+    stroke(g.refRooms.path, C.ref, 1.5); stroke(g.refWalls.path, C.ref, 1);
+    const r = pinRoom && state.compare ? roomById(s, pinRoom) : null;
+    if (r) for (const p of compareTargets(s, g, r)) { fill(p.path, C.ref, 0.15); stroke(p.path, C.ref, 3); }
+  }
+
+  if (!is3d) {
+    if (L.walls) fill(g.walls.path, C.wall2d, 0.7);
+    s.openings.forEach((o, i) => {
+      const k = kindOf(o), on = state.pin && state.pin.type === "opening" && state.pin.idx === i;
+      if (!L[k] && !on) return;
+      fill(g.openings[i].path, C[KIND_COLOUR[k]], 0.85);
+      if (on || (hov && hov.type === "opening" && hov.idx === i)) stroke(g.openings[i].path, LABEL.text, 2);
+    });
+  } else {
+    paintSolids(s, M, cam.s * Math.cos(cam.el * RAD));
+    if (L.walls) { T(basis(WALL_H)); fill(g.walls.path, C.wall2d, 0.95); }
+  }
+  if (L.graph) paintGraph(s, is3d ? WALL_H + 0.2 : 0, pinRoom);
+  if (L.gf) { T(basis(is3d ? WALL_H : 0)); stroke(g.gf.path, C.gf, 1.5, [6, 4]); }
+  if (L.labels) paintLabels(s, g, M, pinRoom);
+  paintMeasure(M);
+  ctx.globalAlpha = 1;
+}
+
+function paintSolids(s, M, k) {
+  const t = cam.az * RAD, st = Math.sin(t), ct = Math.cos(t), ce = Math.cos(cam.el * RAD), se = Math.sin(cam.el * RAD);
+  const depth = (x, y, z) => ((x - cam.cx) * st + (y - cam.cy) * ct) * ce - z * se;            // larger is farther away
+  const P = (x, y, z) => [M[0] * x + M[2] * y + M[4], M[1] * x + M[3] * y + M[5] - k * z];
+  const faces = [];
+  for (const sd of solids(s)) {
+    if (!state.L[sd.layer]) continue;
+    const r = sd.ring, n = r.length;
+    for (let j = 0; j < n; j++) {
+      const [px, py] = r[j], [qx, qy] = r[(j + 1) % n], len = Math.hypot(qx - px, qy - py);
+      if (!len) continue;
+      const nx = (qy - py) / len, ny = (px - qx) / len;
+      if (nx * st + ny * ct >= 0) continue;                                                   // faces away from the viewer
+      faces.push({ d: depth((px + qx) / 2, (py + qy) / 2, (sd.z0 + sd.z1) / 2), sd, f: 0.72 + 0.28 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1]),
+                   pts: [P(px, py, sd.z0), P(qx, qy, sd.z0), P(qx, qy, sd.z1), P(px, py, sd.z1)] });
+    }
+    if (sd.layer !== "walls") { const [cx, cy] = centroid(r); faces.push({ d: depth(cx, cy, sd.z1), sd, f: 1, pts: r.map(([x, y]) => P(x, y, sd.z1)) }); }
+  }
+  faces.sort((a, b) => b.d - a.d);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setLineDash([]);
+  for (const fc of faces) {
+    const wall = fc.sd.layer === "walls", col = shade(wall ? C.wall3d : C[KIND_COLOUR[fc.sd.layer]], fc.f);
+    ctx.globalAlpha = wall ? 1 : fc.sd.layer === "windows" ? 0.55 : 0.4;
+    ctx.beginPath();
+    fc.pts.forEach(([x, y], q) => (q ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fillStyle = col; ctx.fill();
+    if (wall) { ctx.strokeStyle = col; ctx.lineWidth = 0.6; ctx.stroke(); }
+  }
+}
+
+function paintGraph(s, z, pinRoom) {
+  const M = basis(z), r = pinRoom && state.focus ? roomById(s, pinRoom) : null;
+  const at = (p) => r && p[0] === r.label[0] && p[1] === r.label[1];
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setLineDash([]);
+  for (const path of s.graph) {
+    const hit = r && (at(path[0]) || at(path[path.length - 1]));
+    ctx.globalAlpha = r && !hit ? 0.25 : 1;
+    ctx.strokeStyle = C.graph; ctx.lineWidth = hit ? 3 : 1.5;
+    ctx.beginPath();
+    path.forEach((p, q) => { const [X, Y] = project(M, p[0], p[1]); if (q) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1; ctx.fillStyle = C.graph;
+  for (const room of s.rooms) {
+    if (room.smallRegion) continue;
+    const [X, Y] = project(M, room.label[0], room.label[1]);
+    ctx.beginPath(); ctx.arc(X, Y, 3, 0, 2 * Math.PI); ctx.fill();
+  }
+}
+
+function paintLabels(s, g, M, pinRoom) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  const hov = state.hover, placed = [], items = [];
+  s.rooms.forEach((r, i) => {
+    const special = r.id === pinRoom || (!!hov && hov.type === "room" && hov.id === r.id);
+    if (r.smallRegion && !state.L.fragments && !special) return;
+    const l2 = `${num(r.area)} m²${r.stamp != null ? ` · stamp ${num(r.stamp, 2)}` : ""}${r.review ? ` · a ${r.review.guess}?` : ""}`;
+    items.push({ at: r.label, box: g.rooms[i].box, l1: r.name, l2, pri: special ? Infinity : r.area, special });
+  });
+  if (state.L.voids) s.voids.forEach((v, i) => v.polygons.length && items.push({ at: centroid(v.polygons[0][0]), box: g.voids[i].box, l1: v.label, l2: `${num(v.area)} m² void`, pri: v.area }));
+  items.sort((a, b) => b.pri - a.pri);
+  const trunc = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+  for (const it of items) {
+    const [ax, ay] = project(M, it.box[0], it.box[1]), [bx, by] = project(M, it.box[2], it.box[3]);
+    if (!it.special && (Math.abs(bx - ax) < 44 || Math.abs(by - ay) < 22)) continue;
+    const [X, Y] = project(M, it.at[0], it.at[1]), l1 = trunc(it.l1, 26);
+    ctx.font = `500 11px ${C.font}`;
+    const w1 = ctx.measureText(l1).width;
+    ctx.font = `10px ${C.font}`;
+    const w = Math.max(w1, ctx.measureText(it.l2).width) + 10, h = 28, rx = X - w / 2, ry = Y - h / 2;
+    if (!it.special && placed.some((p) => rx < p[2] && rx + w > p[0] && ry < p[3] && ry + h > p[1])) continue;
+    placed.push([rx, ry, rx + w, ry + h]);
+    ctx.fillStyle = LABEL.bg;
+    ctx.beginPath(); ctx.roundRect(rx, ry, w, h, 3); ctx.fill();
+    ctx.fillStyle = LABEL.text; ctx.font = `500 11px ${C.font}`; ctx.fillText(l1, X, ry + 12);
+    ctx.fillStyle = LABEL.muted; ctx.font = `10px ${C.font}`; ctx.fillText(it.l2, X, ry + 24);
+  }
+}
+
+function paintMeasure(M) {
+  const m = state.measure;
+  if (!m || !m.a) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  const A = project(M, m.a[0], m.a[1]), B = m.b ? project(M, m.b[0], m.b[1]) : null;
+  if (B) {
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+    const t = `${num(Math.hypot(m.b[0] - m.a[0], m.b[1] - m.a[1]), 2)} m`;
+    ctx.font = `600 11px ${C.font}`;
+    const w = ctx.measureText(t).width + 16, X = (A[0] + B[0]) / 2, Y = Math.min(A[1], B[1]) - 18;
+    ctx.fillStyle = C.accent; ctx.beginPath(); ctx.roundRect(X - w / 2, Y - 10, w, 20, 4); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.fillText(t, X, Y + 4);
+  }
+  for (const P of B ? [A, B] : [A]) {
+    ctx.beginPath(); ctx.arc(P[0], P[1], 6, 0, 2 * Math.PI);
+    ctx.fillStyle = C.accent; ctx.fill(); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
+  }
+}
+
+// reference room(s) matching a room: by name for the 2005 reference, else the reference rooms under its label point
+function compareTargets(s, g, r) {
+  if (g.named.length) return g.named.filter((n) => n.name === r.ref);
+  return refOf(s).rooms.filter((p) => inside([p], r.label[0], r.label[1])).map((p) => prep([p]));
+}
+
+// ---------- picking, hover and pin ----------
+function pick(X, Y) {
+  const s = S(), g = geo(s), L = state.L, [x, y] = unproject(X, Y);
+  const hit = (p) => inBox(p.box, x, y) && inside(p.polys, x, y);
+  for (let i = 0; i < s.openings.length; i++) if (L[kindOf(s.openings[i])] && hit(g.openings[i])) return { type: "opening", idx: i };
+  if (L.voids) for (let i = 0; i < s.voids.length; i++) if (hit(g.voids[i])) return { type: "void", idx: i };
+  for (let i = 0; i < s.rooms.length; i++) if (hit(g.rooms[i])) return { type: "room", id: s.rooms[i].id };
+  if (L.walls && hit(g.walls)) return { type: "wall" };
+  return null;
+}
+
+function tipHtml(h) {
+  const s = S(), pinned = same(h, state.pin), hint = `<br><span class="hint">${pinned ? "Click to unpin" : "Click to pin"}</span>`;
+  if (h.type === "room") {
+    const r = roomById(s, h.id);
+    return `<b>${esc(r.name)}</b> · ${num(r.area)} m² · ${hasRoomRef(s) ? `IoU ${num(r.iou, 2)}` : `${r.conf} confidence`}${hint}`;
+  }
+  if (h.type === "opening") { const o = s.openings[h.idx]; return `<b>${esc(cap1(o.kind))}</b> ${o.id} · ${num(o.width, 2)} m${hint}`; }
+  if (h.type === "void") { const v = s.voids[h.idx]; return `<b>Void</b> ${esc(v.label)} · ${num(v.area)} m²${hint}`; }
+  return `<b>Walls</b>${s.walls.iou ? ` · IoU ${num(s.walls.iou, 2)}` : ""}${hint}`;
+}
+function showTip(h, X, Y) {
+  const el = $("tip");
+  if (!h || drag) { el.hidden = true; return; }
+  el.innerHTML = tipHtml(h);
+  el.hidden = false;
+  const w = el.offsetWidth;
+  el.style.left = `${clamp(X, w / 2 + 8, W - w / 2 - 8)}px`;
+  el.style.top = `${Math.max(Y, el.offsetHeight + 22)}px`;
+}
+function hoverAt(X, Y) {
+  if (state.measure && state.measure.on) { showTip(null); return; }
+  const h = pick(X, Y);
+  if (!same(h, state.hover) && !(h === null && state.hover === null)) { state.hover = h; draw(); }
+  showTip(h, X, Y);
+}
+function setPin(p, zoom) {
+  state.pin = p;
+  state.focus = false; state.compare = false;
+  renderInspector(); renderPane(); writeHash();
+  if (p) $("right").scrollTop = 0;
+  const b = p && boxOf(p);
+  if (b) (zoom ? zoomTo(b) : reveal(b));
+  draw();
+}
+function boxOf(p) {
+  const s = S(), g = geo(s);
+  if (p.type === "room") { const i = s.rooms.findIndex((r) => r.id === p.id); return i < 0 ? null : g.rooms[i].box; }
+  if (p.type === "void") return g.voids[p.idx].box;
+  if (p.type === "opening") return g.openings[p.idx].box;
+  return null;
+}
+function clickAt(X, Y) {
+  const m = state.measure;
+  if (m && m.on) {
+    const p = unproject(X, Y);
+    if (!m.a || m.b) { m.a = p; m.b = null; m.real = null; } else m.b = p;
+    if (state.tab !== "sheet") state.tab = "sheet";
+    renderPane(); draw();
+    return;
+  }
+  const h = pick(X, Y);
+  setPin(h && !same(h, state.pin) ? h : null);
+  showTip(h, X, Y);
+}
+
+let drag = null;
+const pointers = new Map();
+canvas.addEventListener("pointerdown", (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, [e.offsetX, e.offsetY]);
+  if (pointers.size === 1) drag = { x: e.offsetX, y: e.offsetY, sx: e.offsetX, sy: e.offsetY, moved: false,
+                                    orbit: state.view === "3d" && e.button === 0 && !e.shiftKey };
+  else if (drag) { drag.moved = true; drag.pinch = null; }
+  showTip(null);
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!pointers.has(e.pointerId) || !drag) { hoverAt(e.offsetX, e.offsetY); return; }
+  pointers.set(e.pointerId, [e.offsetX, e.offsetY]);
+  if (pointers.size === 2) {
+    const [[ax, ay], [bx, by]] = [...pointers.values()], mx = (ax + bx) / 2, my = (ay + by) / 2, dist = Math.hypot(ax - bx, ay - by);
+    if (drag.pinch) { zoomAt(mx, my, dist / drag.pinch.dist); pan(mx - drag.pinch.mx, my - drag.pinch.my); }
+    drag.pinch = { mx, my, dist };
+    draw();
+    return;
+  }
+  const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
+  drag.x = e.offsetX; drag.y = e.offsetY;
+  if (Math.hypot(e.offsetX - drag.sx, e.offsetY - drag.sy) > 3) drag.moved = true;
+  if (!drag.moved) return;
+  if (drag.orbit) { cam.az = (cam.az + dx * 0.4) % 360; cam.el = clamp(cam.el + dy * 0.3, 12, 89); } else pan(dx, dy);
+  canvas.style.cursor = "grabbing";
+  draw();
+});
+function pointerUp(e) {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.delete(e.pointerId);
+  if (pointers.size) return;
+  const click = drag && !drag.moved;
+  drag = null;
+  canvas.style.cursor = state.measure && state.measure.on ? "crosshair" : "";
+  if (click) clickAt(e.offsetX, e.offsetY);
+}
+canvas.addEventListener("pointerup", pointerUp);
+canvas.addEventListener("pointercancel", pointerUp);
+canvas.addEventListener("pointerleave", () => { if (!drag) { state.hover = null; showTip(null); draw(); } });
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); showTip(null); draw(); }, { passive: false });
+
+// ---------- review: flagged rooms and voids, checks kept per viewer ----------
+let checked = {};
+const reviewKey = (s) => `fpx-viewer:review:${s.id}${runOf(s) ? `:${runOf(s)}` : ""}`;
+const loadChecks = () => { checked = store.get(reviewKey(S())) || {}; };
+function flagged(s) {
+  const rank = (r) => (r.reasons.some((x) => x.includes("vs stamp")) ? 0 : r.reasons.some((x) => x.includes("stamps:")) ? 1 : r.review ? 3 : 2);
+  const rooms = s.rooms.filter((r) => r.conf === "low").map((r) => ({ type: "room", id: r.id, key: r.id, r, rank: rank(r) }))
+    .sort((a, b) => a.rank - b.rank || b.r.area - a.r.area);
+  return [...rooms, ...s.voids.map((v, idx) => ({ type: "void", idx, key: `void:${idx}`, v }))];
+}
+const flagOf = (p) => p && flagged(S()).find((f) => (f.type === "room" ? p.type === "room" && p.id === f.id : p.type === "void" && p.idx === f.idx));
+const pinOfFlag = (f) => (f.type === "room" ? { type: "room", id: f.id } : { type: "void", idx: f.idx });
+function issue(r) {
+  const m = r.reasons.map((x) => /^area ([\d.]+) m² vs stamp ([\d.]+) \(([+-]?\d+)%\)/.exec(x)).find(Boolean);
+  if (m) return `Area ${m[1]} m² is ${Math.abs(+m[3])} % ${+m[3] < 0 ? "below" : "above"} the stamp (${m[2]} m²)`;
+  if (r.review) return `Small unlabelled region of ${num(r.area, 2)} m²: a ${r.review.guess}?`;
+  const t = r.reasons.filter((x) => x !== "no contradiction found").join("; ");
+  return cap1(t) + (r.reasons.includes("very small") ? ` (${num(r.area)} m²)` : "");
+}
+const voidIssue = (v) => (v.deducted ? `${num(v.area)} m² deducted from GF (above the 5 m² rule)` : `${num(v.area)} m², not deducted from GF (5 m² rule)`);
+function toggleCheck(key) {
+  if (checked[key]) delete checked[key]; else checked[key] = new Date().toISOString();
+  store.set(reviewKey(S()), checked);
+  renderInspector(); renderPane();
+}
+function nextFlag(from) {
+  const fl = flagged(S());
+  if (!fl.length) return;
+  const k = from ? fl.findIndex((f) => f.key === from.key) : -1;
+  const order = fl.slice(k + 1).concat(fl.slice(0, k + 1));
+  setPin(pinOfFlag(order.find((f) => !checked[f.key]) || order[0]), true);
+}
+
+// ---------- panels ----------
+const kv = (rows) => `<table class="kv">${rows.filter(Boolean).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>`;
+const shortInput = (s) => { const c = ((s.triage || {})["Input class"] || "").toLowerCase();
+  return c.includes("vector") ? "vector PDF" : c.includes("scan") ? "scan" : c.includes("dwg") || c.includes("dxf") ? "DWG" : "raster"; };
+function scaleParts(s) {
+  const raw = ((s.triage || {}).Scale) || (s.summary && s.summary.scale) || "", cut = raw.indexOf(" – ");
+  let value = cut < 0 ? raw : raw.slice(0, cut), note = "";
+  const m = /^(.*?)\s*\((.*)\)$/.exec(value);
+  if (m) { value = m[1]; note = m[2]; }
+  const ppm = /([\d.]+)\s*px\/m/.exec(value), ratio = /^1\s*:\s*([\d.]+)/.exec(value);
+  return { value, note, method: cut < 0 ? "" : raw.slice(cut + 3), ppm: ppm ? +ppm[1] : null, n: ratio ? +ratio[1] : null,
+           tentative: /to be confirmed|proposed|estimated|unknown/i.test(raw) };
+}
+const tabLabel = (s) => (s.id.length <= 3 ? s.id.toUpperCase() : s.title) + (runOf(s) ? ` · ${runOf(s)}` : "");
+const tabSub = (s) => { const p = scaleParts(s); return [shortInput(s), p.n ? `1:${p.n}` : p.ppm ? `${p.ppm} px/m` : ""].filter(Boolean).join(" · "); };
+
+let MODEL = [];
+function tabModel() {      // small groups (Landgut Lohn) get one tab per sheet; the curated set and the benchmarks get a menu each
+  const groups = [], byKey = new Map();
+  D.sheets.forEach((s, i) => {
+    const key = s.curated ? "curated" : isBench(s) ? "bench" : `g:${s.group || "Sheets"}`;
+    if (!byKey.has(key)) { byKey.set(key, { key, items: [] }); groups.push(byKey.get(key)); }
+    byKey.get(key).items.push(i);
+  });
+  return groups.flatMap((t) => (t.key.startsWith("g:") && t.items.length <= 6 ? t.items.map((i) => ({ sheet: i })) : [{ menu: t.key, items: t.items }]));
+}
+const menuName = (t) => (t.menu === "curated" ? "Curated set" : t.menu === "bench" ? "Benchmarks" : t.menu.slice(2));
+function menuSub(t) {
+  const sh = t.items.map((i) => D.sheets[i]);
+  if (t.menu === "curated") {
+    if (state.tag) return `${sh.filter((s) => hasTag(s, state.tag)).length} of ${sh.length} · ${state.tag.slice(state.tag.indexOf(":") + 1)}`;
+    return `${sh.length} plans · ${new Set(sh.map((s) => s.curated.tags.category[0])).size} categories`;
+  }
+  if (t.menu === "bench") return [...new Set(sh.map((s) => DATASETS[s.id.split("_")[0]] || s.group))].join(", ");
+  return `${sh.length} sheets`;
+}
+function renderTabs() {
+  const cur = S();
+  $("tabs").innerHTML = MODEL.map((t) => {
+    if (t.sheet != null) {
+      const s = D.sheets[t.sheet], on = t.sheet === state.i;
+      return `<button type="button" class="tab${on ? " on" : ""}" role="tab" aria-selected="${on}" data-sheet="${t.sheet}" title="${esc(s.group)}: ${esc(s.title)}"><span>${esc(tabLabel(s))}</span><span class="sub">${esc(tabSub(s))}</span></button>`;
+    }
+    const on = t.items.includes(state.i);
+    return `<button type="button" class="tab${on ? " on" : ""}" role="tab" aria-selected="${on}" aria-haspopup="true" aria-expanded="${state.menu === t.menu}" data-menu="${t.menu}" title="${on ? esc(cur.title) : ""}"><span>${esc(menuName(t))} ▾</span><span class="sub">${esc(on ? cur.title : menuSub(t))}</span></button>`;
+  }).join("");
+}
+
+function sheetMeta(s) {
+  if (s.curated) { const t = s.curated.tags; return [t.input[0], t.wall_style[0], s.curated.use].filter(Boolean).join(" · "); }
+  if (isBench(s)) { const sc = s.summary.scores || {};
+    return sc.wall_iou != null ? `walls IoU ${sc.wall_iou}${sc.rooms_ref != null ? ` · rooms ${sc.rooms_matched}/${sc.rooms_ref}` : ""}` : "no ground truth"; }
+  return tabSub(s);
+}
+function tagOptions() {
+  const counts = {};
+  for (const s of D.sheets) if (s.curated) for (const [k, vs] of Object.entries(s.curated.tags)) for (const v of vs) counts[`${k}:${v}`] = (counts[`${k}:${v}`] || 0) + 1;
+  const n = D.sheets.filter((s) => s.curated).length;
+  let html = `<option value="">All plans (${n} in the curated set)</option>`;
+  for (const [axis, name] of Object.entries(AXES)) {
+    const keys = Object.keys(counts).filter((k) => k.startsWith(`${axis}:`)).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+    if (keys.length) html += `<optgroup label="${esc(name)}">${keys.map((k) => `<option value="${esc(k)}"${k === state.tag ? " selected" : ""}>${esc(k.slice(axis.length + 1))} (${counts[k]})</option>`).join("")}</optgroup>`;
+  }
+  return html;
+}
+function renderMenu() {
+  const m = $("menu"), t = MODEL.find((x) => x.menu === state.menu);
+  if (!t) { m.hidden = true; return; }
+  let html = t.menu === "curated" ? `<div class="mfilter"><select id="tagfilter" aria-label="Filter plans by tag">${tagOptions()}</select><button type="button" class="btn" id="tagclear" title="Show all plans">All</button></div>` : "";
+  let group = null;
+  for (const i of t.items) {
+    const s = D.sheets[i];
+    if (t.menu === "curated" && !hasTag(s, state.tag)) continue;
+    const gname = s.curated ? s.curated.tags.category[0] : s.group;
+    if (gname !== group) { group = gname; html += `<div class="mgroup">${esc(gname)}</div>`; }
+    html += `<button type="button" class="mitem${i === state.i ? " on" : ""}" role="menuitem" data-i="${i}"><span>${esc(s.title)}${runOf(s) ? ` · ${esc(runOf(s))}` : ""}</span><span class="mm">${esc(sheetMeta(s))}</span></button>`;
+  }
+  m.innerHTML = html;
+  m.hidden = false;
+  const a = document.querySelector(`.tab[data-menu="${t.menu}"]`);
+  if (a) {
+    const r = a.getBoundingClientRect();
+    m.style.left = `${clamp(r.left + r.width / 2 - m.offsetWidth / 2, 8, window.innerWidth - m.offsetWidth - 8)}px`;
+    m.style.top = `${r.bottom + 6}px`;
+  }
+}
+
+function layerInfo(s, key) {
+  const n = (k) => s.openings.filter((o) => kindOf(o) === k).length;
+  switch (key) {
+    case "walls": return s.walls.iou ? `IoU ${num(s.walls.iou, 2)}` : "";
+    case "doors": case "windows": case "passages": return n(key);
+    case "stairs": return s.stairs.length;
+    case "voids": return s.voids.length ? `${num(s.voids.reduce((a, v) => a + v.area, 0))} m²` : 0;
+    case "rooms": return s.rooms.length;
+    case "fragments": return s.fragments.length;
+    case "graph": return s.graph.length;
+    case "gf": return `${num(s.gf.area)} m²${s.gf.iou ? ` · IoU ${num(s.gf.iou, 2)}` : ""}`;
+    default: return "";
+  }
+}
+function swatchStyle(key, mode) {
+  if (key === "rooms") return mode === "room" ? "background:linear-gradient(135deg,#4e79a7,#f28e2b,#59a14f)" : "background:linear-gradient(135deg,var(--high),var(--medium),var(--low))";
+  if (key === "labels") return "border:1px solid var(--border);background:var(--panel)";
+  if (key === "gf") return "border:2px dashed var(--text)";
+  if (key === "ref") return "border:2px solid var(--ref)";
+  return `background:var(--${{ walls: "wall2d", doors: "door", windows: "window", passages: "passage", stairs: "stair", voids: "void", fragments: "frag", graph: "graph" }[key]})`;
+}
+function renderLeft() {
+  const s = S(), mode = colourMode(), roomRef = hasRoomRef(s);
+  document.querySelectorAll("#colour button").forEach((b) => {
+    const on = b.dataset.colour === mode;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", on);
+    if (b.dataset.colour === "accuracy") { b.disabled = !roomRef; b.title = roomRef ? `Room IoU against the ${refName(s).toLowerCase()}` : "No reference rooms for this sheet"; }
+    if (b.dataset.colour === "confidence") b.title = "QA confidence of each room, no reference needed";
+  });
+  let legend = "";
+  if (mode !== "room") {
+    const n = { high: 0, medium: 0, low: 0 }, conf = mode === "confidence";
+    s.rooms.forEach((r) => n[level(r, mode)]++);
+    const names = conf ? { high: "High", medium: "Medium", low: "Low" } : { high: "IoU ≥ 0.8", medium: "IoU 0.5 – 0.8", low: "IoU < 0.5" };
+    legend = ["high", "medium", "low"].map((k) => `<div class="lrow"><span class="sw" style="background:var(--${k})"></span><span${conf ? ` class="help" title="${CONF_TIP[k]}"` : ""}>${names[k]}</span><span class="n">${n[k]}</span></div>`).join("");
+  }
+  $("legend").innerHTML = legend;
+  let html = `<div class="hrow"><span class="cap">Layers</span><span class="n">1–9, 0 toggle</span></div>`, group = null;
+  LAYERS.forEach((l, k) => {
+    if (l.group !== group) {
+      group = l.group;
+      html += `<button type="button" class="ghead" data-group="${group}" aria-expanded="${!state.closed[group]}"><span class="tri">${state.closed[group] ? "▸" : "▾"}</span>${group}</button>`;
+    }
+    if (state.closed[group]) return;
+    const dis = l.key === "ref" && !hasRef(s);
+    html += `<label class="layer${dis ? " dis" : ""}"${k < 10 ? ` title="Key ${(k + 1) % 10}"` : dis ? ' title="No reference for this sheet"' : ""}><input type="checkbox" data-layer="${l.key}"${state.L[l.key] && !dis ? " checked" : ""}${dis ? " disabled" : ""}><span class="sw" style="${swatchStyle(l.key, mode)}"></span><span class="lname">${l.key === "ref" ? refName(s) : l.name}</span><span class="n">${layerInfo(s, l.key)}</span></label>`;
+  });
+  $("layers").innerHTML = html;
+}
+
+function renderInspector() {
+  const el = $("inspector"), p = state.pin, s = S();
+  if (!p) { el.hidden = true; el.innerHTML = ""; return; }
+  const head = (title, id) => `<div class="hrow" style="align-items:flex-start"><div><div class="ititle">${title} <span class="id">${esc(id)}</span></div>
+    <div class="isub"><span class="badge">Pinned</span>Esc to clear</div></div><button type="button" class="x" data-act="unpin" aria-label="Clear">×</button></div>`;
+  const name = (id) => { if (id === "outside") return "outside"; const r = roomById(s, id); return r ? `<a href="#" data-room="${esc(id)}">${esc(r.name)}</a>` : esc(id || "?"); };
+  let html;
+  if (p.type === "room") {
+    const r = roomById(s, p.id);
+    if (!r) { state.pin = null; el.hidden = true; return; }
+    const m = r.reasons.map((x) => /vs stamp [\d.]+ \(([+-]?\d+)%\)/.exec(x)).find(Boolean);
+    const dev = m ? +m[1] : r.stamp ? Math.round(((r.area - r.stamp) / r.stamp) * 100) : null;
+    const devCol = dev == null ? "" : Math.abs(dev) > 15 ? "var(--low)" : Math.abs(dev) > 5 ? "var(--medium)" : "var(--muted)";
+    const ref = hasRoomRef(s), conns = r.neighbours.length ? r.neighbours.map(name).join(", ") : "–";
+    html = head(esc(r.name), r.id) + kv([
+      r.raw && r.raw !== r.name ? ["OCR read", `${esc(r.raw)} → ${esc(r.name)}`] : null,
+      ["Usage", esc(r.usage)],
+      ["Net area", `${num(r.area, 2)} m²${r.areaGross !== r.area ? ` <span class="muted">(gross ${num(r.areaGross, 2)})</span>` : ""}`],
+      ["Stamp area", r.stamp != null ? `${num(r.stamp, 2)} m² <span style="color:${devCol}">(${dev > 0 ? "+" : dev < 0 ? "−" : "±"}${Math.abs(dev)} %)</span>` : '<span class="muted">not read</span>'],
+      ["Confidence", `<b style="color:var(--${r.conf})">${r.conf}</b> – ${esc(r.reasons.join("; "))}`],
+      r.review ? ["Review", `<span class="warn">small unlabelled region, a ${esc(r.review.guess)}?</span> ${esc(r.review.reason)}`] : null,
+      ref ? [refName(s), r.ref ? `${esc(r.ref)} <span class="muted">(IoU ${num(r.iou, 2)})</span>` : "–"] : null,
+      ["Connected to", conns]]) +
+      `<div class="ibtns"><button type="button" class="sbtn" data-act="zoom">Zoom to room</button>
+        <button type="button" class="sbtn${state.focus ? " on" : ""}" data-act="focus">Show connections</button>
+        <button type="button" class="sbtn${state.compare ? " on" : ""}" data-act="compare"${hasRef(s) ? "" : ' disabled title="No reference for this sheet"'}>Compare with reference</button></div>`;
+  } else if (p.type === "opening") {
+    const o = s.openings[p.idx];
+    html = head(esc(cap1(o.kind)), o.id) + kv([["Width", `${num(o.width, 2)} m`], ["Wall", o.exterior ? "exterior" : "interior"],
+      o.connects ? ["Connects", o.connects.map(name).join(" ↔ ")] : null]);
+  } else if (p.type === "void") {
+    const v = s.voids[p.idx];
+    html = head(`Void ${esc(v.label)}`, "void") + kv([["Area", `${num(v.area, 2)} m²`], ["GF deduction", v.deducted ? "yes (over 5 m²)" : "no (5 m² or less)"]]);
+  } else {
+    html = head("Walls", "") + kv([s.walls.area ? ["Area", `${num(s.walls.area)} m²`] : null,
+      s.walls.refArea ? [refName(s), `${num(s.walls.refArea)} m²`] : null, ["IoU", s.walls.iou ? num(s.walls.iou, 2) : "–"]]);
+  }
+  const f = flagOf(p);
+  if (f) {
+    const fl = flagged(s), done = fl.filter((x) => checked[x.key]).length;
+    html += `<div class="review"><div class="hrow"><span class="cap">Needs review</span><span class="n">${done} of ${fl.length} checked</span></div>
+      <div class="ibtns"><button type="button" class="sbtn${checked[f.key] ? " on" : ""}" data-act="check">${checked[f.key] ? "✓ Checked" : "Mark as checked"}</button>
+      <button type="button" class="sbtn" data-act="nextflag">Next flagged ›</button></div>
+      <div class="hint">Checks are kept in this browser only; editing rooms comes with the app.</div></div>`;
+  }
+  el.innerHTML = html;
+  el.hidden = false;
+}
+
+function scoreStrip(s) {
+  if (isBench(s)) {
+    const sc = s.summary.scores || {};
+    if (!Object.keys(sc).length) return '<div class="strip"><b>No ground truth</b><span>for this sheet</span></div>';
+    return `<div class="strip"><b>Sheet vs reference</b><span>Walls ${sc.wall_iou}</span><span>Doors ${sc.door_iou}</span><span>Windows ${sc.window_iou}</span>${sc.rooms_ref != null ? `<span>Rooms ${sc.rooms_matched}/${sc.rooms_ref}</span>` : ""}</div>`;
+  }
+  const e = s.summary || {}, ro = e.rooms || {}, cn = e.connectivity || {};
+  return `<div class="strip"><b>Sheet vs 2005</b><span>Rooms ${ro.matched_iou50}/${ro.reference}</span><span>Walls ${num(e.walls_iou, 2)}</span><span>GF ${num(e.gf_iou, 2)}</span><span>Links ${cn.correct}/${cn.reference_edges}</span>${ro.median_abs_area_error_pct != null ? `<span>Area err ${ro.median_abs_area_error_pct} %</span>` : ""}</div>`;
+}
+function flagRow(f) {
+  const on = !!state.pin && (f.type === "room" ? state.pin.type === "room" && state.pin.id === f.id : state.pin.type === "void" && state.pin.idx === f.idx);
+  const title = f.type === "room" ? `${esc(f.r.name)} <span class="id">${f.r.id}</span>` : `${esc(f.v.label)} <span class="id">void</span>`;
+  return `<button type="button" class="flag${on ? " on" : ""}${checked[f.key] ? " done" : ""}" data-flag="${esc(f.key)}">
+    <span class="dot" style="background:var(${f.type === "room" ? "--low" : "--void"})"></span>
+    <span><span class="ft">${title}</span><span class="msg">${esc(f.type === "room" ? issue(f.r) : voidIssue(f.v))}</span></span>
+    <span class="chev">${checked[f.key] ? "✓" : "›"}</span></button>`;
+}
+function resultsPane(s) {
+  const net = s.rooms.reduce((a, r) => a + r.area, 0), high = s.rooms.reduce((a, r) => a + (r.conf === "high" ? r.area : 0), 0);
+  const share = net ? Math.round((high / net) * 100) : 0, small = s.rooms.filter((r) => r.smallRegion).length, secs = s.summary && s.summary.seconds;
+  const fl = flagged(s), nr = fl.filter((f) => f.type === "room").length, nv = fl.length - nr, done = fl.filter((f) => checked[f.key]).length;
+  const plural = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
+  const shown = state.allFlags ? fl : fl.slice(0, 6);
+  const exp = (fmt, what, act) => `<div class="exp"><b${act ? "" : ' class="muted"'}>${fmt}</b><span class="muted">${what}</span>${act ? `<button type="button" class="btn" data-act="${act}">Download</button>` : '<button type="button" class="btn" disabled>Soon</button>'}</div>`;
+  return `<section class="block">
+      <div class="hrow"><h2>Extraction</h2><span class="pill ok">Finished</span></div>
+      <div class="grid2">
+        <span>Confidence</span><span class="barcell"><span class="bar"><span style="width:${share}%;background:var(--high)"></span></span><span class="help" title="Share of room area with high confidence">${share} %</span></span>
+        <span>Rooms</span><span>${s.rooms.length}${small ? ` <span class="muted">(${plural(small, "small region")})</span>` : ""}</span>
+        <span>Net room area</span><span>${Math.round(net)} m²</span>
+        <span>Gross floor area</span><span>${Math.round(s.gf.area)} m²</span>
+        ${secs != null ? `<span>Processing time</span><span>${secs} s</span>` : ""}
+      </div>
+      ${scoreStrip(s)}
+    </section>
+    <section class="block">
+      <div class="hrow"><h3>Needs review</h3><span class="n">${fl.length ? `${plural(nr, "room")}, ${plural(nv, "void")}${done ? ` · ${done} checked` : ""}` : ""}</span></div>
+      ${fl.length ? `<div class="flags">${shown.map(flagRow).join("")}</div>
+        ${fl.length > shown.length ? `<button type="button" class="link more" data-act="allflags">Show all ${fl.length}</button>` : ""}
+        <button type="button" class="wide" data-act="review">${done && done < fl.length ? "Continue review" : "Review flagged rooms"}</button>`
+      : '<div class="muted">Nothing flagged on this sheet.</div>'}
+    </section>
+    <section class="block">
+      <h3>Export</h3>
+      ${exp("CSV", "Room list of this sheet", "csv")}${exp("JSON", "Pipeline output")}${exp("DWG", "Custom layers")}${exp("PDF", "Plan with overlay")}${exp("IFC", "Not yet available")}
+      <div class="hint">The pilot writes JSON and DXF next to each run in <code>data/</code>; downloading them from the viewer comes with the app.</div>
+    </section>`;
+}
+function roomsPane(s) {
+  const iou = hasRoomRef(s), metric = iou ? "iou" : "conf", sort = state.sort || { key: metric, dir: 1 }, order = { low: 0, medium: 1, high: 2 };
+  const val = (r) => (sort.key === "name" ? r.name.toLowerCase() : sort.key === "area" ? r.area : sort.key === "iou" ? r.iou : order[r.conf]);
+  const idx = new Map(s.rooms.map((r, i) => [r, i]));
+  const rows = s.rooms.slice().sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir; });
+  const chip = (key, name) => `<button type="button" class="chip${sort.key === key ? " on" : ""}" data-sort="${key}">${name}${sort.key === key ? (sort.dir > 0 ? " ↑" : " ↓") : ""}</button>`;
+  const pin = state.pin && state.pin.type === "room" ? state.pin.id : null;
+  return `<div class="rhead"><span class="cap">Rooms · ${s.rooms.length}</span><span class="chips">${chip("name", "Name")}${chip("area", "Area")}${chip(metric, iou ? "IoU" : "Confidence")}</span></div>
+    <div class="rlist" id="rlist">${rows.map((r) => {
+      const m = iou ? `<span class="iou"><span class="bar"><span style="width:${Math.round(r.iou * 100)}%;background:var(--${level(r, "accuracy")})"></span></span><span>${num(r.iou, 2)}</span></span>`
+                    : `<span class="conf" style="color:var(--${r.conf})">${r.conf}</span>`;
+      return `<button type="button" class="rrow${r.id === pin ? " on" : ""}" data-room="${esc(r.id)}"><span class="sw" style="background:${roomColour(r, idx.get(r))}"></span><span class="rn">${esc(r.name)} <span class="id">${r.id}</span></span><span class="ra">${num(r.area)} m²</span>${m}</button>`;
+    }).join("")}</div>`;
+}
+function measureOut(s) {
+  const m = state.measure;
+  if (!m || (!m.on && !m.b)) return "";
+  if (!m.b) return `<div class="step"><b>${m.a ? 2 : 1}</b>${m.a ? "Click the other end of the distance." : "Click one end of a distance you know, e.g. a dimension chain."}</div>`;
+  const d = Math.hypot(m.b[0] - m.a[0], m.b[1] - m.a[1]);
+  return `<div class="step"><b>3</b>Enter the real distance.</div>
+    <div class="grid2"><span>Measured at this scale</span><span><b>${num(d, 2)} m</b></span>
+      <span>Real distance</span><span><input class="realin" id="realdist" type="number" min="0" step="0.01" value="${m.real || ""}" aria-label="Real distance in metres"> m</span></div>
+    <div id="measureres">${measureRes(s)}</div>`;
+}
+function measureRes(s) {
+  const m = state.measure, d = Math.hypot(m.b[0] - m.a[0], m.b[1] - m.a[1]);
+  if (!(m.real > 0) || !d) return "";
+  const f = m.real / d, p = scaleParts(s);
+  return `<div class="grid2"><span>Calculated scale</span><span class="accentbig">${p.n ? `1 : ${Math.round(p.n * f)}` : p.ppm ? `${num(p.ppm / f)} px/m` : `× ${num(f, 3)}`}</span>
+      <span>Lengths · areas</span><span>× ${num(f, 3)} · × ${num(f * f, 3)}</span></div>
+    <div class="hint">Not saved: the pilot does not rerun a sheet from the viewer.</div>`;
+}
+function planInfo(c) {
+  const a = c.attribution || {}, credit = [a.author, a.date].filter(Boolean).map(esc).join(", ");
+  const page = a.page ? `<a href="${esc(a.page)}" target="_blank" rel="noopener noreferrer">source page</a>` : "";
+  const restricted = c.use === "benchmark only" || c.use === "BBL internal";
+  const chips = Object.entries(AXES).filter(([k]) => (c.tags[k] || []).length).map(([k, name]) => [name, `<span class="chips">${c.tags[k].map((v) =>
+    `<button type="button" class="chip${state.tag === `${k}:${v}` ? " on" : ""}" data-tag="${esc(`${k}:${v}`)}" title="Show only plans tagged ${esc(v)}">${esc(v)}</button>`).join("")}</span>`]);
+  return `<h3>Plan <span class="id">${esc(c.id)}</span></h3><p class="why">${esc(c.why)}</p>${kv([
+    ["Source", esc(c.source)], ["Licence", `${esc(c.licence)} – <span class="${restricted ? "warn" : ""}">${esc(c.use)}</span>`],
+    credit || page ? ["Attribution", [credit, page].filter(Boolean).join(" · ")] : null,
+    ["Scale (manifest)", c.scale.px_per_m ? `${c.scale.px_per_m} px/m – ${esc(c.scale.method)}` : esc(c.scale.method)],
+    ["Reference", c.reference.content === "none" ? "none" : `${esc(c.reference.content)} <span class="muted">(${esc(c.reference.source)})</span>`], ...chips])}`;
+}
+function sheetPane(s) {
+  const tri = s.triage || {}, rename = { "Graphical style (detected)": "Drawing style" }, p = scaleParts(s), m = state.measure;
+  const e = s.summary || {}, ro = e.rooms || {}, op = e.openings || {}, cn = e.connectivity || {}, sc = e.scores || {};
+  const scores = isBench(s)
+    ? `<h3>Scores vs reference</h3>${Object.keys(sc).length ? kv([["Walls / doors / windows IoU", `${sc.wall_iou ?? "–"} / ${sc.door_iou ?? "–"} / ${sc.window_iou ?? "–"}`],
+        sc.rooms_ref != null ? ["Rooms matched (IoU ≥ 0.5)", `${sc.rooms_matched}/${sc.rooms_ref} (${sc.rooms_pred} found, mean IoU ${sc.rooms_mean_iou})`] : null])
+        : '<div class="muted">No ground truth for this sheet.</div>'}`
+    : `<h3>Scores vs 2005 reference</h3>${kv([["Rooms IoU ≥ 0.5", `${ro.matched_iou50}/${ro.reference} (mean IoU ${num(ro.mean_iou, 2)})`],
+        ro.median_abs_area_error_pct != null ? ["Median area error", `${ro.median_abs_area_error_pct} %`] : null, ["Walls IoU", num(e.walls_iou, 2)],
+        ["GF IoU", `${num(e.gf_iou, 2)} (${e.gf_area_error_pct > 0 ? "+" : ""}${e.gf_area_error_pct} %)`],
+        ["Openings found", `exterior ${op.exterior_recall}, interior ${op.interior_recall}`],
+        ["Connections", `${cn.correct}/${cn.reference_edges} (F1 ${num(cn.f1, 2)})`], e.qa_issues != null ? ["QA issues", e.qa_issues] : null])}
+      ${s.id !== "s1" ? '<div class="muted small">This scan shows an earlier state of the building: changed rooms score low by design.</div>' : ""}`;
+  return `<section class="block"><h3>Detected on this sheet</h3>${kv([["Sheet", esc(s.title)], ["Group", esc(s.group)],
+      ...Object.entries(tri).filter(([k]) => k !== "Scale").map(([k, v]) => [rename[k] || k, esc(v)])])}</section>
+    <section class="block"><h3>Scale</h3>
+      ${p.n ? `<div class="hrow"><span class="muted">Scale</span><span class="big">1 : ${p.n}</span></div>` : ""}
+      ${p.ppm ? `<div class="hrow"><span class="muted">Pixel size</span><span>${num(p.ppm)} px per metre <span class="muted">· ${num(1000 / p.ppm)} mm per pixel</span></span></div>` : ""}
+      ${!p.n && !p.ppm ? `<div class="big">${esc(p.value) || "–"}</div>` : ""}
+      ${p.note ? `<div class="muted small">${esc(cap1(p.note))}</div>` : ""}
+      ${p.method ? `<div class="small">${esc(cap1(p.method))}</div>` : ""}
+      ${p.tentative ? '<div class="warnbox">Warning: this scale is a proposal of the pipeline and has not been confirmed. Check it before using the areas, e.g. by measuring a known distance.</div>' : ""}
+      <button type="button" class="pillbtn${m && m.on ? " on" : ""}" data-act="measure">${m && m.on ? "Stop measuring" : "Check by measuring"}</button>
+      <div id="measureout" class="col" style="gap:10px">${measureOut(s)}</div>
+    </section>
+    <section class="block">${scores}</section>
+    ${s.curated ? `<section class="block">${planInfo(s.curated)}</section>` : ""}`;
+}
+function renderPane() {
+  const s = S();
+  document.querySelectorAll(".rtab").forEach((b) => {
+    const on = b.dataset.tab === state.tab;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", on);
+    if (b.dataset.tab === "rooms") b.textContent = `Rooms · ${s.rooms.length}`;
+  });
+  $("pane").innerHTML = state.tab === "rooms" ? roomsPane(s) : state.tab === "sheet" ? sheetPane(s) : resultsPane(s);
+}
+function renderToolbar() {
+  document.querySelectorAll("#view button").forEach((b) => { const on = b.dataset.view === state.view; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+  $("opacity").value = state.opacity;
+  $("opout").textContent = `${Math.round(state.opacity * 100)}%`;
+  const on = !!(state.measure && state.measure.on);
+  $("measure").classList.toggle("on", on);
+  canvas.style.cursor = on ? "crosshair" : "";
+}
+function renderAll() {
+  renderTabs(); renderLeft(); renderInspector(); renderPane(); renderToolbar();
+  if (state.menu) renderMenu(); else $("menu").hidden = true;
+  writeHash(); draw();
+}
+
+// ---------- state changes ----------
+function select(i) {
+  if (i == null || i < 0 || !D.sheets[i]) return;
+  Object.assign(state, { i, pin: null, hover: null, focus: false, compare: false, measure: null, sort: null, allFlags: false, menu: null });
+  loadChecks(); showTip(null); renderAll(); fitRooms();
+}
+const navList = () => D.sheets.map((s, i) => i).filter((i) => !state.tag || hasTag(D.sheets[i], state.tag));
+function step(d) {
+  const l = navList(), k = l.indexOf(state.i);
+  if (l.length) select(k < 0 ? l[d > 0 ? 0 : l.length - 1] : l[(k + d + l.length) % l.length]);
+}
+function setTag(tag) {
+  state.tag = tag && D.sheets.some((s) => hasTag(s, tag)) ? tag : "";
+  if (state.tag && !hasTag(S(), state.tag)) { const menu = state.menu; select(D.sheets.findIndex((s) => hasTag(s, state.tag))); state.menu = menu; }
+  renderAll();
+}
+function toggleLayer(key, on = !state.L[key]) {
+  state.L[key] = on;
+  if (!on && state.hover && ((state.hover.type === "opening" && kindOf(S().openings[state.hover.idx]) === key) || (state.hover.type === "void" && key === "voids"))) state.hover = null;
+  renderLeft(); writeHash(); draw();
+}
+function toggleMeasure() {
+  state.measure = state.measure && state.measure.on ? null : { on: true, a: null, b: null, real: null };
+  if (state.measure) { state.tab = "sheet"; setPin(null); }
+  renderToolbar(); renderPane(); draw();
+}
+
+function writeHash() {
+  const s = S(), p = new URLSearchParams(), runs = D.sheets.filter((x) => x.id === s.id);
+  p.set("sheet", s.id);
+  if (runs.length > 1) p.set("run", runs.indexOf(s));
+  if (state.view !== "2d") p.set("view", state.view);
+  if (state.colour !== "room") p.set("colour", state.colour);
+  for (const l of LAYERS) if (state.L[l.key] !== l.on) p.set(l.key, state.L[l.key] ? "1" : "0");
+  if (state.opacity !== 1) p.set("opacity", state.opacity);
+  if (state.tag) p.set("tag", state.tag);
+  if (state.tab !== "results") p.set("tab", state.tab);
+  if (state.pin && state.pin.type === "room") p.set("pin", state.pin.id);
+  try { history.replaceState(null, "", `#${p.toString()}`); } catch (e) { /* file:// may refuse; the link button still works */ }
+}
+// initial state from the URL hash, e.g. #sheet=s2&view=3d&colour=confidence&graph=1&pin=r006, or #tag=challenges:columns;
+// sheet takes a sheet id or a curated plan id; the layer keys of the earlier viewer (openings, stairs) still work
+function readHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.has("sheet")) {
+    const want = p.get("sheet"), all = D.sheets.map((s, i) => [s, i]).filter(([s]) => s.id === want || (s.curated && s.curated.id === want));
+    if (all.length) state.i = (all[+p.get("run") || 0] || all[0])[1];
+  }
+  if (p.get("view") === "3d") { state.view = "3d"; Object.assign(cam, { az: 20, el: 37 }); }
+  if (["room", "confidence", "accuracy"].includes(p.get("colour"))) state.colour = p.get("colour");
+  for (const [old, keys] of Object.entries(OLD_KEYS)) if (p.has(old)) keys.forEach((k) => (state.L[k] = p.get(old) === "1"));
+  for (const l of LAYERS) if (p.has(l.key) && !(l.key in OLD_KEYS)) state.L[l.key] = p.get(l.key) === "1";
+  if (p.has("opacity")) state.opacity = clamp(+p.get("opacity") || 0, 0, 1);
+  if (p.has("tag") && D.sheets.some((s) => hasTag(s, p.get("tag")))) {
+    state.tag = p.get("tag");
+    if (!p.has("sheet") || !hasTag(S(), state.tag)) state.i = D.sheets.findIndex((s) => hasTag(s, state.tag));
+  }
+  if (["results", "rooms", "sheet"].includes(p.get("tab"))) state.tab = p.get("tab");
+  if (["light", "dark"].includes(p.get("theme"))) document.documentElement.dataset.theme = p.get("theme");
+  return p;
+}
+
+// ---------- events ----------
+$("tabs").addEventListener("click", (e) => {
+  const t = e.target.closest(".tab");
+  if (!t) return;
+  if (t.dataset.sheet != null) { select(+t.dataset.sheet); return; }
+  state.menu = state.menu === t.dataset.menu ? null : t.dataset.menu;
+  state.help = false; $("help").hidden = true;
+  renderTabs(); renderMenu();
+});
+$("prev").addEventListener("click", () => step(-1));
+$("next").addEventListener("click", () => step(1));
+$("menu").addEventListener("click", (e) => {
+  const it = e.target.closest(".mitem");
+  if (it) select(+it.dataset.i);
+  else if (e.target.id === "tagclear") setTag("");
+});
+$("menu").addEventListener("change", (e) => { if (e.target.id === "tagfilter") setTag(e.target.value); });
+const within = (e, sel) => e.target instanceof Element && !!e.target.closest(sel);
+document.addEventListener("pointerdown", (e) => {
+  if (state.menu && !within(e, "#menu, .tab[data-menu]")) { state.menu = null; renderTabs(); renderMenu(); }
+  if (state.help && !within(e, "#help, #helpbtn")) { state.help = false; $("help").hidden = true; $("helpbtn").setAttribute("aria-expanded", "false"); }
+});
+$("helpbtn").addEventListener("click", () => {
+  state.help = !state.help;
+  const h = $("help"), r = $("helpbtn").getBoundingClientRect();
+  h.hidden = !state.help;
+  $("helpbtn").setAttribute("aria-expanded", state.help);
+  h.style.top = `${r.bottom + 6}px`;
+  h.style.left = `${clamp(r.right - h.offsetWidth, 8, window.innerWidth - h.offsetWidth - 8)}px`;
+});
+const COPY_LABEL = $("copylink").innerHTML;
+$("copylink").addEventListener("click", async () => {
+  writeHash();
+  const b = $("copylink"), url = location.href;
+  let ok = false;
+  try { await navigator.clipboard.writeText(url); ok = true; } catch (e) {
+    const t = document.createElement("textarea");
+    t.value = url; document.body.appendChild(t); t.select();
+    try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+    t.remove();
+  }
+  b.textContent = ok ? "Link copied" : "Copy failed";
+  setTimeout(() => (b.innerHTML = COPY_LABEL), 1600);
+});
+$("colour").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || b.disabled) return;
+  state.colour = b.dataset.colour;
+  renderLeft(); if (state.tab === "rooms") renderPane(); writeHash(); draw();
+});
+$("layers").addEventListener("change", (e) => { if (e.target.dataset.layer) toggleLayer(e.target.dataset.layer, e.target.checked); });
+$("layers").addEventListener("click", (e) => {
+  const g = e.target.closest(".ghead");
+  if (g) { state.closed[g.dataset.group] = !state.closed[g.dataset.group]; renderLeft(); }
+});
+$("view").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && b.dataset.view !== state.view) setView(b.dataset.view); });
+$("opacity").addEventListener("input", (e) => { state.opacity = +e.target.value; $("opout").textContent = `${Math.round(state.opacity * 100)}%`; draw(); });
+$("opacity").addEventListener("change", writeHash);
+$("fitrooms").addEventListener("click", fitRooms);
+$("fitsheet").addEventListener("click", fitSheet);
+$("measure").addEventListener("click", toggleMeasure);
+document.querySelector(".rtabs").addEventListener("click", (e) => {
+  const b = e.target.closest(".rtab");
+  if (b) { state.tab = b.dataset.tab; renderPane(); writeHash(); }
+});
+$("right").addEventListener("click", (e) => {
+  const el = e.target.closest("[data-act], [data-room], [data-flag], [data-sort], [data-tag]");
+  if (!el || el.disabled) return;
+  e.preventDefault();
+  const s = S(), d = el.dataset;
+  if (d.room) { setPin({ type: "room", id: d.room }); return; }
+  if (d.flag) { const f = flagged(s).find((x) => x.key === d.flag); if (f) setPin(pinOfFlag(f), true); return; }
+  if (d.sort) {
+    const cur = state.sort || { key: hasRoomRef(s) ? "iou" : "conf", dir: 1 };
+    state.sort = { key: d.sort, dir: cur.key === d.sort ? -cur.dir : 1 };
+    renderPane(); return;
+  }
+  if (d.tag) { setTag(state.tag === d.tag ? "" : d.tag); return; }
+  switch (d.act) {
+    case "unpin": setPin(null); break;
+    case "zoom": zoomTo(boxOf(state.pin)); break;
+    case "focus": state.focus = !state.focus; if (state.focus) state.L.graph = true; renderLeft(); renderInspector(); writeHash(); draw(); break;
+    case "compare":
+      state.compare = !state.compare;
+      if (state.compare) { state.L.ref = true; zoomTo(boxOf(state.pin), 0.8); }
+      renderLeft(); renderInspector(); writeHash(); draw(); break;
+    case "check": { const f = flagOf(state.pin); if (f) toggleCheck(f.key); break; }
+    case "nextflag": nextFlag(flagOf(state.pin)); break;
+    case "review": nextFlag(null); break;
+    case "allflags": state.allFlags = true; renderPane(); break;
+    case "measure": toggleMeasure(); break;
+    case "csv": downloadCsv(s); break;
+  }
+});
+$("right").addEventListener("input", (e) => {
+  if (e.target.id !== "realdist" || !state.measure) return;
+  state.measure.real = parseFloat(e.target.value);
+  $("measureres").innerHTML = measureRes(S());
+});
+$("right").addEventListener("mouseover", (e) => {
+  const r = e.target.closest(".rrow");
+  const h = r ? { type: "room", id: r.dataset.room } : null;
+  if (!same(h, state.hover) && (h || (state.hover && e.target.closest("#rlist")))) { state.hover = h; draw(); }
+});
+$("right").addEventListener("mouseleave", () => { if (state.hover) { state.hover = null; draw(); } });
+document.addEventListener("keydown", (e) => {
+  if (within(e, 'input:not([type="checkbox"]), select, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "Escape") {
+    if (state.menu || state.help) { state.menu = null; state.help = false; $("help").hidden = true; renderTabs(); renderMenu(); }
+    else if (state.measure) toggleMeasure();
+    else if (state.pin) setPin(null);
+    return;
+  }
+  const k = "1234567890".indexOf(e.key);
+  if (k >= 0 && LAYERS[k] && !(LAYERS[k].key === "ref" && !hasRef(S()))) toggleLayer(LAYERS[k].key);
+  else if (e.key === "[") step(-1);
+  else if (e.key === "]") step(1);
+  else if (e.key === "f" || e.key === "F") fitRooms();
+});
+
+function downloadCsv(s) {
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`, ref = hasRoomRef(s);
+  const head = ["sheet", "room", "name", "ocr_read", "usage", "area_m2", "area_gross_m2", "stamp_m2", "confidence", "reasons", "neighbours",
+                ...(ref ? ["reference", "iou"] : []), "review_checked"];
+  const rows = s.rooms.map((r) => [s.id, r.id, r.name, r.raw, r.usage, r.area, r.areaGross, r.stamp, r.conf, r.reasons.join("; "), r.neighbours.join(" "),
+                                   ...(ref ? [r.ref, r.iou] : []), checked[r.id] ? "yes" : ""]);
+  const blob = new Blob([`﻿${[head, ...rows].map((row) => row.map(q).join(",")).join("\r\n")}\r\n`], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${s.id}${runOf(s) ? `-${runOf(s).replace(/\W+/g, "-")}` : ""}-rooms.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ---------- start ----------
+if (!D || !D.sheets || !D.sheets.length) {
+  stage.innerHTML = '<div class="empty"><div>No data found.<br>Run <code>python export_viewer.py</code>, then reload.</div></div>';
+  ["left", "right"].forEach((id) => ($(id).innerHTML = ""));
+  $("tabs").innerHTML = "";
+} else {
+  readColours();
+  MODEL = tabModel();
+  const params = readHash();
+  loadChecks();
+  resize();
+  renderAll();
+  fitRooms();
+  if (params.has("pin") && roomById(S(), params.get("pin"))) setPin({ type: "room", id: params.get("pin") });
+  if (params.get("review") === "1") nextFlag(null);
+  if (["curated", "bench"].includes(params.get("menu"))) { state.menu = params.get("menu"); renderTabs(); renderMenu(); }
+  if (params.has("measure")) {
+    const v = params.get("measure").split(",").map(Number);
+    if (v.length >= 4 && v.every(Number.isFinite)) { state.measure = { on: false, a: v.slice(0, 2), b: v.slice(2, 4), real: v[4] || null }; renderPane(); draw(); }
+  }
+  new ResizeObserver(resize).observe(stage);
+  window.addEventListener("resize", () => { if (state.menu) renderMenu(); });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColours(); renderAll(); });
+}
+</script>
+</body>
+</html>

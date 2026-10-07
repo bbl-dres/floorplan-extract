@@ -1,0 +1,27 @@
+# Pilot v2, pinned to the versions the results in README.md were produced with (Python 3.14.5, Windows, CPU).
+#   python -m pip install -r requirements.txt
+# On a GPU pod for train.py, install the CUDA build of torch first (see pytorch.org), then this file.
+
+# pipeline (fpx) and benchmarks
+numpy==2.4.6
+scipy==1.17.1
+opencv-python==4.13.0.92
+shapely==2.1.2
+networkx==3.6.1
+scikit-image==0.26.0
+torch==2.12.0
+segmentation-models-pytorch==0.5.0
+timm==1.0.30
+rapidocr==3.8.1
+onnxruntime==1.30.0
+ezdxf==1.4.4
+pillow==12.2.0
+
+# loaders and data preparation
+pymupdf==1.28.0              # vector PDF sheets (sheets.py); AGPL-3.0 or commercial: review before offering as a service
+pandas==3.0.3                # sd_prepare.py
+ifcopenshell==0.9.0          # ifc_prepare.py; LGPL-3.0
+trimesh==5.1.1               # ifc_prepare.py
+
+# tests
+pytest==9.1.1

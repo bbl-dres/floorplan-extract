@@ -1,0 +1,3611 @@
+{
+  "meta": {
+    "schema_version": "2.0",
+    "updated": "2026-10-07",
+    "description": "Index of the papers and practitioner sources behind docs/literature-review.md and the pilots. Files in papers-original/, papers-md/ and web/ are private reading copies and gitignored, as are the code clones in code/ (listed in code/README.md, read only); this index is tracked. research/fetch_papers.py downloads open-access PDFs and writes research/README.md from it; research/check_papers.py validates it.",
+    "fields": {
+      "id": "Stable key: the file stem for downloaded papers, otherwise year-surname-titlewords",
+      "year": "Year of the version cited (first public version for preprints)",
+      "title": "Title of the version cited",
+      "authors": "Author surnames as in the paper, comma-separated",
+      "venue": "Venue and identifier (arXiv id, DOI)",
+      "taxonomy": "Primary classification: l1 (approach family or contribution type) and l2 (strategy); values from meta.taxonomy",
+      "contribution": "All contribution types of the work; values from meta.vocabularies.contribution",
+      "input": "Input data the method works on; values from meta.vocabularies.input",
+      "domain": "Application domain of the work; one value from meta.vocabularies.domain",
+      "country": "Countries of the institutions in `institution`, ISO 3166-1 alpha-2, deduplicated in order of first appearance (first author first); names in meta.vocabularies.country. Empty when no affiliation could be determined; independent researchers add no country",
+      "institution": "All author institutions, deduplicated in order of first appearance (first author first); canonical names from meta.vocabularies.institution, which maps each name to its country (null when it could not be determined), its OpenAlex/ROR type (education, company, government, facility, nonprofit, healthcare, archive, other) and its ROR URL (null when ROR has no record). Names are ROR display names, otherwise the name printed in the paper. Departments, labs and institutes without legal personality map to their parent (university department to the university, MPI for Informatics to the Max Planck Society, INSAIT to Sofia University, A*STAR institutes to A*STAR, joint CNRS units to the partners printed in the paper); company labs map to the company entity (per country where ROR has one); legally separate institutes stay (DFKI, Computer Vision Center, CAS institutes)",
+      "affiliation_source": "Where country and institution come from; values from meta.vocabularies.affiliation_source",
+      "page": "Landing page (publisher, arXiv, DOI)",
+      "pdf": "Open-access PDF URL, or null when not open access",
+      "file": "Local file in papers-original/ (or web/ for saved pages), or null",
+      "code": "Optional; official public code repositories of the work, each {url, licence, commit, local}: url is the repository; licence is the SPDX identifier of the LICENSE file, a short description for custom or mixed licences, or 'none' when the repository has no licence file (no reuse rights); commit is the full hash of the shallow clone that was read (null if not cloned); local is the clone under research/code/<owner>__<repo> (gitignored, read only, never run; null if not cloned). Unofficial ports and pipeline components are listed only in research/code/README.md",
+      "note": "One or two sentences: what the work does and what it means for this project",
+      "kind": "Only for non-papers: 'web' for saved web pages"
+    },
+    "taxonomy": {
+      "Survey": {
+        "description": "Reviews of the field or of an adjacent one; no new method.",
+        "l2": {
+          "Floor plan analysis": "Surveys of floor plan or architectural drawing analysis.",
+          "Adjacent field": "Surveys of a neighbouring field (document analysis, map vectorisation, segmentation)."
+        }
+      },
+      "Classical and rule-based": {
+        "description": "Hand-designed image processing and rules, no learned model for the main task.",
+        "l2": {
+          "Heuristic pipeline": "Line and text separation, morphology, gap closing, rooms from connected regions.",
+          "Statistical and structural recognition": "Patch classifiers or statistical models feeding structural (graph) reasoning."
+        }
+      },
+      "Raster parsing": {
+        "description": "Learned parsing of drawing images (pixels, keypoints, regions, text), then conversion to geometry, sheet structure or scale.",
+        "l2": {
+          "Semantic segmentation": "Pixel classes (walls, rooms, openings), single or multi-task; geometry derived afterwards.",
+          "Segmentation and vectorisation": "Segmentation or keypoints plus an explicit vectorisation step (integer programming, junction graphs, rules).",
+          "Primitive vectorisation": "Cleaning raster drawings and fitting lines, curves or closed shapes, without building semantics.",
+          "Symbol and keypoint detection": "Detectors or keypoint models for symbols, openings and layout regions.",
+          "Sheet layout and title blocks": "Detecting sheet regions (drawing views, title blocks, legends, notes, revision tables) and reading title blocks and view captions.",
+          "Scale and dimension reading": "Recovering metric scale from dimension strings, scale bars or scale notes; scale-bar methods from adjacent fields (microscopy, maps) are included and marked by their domain."
+        }
+      },
+      "Structured prediction": {
+        "description": "Learned models that output graphs or polygons directly.",
+        "l2": {
+          "Graph-based": "Wall or room graphs predicted or classified with graph networks or autoregressive decoders.",
+          "Polygon decoder": "Room polygons as query sets, sequences or implicit fields (from drawings or scan density maps)."
+        }
+      },
+      "Vector CAD parsing": {
+        "description": "Models on vector primitives (lines, arcs, text, layers) of CAD drawings or vector PDFs, mostly learned.",
+        "l2": {
+          "Panoptic symbol spotting": "Class and instance per primitive; scored with panoptic quality on FloorPlanCAD-style data.",
+          "Primitive graph segmentation": "Primitives as graph nodes classified into walls, rooms or regions.",
+          "Layer and entity classification": "Classifying CAD layers, blocks or entities by their content rather than their names, to select the geometry to parse."
+        }
+      },
+      "Vision-language models and agents": {
+        "description": "Multimodal language models fine-tuned or orchestrated for drawings.",
+        "l2": {
+          "Fine-tuned VLM": "A VLM trained to emit structured plan output (vectors, JSON).",
+          "Agentic pipeline": "LLM or VLM agents orchestrating tools, rules and humans."
+        }
+      },
+      "Text recognition": {
+        "description": "Text detection and recognition, and its use on drawings.",
+        "l2": {
+          "OCR system": "General OCR engines and their technical reports.",
+          "Decoding and lexicons": "Constrained decoding and dictionary methods for recognisers.",
+          "Text in technical drawings": "OCR and text parsing specialised for engineering or architectural drawings."
+        }
+      },
+      "Learning strategies": {
+        "description": "Training and adaptation methods from adjacent fields that transfer to plan parsing.",
+        "l2": {
+          "Domain adaptation": "Unsupervised domain adaptation and self-training from a labelled to an unlabelled domain.",
+          "Synthetic data and domain generalisation": "Procedural or synthetic training data and randomisation for unseen styles.",
+          "Topology-aware learning": "Losses, architectures or benchmarks for topologically correct thin structures.",
+          "Annotation strategy": "How to label efficiently: protocols, class design, label budgets."
+        }
+      },
+      "Datasets and benchmarks": {
+        "description": "Data or evaluation protocols as the primary contribution.",
+        "l2": {
+          "Raster plan dataset": "Plan images (scans, renders) with labels.",
+          "Vector plan dataset": "Vector plans or CAD drawings with labels or graphs.",
+          "Other drawing dataset": "Engineering, structural or other technical drawings.",
+          "Benchmark": "Evaluation protocols and test sets for methods or models (VLM QA, vectorisation, topology)."
+        }
+      },
+      "Practitioner sources": {
+        "description": "Grey literature: vendor descriptions of working pipelines; not peer-reviewed.",
+        "l2": {
+          "Vendor pipeline": "Vendor tutorials, solution pages and model guides."
+        }
+      }
+    },
+    "vocabularies": {
+      "contribution": {
+        "method": "A new model, algorithm or pipeline",
+        "dataset": "A new dataset or data release",
+        "benchmark": "An evaluation protocol, test set or comparative evaluation",
+        "survey": "A review of prior work",
+        "system": "A software system, engine or technical report of a toolkit",
+        "practice": "Practitioner description without evaluation (grey literature)"
+      },
+      "input": {
+        "raster drawing": "Images of drawings: scans, photos, renders (floor plans, maps, technical drawings)",
+        "vector drawing": "Vector primitives: CAD (DWG, DXF), SVG, vector PDF",
+        "3D scan": "Point clouds or density maps from 3D scans",
+        "structured layout": "Graphs, JSON or other symbolic layout descriptions",
+        "natural image": "Photographs and street scenes (adjacent-field methods)",
+        "text image": "Text lines or document images (OCR)"
+      },
+      "domain": {
+        "floor plan": "Architectural floor plans",
+        "other architectural drawing": "Sections, elevations, archival architectural drawings other than floor plans",
+        "engineering drawing": "Mechanical, structural or other technical drawings",
+        "map": "Historical, cadastral or other maps",
+        "general vision": "Domain-independent computer vision",
+        "text and documents": "OCR and document understanding"
+      },
+      "affiliation_source": {
+        "openalex+pdf": "OpenAlex authorships, checked against the affiliations printed in the paper",
+        "pdf": "Affiliations printed in the paper (no OpenAlex record or OpenAlex wrong)",
+        "openalex": "OpenAlex only (paper not available locally)",
+        "web": "Publisher or vendor web page"
+      },
+      "country": {
+        "AT": "Austria",
+        "AU": "Australia",
+        "BE": "Belgium",
+        "BG": "Bulgaria",
+        "CA": "Canada",
+        "CH": "Switzerland",
+        "CL": "Chile",
+        "CN": "China",
+        "CZ": "Czechia",
+        "DE": "Germany",
+        "DK": "Denmark",
+        "ES": "Spain",
+        "FI": "Finland",
+        "FR": "France",
+        "GB": "United Kingdom",
+        "HK": "Hong Kong",
+        "IL": "Israel",
+        "IN": "India",
+        "IT": "Italy",
+        "JP": "Japan",
+        "KR": "Korea, Republic of",
+        "MO": "Macao",
+        "NL": "Netherlands",
+        "PK": "Pakistan",
+        "RU": "Russian Federation",
+        "SA": "Saudi Arabia",
+        "SE": "Sweden",
+        "SG": "Singapore",
+        "US": "United States"
+      },
+      "institution": {
+        "Aalto University": {
+          "country": "FI",
+          "type": "education",
+          "ror": "https://ror.org/020hwjq30"
+        },
+        "AECFoundry": {
+          "country": "IT",
+          "type": "company",
+          "ror": null
+        },
+        "Agency for Science, Technology and Research": {
+          "country": "SG",
+          "type": "government",
+          "ror": "https://ror.org/036wvzt09"
+        },
+        "Alibaba Group (China)": {
+          "country": "CN",
+          "type": "company",
+          "ror": "https://ror.org/00k642b80"
+        },
+        "Argonne National Laboratory": {
+          "country": "US",
+          "type": "facility",
+          "ror": "https://ror.org/05gvnxz63"
+        },
+        "Arizona State University": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/03efmqc40"
+        },
+        "AxcelerateAI": {
+          "country": "US",
+          "type": "company",
+          "ror": null
+        },
+        "Baidu (China)": {
+          "country": "CN",
+          "type": "company",
+          "ror": "https://ror.org/03vs3wt56"
+        },
+        "Beihang University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/00wk2mp56"
+        },
+        "Beijing Academy of Artificial Intelligence": {
+          "country": "CN",
+          "type": "other",
+          "ror": "https://ror.org/016a74861"
+        },
+        "Beijing University of Technology": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/037b1pp87"
+        },
+        "Beike": {
+          "country": "CN",
+          "type": "company",
+          "ror": null
+        },
+        "Birmingham City University": {
+          "country": "GB",
+          "type": "education",
+          "ror": "https://ror.org/00t67pt25"
+        },
+        "BuroHappold (United Kingdom)": {
+          "country": "GB",
+          "type": "company",
+          "ror": "https://ror.org/04pgfae68"
+        },
+        "Cenozoic Robotics": {
+          "country": "SG",
+          "type": "company",
+          "ror": null
+        },
+        "Centre National de la Recherche Scientifique": {
+          "country": "FR",
+          "type": "government",
+          "ror": "https://ror.org/02feahw73"
+        },
+        "China Information Technology Designing and Consulting Institute": {
+          "country": "CN",
+          "type": "company",
+          "ror": null
+        },
+        "Chinese University of Hong Kong": {
+          "country": "HK",
+          "type": "education",
+          "ror": "https://ror.org/00t33hh48"
+        },
+        "Chongqing University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/023rhb549"
+        },
+        "Computer Vision Center": {
+          "country": "ES",
+          "type": "other",
+          "ror": "https://ror.org/00s0nnj93"
+        },
+        "Cornell University": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/05bnh6r87"
+        },
+        "CubiCasa": {
+          "country": "FI",
+          "type": "company",
+          "ror": null
+        },
+        "CY Cergy Paris Université": {
+          "country": "FR",
+          "type": "education",
+          "ror": "https://ror.org/043htjv09"
+        },
+        "Daqing Normal University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/05dd1f546"
+        },
+        "Delft University of Technology": {
+          "country": "NL",
+          "type": "education",
+          "ror": "https://ror.org/02e2c7k09"
+        },
+        "DGene Digital Technology": {
+          "country": "CN",
+          "type": "company",
+          "ror": null
+        },
+        "Donghua University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/035psfh38"
+        },
+        "East China Normal University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/02n96ep67"
+        },
+        "ETH Zurich": {
+          "country": "CH",
+          "type": "education",
+          "ror": "https://ror.org/05a28rw58"
+        },
+        "FiveAges": {
+          "country": "CN",
+          "type": "company",
+          "ror": null
+        },
+        "Flame University": {
+          "country": "IN",
+          "type": "education",
+          "ror": "https://ror.org/0252mqn49"
+        },
+        "Foxit Software": {
+          "country": "US",
+          "type": "company",
+          "ror": null
+        },
+        "George Mason University": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/02jqj7156"
+        },
+        "German Research Centre for Artificial Intelligence": {
+          "country": "DE",
+          "type": "nonprofit",
+          "ror": "https://ror.org/01ayc5b57"
+        },
+        "Google DeepMind (United Kingdom)": {
+          "country": "GB",
+          "type": "company",
+          "ror": "https://ror.org/00971b260"
+        },
+        "Hefei University of Technology": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/02czkny70"
+        },
+        "Henan University of Economic and Law": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/000jtc944"
+        },
+        "Hong Kong Polytechnic University": {
+          "country": "HK",
+          "type": "education",
+          "ror": "https://ror.org/0030zas98"
+        },
+        "Huawei Technologies (Switzerland)": {
+          "country": "CH",
+          "type": "company",
+          "ror": null
+        },
+        "Indiana University Bloomington": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/02k40bc56"
+        },
+        "Institut national de l’information géographique et forestière": {
+          "country": "FR",
+          "type": "government",
+          "ror": "https://ror.org/05jxfge78"
+        },
+        "Institut National des Sciences Appliquées de Lyon": {
+          "country": "FR",
+          "type": "education",
+          "ror": "https://ror.org/050jn9y42"
+        },
+        "Institute for Advanced Algorithms Research": {
+          "country": "CN",
+          "type": "facility",
+          "ror": null
+        },
+        "Institute of Automation": {
+          "country": "CN",
+          "type": "facility",
+          "ror": "https://ror.org/022c3hy66"
+        },
+        "International Digital Economy Academy": {
+          "country": "CN",
+          "type": "facility",
+          "ror": null
+        },
+        "Karlsruhe Institute of Technology": {
+          "country": "DE",
+          "type": "education",
+          "ror": "https://ror.org/04t3en479"
+        },
+        "King Abdullah University of Science and Technology": {
+          "country": "SA",
+          "type": "education",
+          "ror": "https://ror.org/01q3tbs38"
+        },
+        "KU Leuven": {
+          "country": "BE",
+          "type": "education",
+          "ror": "https://ror.org/05f950310"
+        },
+        "La Rochelle Université": {
+          "country": "FR",
+          "type": "education",
+          "ror": "https://ror.org/04mv1z119"
+        },
+        "Linköping University": {
+          "country": "SE",
+          "type": "education",
+          "ror": "https://ror.org/05ynxx418"
+        },
+        "Macao Polytechnic University": {
+          "country": "MO",
+          "type": "education",
+          "ror": "https://ror.org/02sf5td35"
+        },
+        "Massachusetts Institute of Technology": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/042nb2s44"
+        },
+        "Max Planck Society": {
+          "country": "DE",
+          "type": "nonprofit",
+          "ror": "https://ror.org/01hhn8329"
+        },
+        "Miami University": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/05nbqxr67"
+        },
+        "Microsoft Research Asia (China)": {
+          "country": "CN",
+          "type": "company",
+          "ror": "https://ror.org/0300m5276"
+        },
+        "ModelBest": {
+          "country": "CN",
+          "type": "company",
+          "ror": null
+        },
+        "Mohammad Ali Jinnah University": {
+          "country": "PK",
+          "type": "education",
+          "ror": "https://ror.org/02xx4jg88"
+        },
+        "Nanyang Technological University": {
+          "country": "SG",
+          "type": "education",
+          "ror": "https://ror.org/02e7b5302"
+        },
+        "National University of Singapore": {
+          "country": "SG",
+          "type": "education",
+          "ror": "https://ror.org/01tgyzw49"
+        },
+        "New York University": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/0190ak572"
+        },
+        "Northeast Forestry University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/02yxnh564"
+        },
+        "Northwestern University": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/000e0be47"
+        },
+        "Ocean University of China": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/04rdtx186"
+        },
+        "Powerchina Huadong Engineering Corporation (China)": {
+          "country": "CN",
+          "type": "company",
+          "ror": "https://ror.org/03mcefb58"
+        },
+        "Rakuten (Japan)": {
+          "country": "JP",
+          "type": "company",
+          "ror": "https://ror.org/0098kke80"
+        },
+        "Realsee": {
+          "country": "CN",
+          "type": "company",
+          "ror": null
+        },
+        "Ruhr University Bochum": {
+          "country": "DE",
+          "type": "education",
+          "ror": "https://ror.org/04tsk2644"
+        },
+        "Sapienza University of Rome": {
+          "country": "IT",
+          "type": "education",
+          "ror": "https://ror.org/02be6w209"
+        },
+        "Sardar Vallabhbhai National Institute of Technology Surat": {
+          "country": "IN",
+          "type": "education",
+          "ror": "https://ror.org/02y394t43"
+        },
+        "Sensetime (China)": {
+          "country": "CN",
+          "type": "company",
+          "ror": "https://ror.org/049wsmj07"
+        },
+        "Shanghai Artificial Intelligence Laboratory": {
+          "country": "CN",
+          "type": "facility",
+          "ror": "https://ror.org/03wkvpx79"
+        },
+        "Shanghai Innovation Institute": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/01fatbw66"
+        },
+        "Shanghai Jiao Tong University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/0220qvk04"
+        },
+        "Shanghai Qi Zhi Institute": {
+          "country": "CN",
+          "type": "facility",
+          "ror": "https://ror.org/01n14yn69"
+        },
+        "Shanghai University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/006teas31"
+        },
+        "Shanghai Xiandai Architectural Design": {
+          "country": "CN",
+          "type": "facility",
+          "ror": "https://ror.org/036xtjy06"
+        },
+        "ShanghaiTech University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/030bhh786"
+        },
+        "Shenzhen University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/01vy4gh70"
+        },
+        "Simon Fraser University": {
+          "country": "CA",
+          "type": "education",
+          "ror": "https://ror.org/0213rcc28"
+        },
+        "Skolkovo Institute of Science and Technology": {
+          "country": "RU",
+          "type": "education",
+          "ror": "https://ror.org/03f9nc143"
+        },
+        "Sofia University \"St. Kliment Ohridski\"": {
+          "country": "BG",
+          "type": "education",
+          "ror": "https://ror.org/02jv3k292"
+        },
+        "Sojo University": {
+          "country": "JP",
+          "type": "education",
+          "ror": "https://ror.org/014fz7968"
+        },
+        "South China University of Technology": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/0530pts50"
+        },
+        "Southwest Jiaotong University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/00hn7w693"
+        },
+        "Sungkyunkwan University": {
+          "country": "KR",
+          "type": "education",
+          "ror": "https://ror.org/04q78tk20"
+        },
+        "Technical University of Denmark": {
+          "country": "DK",
+          "type": "education",
+          "ror": "https://ror.org/04qtj9h94"
+        },
+        "Technical University of Munich": {
+          "country": "DE",
+          "type": "education",
+          "ror": "https://ror.org/02kkvpp62"
+        },
+        "Technische Universität Dresden": {
+          "country": "DE",
+          "type": "education",
+          "ror": "https://ror.org/042aqky30"
+        },
+        "Tel Aviv University": {
+          "country": "IL",
+          "type": "education",
+          "ror": "https://ror.org/04mhzgx49"
+        },
+        "The University of Osaka": {
+          "country": "JP",
+          "type": "education",
+          "ror": "https://ror.org/035t8zc32"
+        },
+        "The University of Texas at Arlington": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/019kgqr73"
+        },
+        "The University of Texas at Austin": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/00hj54h04"
+        },
+        "Third Dimension (Henan) Software Technology": {
+          "country": "CN",
+          "type": "company",
+          "ror": null
+        },
+        "Tokyo City University": {
+          "country": "JP",
+          "type": "education",
+          "ror": "https://ror.org/04dt6bw53"
+        },
+        "Tongji University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/03rc6as71"
+        },
+        "Tsinghua University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/03cve4549"
+        },
+        "TU Wien": {
+          "country": "AT",
+          "type": "education",
+          "ror": "https://ror.org/04d836q62"
+        },
+        "United Kingdom Atomic Energy Authority": {
+          "country": "GB",
+          "type": "government",
+          "ror": "https://ror.org/0361bwx64"
+        },
+        "Universidad de Los Andes, Chile": {
+          "country": "CL",
+          "type": "education",
+          "ror": "https://ror.org/03v0qd864"
+        },
+        "Universitat Autònoma de Barcelona": {
+          "country": "ES",
+          "type": "education",
+          "ror": "https://ror.org/052g8jq94"
+        },
+        "University of Alberta": {
+          "country": "CA",
+          "type": "education",
+          "ror": "https://ror.org/0160cpw27"
+        },
+        "University of Chile": {
+          "country": "CL",
+          "type": "education",
+          "ror": "https://ror.org/047gc3g35"
+        },
+        "University of Chinese Academy of Sciences": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/05qbk4x57"
+        },
+        "University of Eastern Finland": {
+          "country": "FI",
+          "type": "education",
+          "ror": "https://ror.org/00cyydd11"
+        },
+        "University of Hong Kong": {
+          "country": "HK",
+          "type": "education",
+          "ror": "https://ror.org/02zhqgq86"
+        },
+        "University of Kaiserslautern": {
+          "country": "DE",
+          "type": "education",
+          "ror": "https://ror.org/04zrf7b53"
+        },
+        "University of Macau": {
+          "country": "MO",
+          "type": "education",
+          "ror": "https://ror.org/01r4q9n85"
+        },
+        "University of Maryland, Baltimore County": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/02qskvh78"
+        },
+        "University of Nottingham Ningbo China": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/03y4dt428"
+        },
+        "University of Science and Technology of China": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/04c4dkn09"
+        },
+        "University of Victoria": {
+          "country": "CA",
+          "type": "education",
+          "ror": "https://ror.org/04s5mat29"
+        },
+        "University of West Bohemia in Pilsen": {
+          "country": "CZ",
+          "type": "education",
+          "ror": "https://ror.org/040t43x18"
+        },
+        "Université de Lorraine": {
+          "country": "FR",
+          "type": "education",
+          "ror": "https://ror.org/04vfs2w97"
+        },
+        "Université Gustave Eiffel": {
+          "country": "FR",
+          "type": "education",
+          "ror": "https://ror.org/03x42jk29"
+        },
+        "UNSW Sydney": {
+          "country": "AU",
+          "type": "education",
+          "ror": "https://ror.org/03r8z3t63"
+        },
+        "Vanyi Tech": {
+          "country": null,
+          "type": "company",
+          "ror": null
+        },
+        "Washington University in St. Louis": {
+          "country": "US",
+          "type": "education",
+          "ror": "https://ror.org/01yc7t268"
+        },
+        "Wuhan University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/033vjfk17"
+        },
+        "Xiaomi (China)": {
+          "country": "CN",
+          "type": "company",
+          "ror": "https://ror.org/029f7bn57"
+        },
+        "Zhejiang Sci-Tech University": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/03893we55"
+        },
+        "Zhejiang University of Science and Technology": {
+          "country": "CN",
+          "type": "education",
+          "ror": "https://ror.org/05mx0wr29"
+        },
+        "École des hautes études en sciences sociales": {
+          "country": "FR",
+          "type": "facility",
+          "ror": "https://ror.org/02d9dg697"
+        },
+        "École Nationale Supérieure de l'Électronique et de ses Applications": {
+          "country": "FR",
+          "type": "education",
+          "ror": "https://ror.org/03qeacd72"
+        },
+        "École Polytechnique Fédérale de Lausanne": {
+          "country": "CH",
+          "type": "education",
+          "ror": "https://ror.org/02s376052"
+        },
+        "École Pour l'Informatique et les Techniques Avancées": {
+          "country": "FR",
+          "type": "education",
+          "ror": "https://ror.org/04r5ddq29"
+        }
+      }
+    }
+  },
+  "papers": [
+    {
+      "id": "2010-mace-room-detection",
+      "year": 2010,
+      "title": "A system to detect rooms in architectural floor plan images",
+      "authors": "Macé, Locteau, Valveny, Tabbone",
+      "venue": "DAS 2010",
+      "taxonomy": {
+        "l1": "Classical and rule-based",
+        "l2": "Heuristic pipeline"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "ES",
+        "FR"
+      ],
+      "institution": [
+        "Computer Vision Center",
+        "Université de Lorraine",
+        "Universitat Autònoma de Barcelona"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://hal.science/inria-00493393",
+      "pdf": null,
+      "file": null,
+      "note": "Walls from Hough lines, doors from arcs, rooms by recursive decomposition. HAL record has no open file"
+    },
+    {
+      "id": "2011-ahmed-improved-analysis",
+      "year": 2011,
+      "title": "Improved automatic analysis of architectural floor plans",
+      "authors": "Ahmed, Liwicki, Weber, Dengel",
+      "venue": "ICDAR 2011",
+      "taxonomy": {
+        "l1": "Classical and rule-based",
+        "l2": "Heuristic pipeline"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "German Research Centre for Artificial Intelligence",
+        "University of Kaiserslautern"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://av.dfki.de/publications/improved-automatic-analysis-of-architectural-floor-plans/",
+      "pdf": "https://www-live.dfki.de/fileadmin/user_upload/import/5675_4520a864.pdf",
+      "file": "2011-ahmed-improved-analysis.pdf",
+      "note": "Text/graphics separation, thick/medium/thin lines, wall detection"
+    },
+    {
+      "id": "2012-ahmed-room-detection-labeling",
+      "year": 2012,
+      "title": "Automatic room detection and room labeling from architectural floor plans",
+      "authors": "Ahmed, Liwicki, Weber, Dengel",
+      "venue": "DAS 2012",
+      "taxonomy": {
+        "l1": "Classical and rule-based",
+        "l2": "Heuristic pipeline"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "German Research Centre for Artificial Intelligence",
+        "University of Kaiserslautern"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://av.dfki.de/?p=9839",
+      "pdf": "https://www-live.dfki.de/fileadmin/user_upload/import/6204_4661a339.pdf",
+      "file": "2012-ahmed-room-detection-labeling.pdf",
+      "note": "Gap closing, rooms, OCR room labels, splitting shared spaces"
+    },
+    {
+      "id": "2013-de-las-heras-statistical-structural",
+      "year": 2013,
+      "title": "Statistical segmentation and structural recognition for floor plan interpretation",
+      "authors": "de las Heras, Ahmed, Liwicki, Valveny, Sánchez",
+      "venue": "IJDAR (Springer), doi:10.1007/s10032-013-0215-2",
+      "taxonomy": {
+        "l1": "Classical and rule-based",
+        "l2": "Statistical and structural recognition"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "ES",
+        "DE"
+      ],
+      "institution": [
+        "Computer Vision Center",
+        "German Research Centre for Artificial Intelligence"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1007/s10032-013-0215-2",
+      "pdf": null,
+      "file": null,
+      "note": "Patch-based wall/door/window segmentation, then a graph and structural recognition of rooms; notation-independent. Not open access"
+    },
+    {
+      "id": "2015-de-las-heras-cvc-fp",
+      "year": 2015,
+      "title": "CVC-FP and SGT: a new database for structural floor plan analysis and its groundtruthing tool",
+      "authors": "de las Heras, Terrades, Robles, Sánchez",
+      "venue": "IJDAR (Springer), doi:10.1007/s10032-014-0236-5",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Raster plan dataset"
+      },
+      "contribution": [
+        "dataset",
+        "system"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "ES"
+      ],
+      "institution": [
+        "Universitat Autònoma de Barcelona",
+        "Computer Vision Center"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1007/s10032-014-0236-5",
+      "pdf": null,
+      "file": null,
+      "note": "CVC-FP dataset: 122 scans in 4 styles. Not open access"
+    },
+    {
+      "id": "2017-dodge-parsing-floor-plan-images",
+      "year": 2017,
+      "title": "Parsing floor plan images",
+      "authors": "Dodge, Xu, Stenger",
+      "venue": "MVA 2017",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Semantic segmentation"
+      },
+      "contribution": [
+        "method",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US",
+        "JP"
+      ],
+      "institution": [
+        "Arizona State University",
+        "Rakuten (Japan)"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://www.mva-org.jp/Proceedings/2017USB/papers/10-01.pdf",
+      "pdf": "https://www.mva-org.jp/Proceedings/2017USB/papers/10-01.pdf",
+      "file": "2017-dodge-parsing-floor-plan-images.pdf",
+      "note": "FCN wall segmentation, object detection, OCR of room sizes, scale"
+    },
+    {
+      "id": "2017-liu-raster-to-vector",
+      "year": 2017,
+      "title": "Raster-to-Vector: Revisiting floorplan transformation",
+      "authors": "Liu, Wu, Kohli, Furukawa",
+      "venue": "ICCV 2017",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Segmentation and vectorisation"
+      },
+      "contribution": [
+        "method",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US",
+        "GB",
+        "CA"
+      ],
+      "institution": [
+        "Washington University in St. Louis",
+        "Massachusetts Institute of Technology",
+        "Google DeepMind (United Kingdom)",
+        "Simon Fraser University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://github.com/art-programmer/FloorplanTransformation",
+      "pdf": "https://openaccess.thecvf.com/content_ICCV_2017/papers/Liu_Raster-To-Vector_Revisiting_Floorplan_ICCV_2017_paper.pdf",
+      "file": "2017-liu-raster-to-vector.pdf",
+      "code": [
+        {
+          "url": "https://github.com/art-programmer/FloorplanTransformation",
+          "licence": "MIT",
+          "commit": "929e7a309e300fbf1d8c77fb2277e5744cdca43e",
+          "local": "research/code/art-programmer__FloorplanTransformation"
+        }
+      ],
+      "note": "Junction heatmaps + integer programming into a wall/door/room graph"
+    },
+    {
+      "id": "2021-paudel-room-classification-gnn",
+      "year": 2021,
+      "title": "Room classification on floor plan graphs using graph neural networks",
+      "authors": "Paudel et al.",
+      "venue": "arXiv 2108.05947",
+      "taxonomy": {
+        "l1": "Structured prediction",
+        "l2": "Graph-based"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "structured layout"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "George Mason University"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2108.05947",
+      "pdf": "https://arxiv.org/pdf/2108.05947",
+      "file": "2021-paudel-room-classification-gnn.pdf",
+      "code": [
+        {
+          "url": "https://github.com/abpaudel/floorplan-graph",
+          "licence": "GPL-3.0",
+          "commit": "1cfd74886f530f1d57c09a154346fe1228d7289d",
+          "local": "research/code/abpaudel__floorplan-graph"
+        }
+      ],
+      "note": "Room types from the room graph"
+    },
+    {
+      "id": "2023-chen-line-segments-gnn",
+      "year": 2023,
+      "title": "Parsing line segments of floor plan images using graph neural networks",
+      "authors": "Chen et al.",
+      "venue": "arXiv 2303.03851",
+      "taxonomy": {
+        "l1": "Structured prediction",
+        "l2": "Graph-based"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Realsee"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2303.03851",
+      "pdf": "https://arxiv.org/pdf/2303.03851",
+      "file": "2023-chen-line-segments-gnn.pdf",
+      "note": "Line segments as graph nodes, classified with a GNN"
+    },
+    {
+      "id": "2024-hu-raster-to-graph",
+      "year": 2024,
+      "title": "Raster-to-Graph: Floorplan recognition via autoregressive graph prediction with an attention transformer",
+      "authors": "Hu et al.",
+      "venue": "Computer Graphics Forum (Eurographics 2024), doi:10.1111/cgf.15007",
+      "taxonomy": {
+        "l1": "Structured prediction",
+        "l2": "Graph-based"
+      },
+      "contribution": [
+        "method",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Hefei University of Technology"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://github.com/SizheHu/Raster-to-Graph",
+      "pdf": "https://wutomwu.github.io/publications/2024-Raster2Graph/paper.pdf",
+      "file": "2024-hu-raster-to-graph.pdf",
+      "code": [
+        {
+          "url": "https://github.com/SizheHu/Raster-to-Graph",
+          "licence": "GPL-3.0",
+          "commit": "04f14b36a26ccc0986d300243f64db8f388dd6ef",
+          "local": "research/code/SizheHu__Raster-to-Graph"
+        }
+      ],
+      "note": "Structural graph predicted directly from the image (author copy)"
+    },
+    {
+      "id": "2026-talebi-kalaleh-framing-plan-parsing",
+      "year": 2026,
+      "title": "Training-free agentic computer vision for structural component detection in 2D structural framing plans",
+      "authors": "Talebi-Kalaleh, Mei",
+      "venue": "arXiv 2608.17237",
+      "taxonomy": {
+        "l1": "Vision-language models and agents",
+        "l2": "Agentic pipeline"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing",
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "CA"
+      ],
+      "institution": [
+        "University of Alberta"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2608.17237",
+      "pdf": "https://arxiv.org/pdf/2608.17237",
+      "file": "2026-talebi-kalaleh-framing-plan-parsing.pdf",
+      "note": "Deterministic PDF-operator parsing, scale from dimension-text/line consensus with outlier rejection (within 0.1%) and rule-based column glyphs, then an agentic VLM correction layer; rules portable to our vector PDFs, skip the external VLM"
+    },
+    {
+      "id": "2019-kalervo-cubicasa5k",
+      "year": 2019,
+      "title": "CubiCasa5K: A dataset and an improved multi-task model for floorplan image analysis",
+      "authors": "Kalervo et al.",
+      "venue": "arXiv 1904.01920",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Raster plan dataset"
+      },
+      "contribution": [
+        "dataset",
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "FI"
+      ],
+      "institution": [
+        "Aalto University",
+        "CubiCasa"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/1904.01920",
+      "pdf": "https://arxiv.org/pdf/1904.01920",
+      "file": "2019-kalervo-cubicasa5k.pdf",
+      "code": [
+        {
+          "url": "https://github.com/CubiCasa/CubiCasa5k",
+          "licence": "CC-BY-NC-4.0 (whole repository, code included)",
+          "commit": "c34440266665a11f4484eb06cd2e4b7d72ad76c1",
+          "local": "research/code/CubiCasa__CubiCasa5k"
+        }
+      ],
+      "note": "Multi-task junctions, rooms, icons; dataset with three style subsets"
+    },
+    {
+      "id": "2019-zeng-deepfloorplan",
+      "year": 2019,
+      "title": "Deep floor plan recognition using a multi-task network with room-boundary-guided attention",
+      "authors": "Zeng et al.",
+      "venue": "ICCV 2019 (arXiv 1908.11025)",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Semantic segmentation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "HK"
+      ],
+      "institution": [
+        "Chinese University of Hong Kong"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/1908.11025",
+      "pdf": "https://arxiv.org/pdf/1908.11025",
+      "file": "2019-zeng-deepfloorplan.pdf",
+      "code": [
+        {
+          "url": "https://github.com/zlzeng/DeepFloorplan",
+          "licence": "GPL-3.0",
+          "commit": "819db2368da447274a80ff4379a75aadec455407",
+          "local": "research/code/zlzeng__DeepFloorplan"
+        }
+      ],
+      "note": "Room boundaries and room types"
+    },
+    {
+      "id": "2020-egiazarian-deep-vectorization",
+      "year": 2020,
+      "title": "Deep vectorization of technical drawings",
+      "authors": "Egiazarian et al.",
+      "venue": "ECCV 2020 (arXiv 2003.05471)",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Primitive vectorisation"
+      },
+      "contribution": [
+        "method",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "RU",
+        "US"
+      ],
+      "institution": [
+        "Skolkovo Institute of Science and Technology",
+        "New York University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2003.05471",
+      "pdf": "https://arxiv.org/pdf/2003.05471",
+      "file": "2020-egiazarian-deep-vectorization.pdf",
+      "code": [
+        {
+          "url": "https://github.com/Vahe1994/Deep-Vectorization-of-Technical-Drawings",
+          "licence": "MPL-2.0",
+          "commit": "63cbc673ee9176925d1ae18e981341df68cb993d",
+          "local": "research/code/Vahe1994__Deep-Vectorization-of-Technical-Drawings"
+        }
+      ],
+      "note": "Cleaning + line/curve primitive fitting for technical drawings, incl. floor plans"
+    },
+    {
+      "id": "2023-huang-muranet",
+      "year": 2023,
+      "title": "MuraNet: Multi-task floor plan recognition with relation attention",
+      "authors": "Huang et al.",
+      "venue": "arXiv 2309.00348",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Semantic segmentation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "Foxit Software"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2309.00348",
+      "pdf": "https://arxiv.org/pdf/2309.00348",
+      "file": "2023-huang-muranet.pdf",
+      "note": "Joint segmentation and detection of walls, doors, windows"
+    },
+    {
+      "id": "2024-pang-pixel-wise-symbol-spotting",
+      "year": 2024,
+      "title": "Pixel-wise symbol spotting via progressive points location for parsing CAD images",
+      "authors": "Pang et al.",
+      "venue": "arXiv 2404.10985",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Symbol and keypoint detection"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Beijing University of Technology",
+        "China Information Technology Designing and Consulting Institute"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2404.10985",
+      "pdf": "https://arxiv.org/pdf/2404.10985",
+      "file": "2024-pang-pixel-wise-symbol-spotting.pdf",
+      "code": [
+        {
+          "url": "https://github.com/pangjunbiao/CAD-dataset",
+          "licence": "none",
+          "commit": "d814828db64cc19adabde93b4e58067cd937c886",
+          "local": "research/code/pangjunbiao__CAD-dataset"
+        }
+      ],
+      "note": "Symbol spotting on rendered CAD images"
+    },
+    {
+      "id": "2026-liu-floorplanvlm",
+      "year": 2026,
+      "title": "FloorplanVLM: A vision-language model for floorplan vectorization",
+      "authors": "Liu et al.",
+      "venue": "arXiv 2602.06507",
+      "taxonomy": {
+        "l1": "Vision-language models and agents",
+        "l2": "Fine-tuned VLM"
+      },
+      "contribution": [
+        "method",
+        "dataset",
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Beike"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2602.06507",
+      "pdf": "https://arxiv.org/pdf/2602.06507",
+      "file": "2026-liu-floorplanvlm.pdf",
+      "note": "Fine-tuned VLM outputs vectors as JSON"
+    },
+    {
+      "id": "2026-guo-llm-floor-plan-analysis",
+      "year": 2026,
+      "title": "LLM-integrated semantic deep learning framework for automated floor plan analysis, area estimation, and compliance assessment of existing buildings",
+      "authors": "Guo, Zhou, Tang",
+      "venue": "Applied Sciences 16(13), 6290, doi:10.3390/app16136290",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Semantic segmentation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "MO"
+      ],
+      "institution": [
+        "Macao Polytechnic University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://doi.org/10.3390/app16136290",
+      "pdf": "https://www.preprints.org/manuscript/202605.1893/v1/download",
+      "file": "2026-guo-llm-floor-plan-analysis.pdf",
+      "note": "YOLOv8 symbols + ResNet34 U-Net walls/rooms, room areas from connected components and a manual scale line, local LLM with RAG for compliance screening; 101 plans, no OCR, vectors or CAD export. Local copy is the preprint (doi:10.20944/preprints202605.1893.v1; random split of flipped/rotated copies, doors/windows weakest at 72–79% mAP50); the journal version validates on 10 held-out source plans and adds Faster R-CNN and DeepLabv3+ baselines"
+    },
+    {
+      "id": "2021-lv-residential-floor-plan-recognition",
+      "year": 2021,
+      "title": "Residential floor plan recognition and reconstruction",
+      "authors": "Lv, Zhao, Yu, Zhao",
+      "venue": "CVPR 2021",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Segmentation and vectorisation"
+      },
+      "contribution": [
+        "method",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Alibaba Group (China)"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://openaccess.thecvf.com/content/CVPR2021/html/Lv_Residential_Floor_Plan_Recognition_and_Reconstruction_CVPR_2021_paper.html",
+      "pdf": "https://openaccess.thecvf.com/content/CVPR2021/papers/Lv_Residential_Floor_Plan_Recognition_and_Reconstruction_CVPR_2021_paper.pdf",
+      "file": "2021-lv-residential-floor-plan-recognition.pdf",
+      "note": "Scale from detected dimension numbers and dimension-line endpoints with cluster analysis of the ratios, plus iterative vectorisation that allows inclined walls; peer-reviewed template for our dimension-string scale cue"
+    },
+    {
+      "id": "2024-chen-historical-map-vectorization",
+      "year": 2024,
+      "title": "Automatic vectorization of historical maps: A benchmark",
+      "authors": "Chen et al.",
+      "venue": "PLOS ONE 19(2), e0298217, doi:10.1371/journal.pone.0298217",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "benchmark",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "map",
+      "country": [
+        "FR",
+        "CH"
+      ],
+      "institution": [
+        "École Pour l'Informatique et les Techniques Avancées",
+        "Université Gustave Eiffel",
+        "Institut national de l’information géographique et forestière",
+        "ETH Zurich",
+        "École des hautes études en sciences sociales"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0298217",
+      "pdf": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0298217&type=printable",
+      "file": "2024-chen-historical-map-vectorization.pdf",
+      "code": [
+        {
+          "url": "https://github.com/soduco/Benchmark_historical_map_vectorization",
+          "licence": "none",
+          "commit": "c78706f7a03ffb91f26d007e22aba22ed2daa34d",
+          "local": "research/code/soduco__Benchmark_historical_map_vectorization"
+        }
+      ],
+      "note": "Closed-shape extraction benchmark: U-Net edge map plus watershed works best (PQ 51.1%) and topology losses did not beat plain BCE; model for stamp-seeded watershed rooms and PQ scoring, and a check on TopoMortar"
+    },
+    {
+      "id": "2026-phung-raster2seq",
+      "year": 2026,
+      "title": "Raster2Seq: Polygon sequence generation for floorplan reconstruction",
+      "authors": "Phung, Averbuch-Elor",
+      "venue": "SIGGRAPH 2026 (arXiv 2602.09016)",
+      "taxonomy": {
+        "l1": "Structured prediction",
+        "l2": "Polygon decoder"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "Cornell University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2602.09016",
+      "pdf": "https://arxiv.org/pdf/2602.09016",
+      "file": "2026-phung-raster2seq.pdf",
+      "code": [
+        {
+          "url": "https://github.com/Cornell-VAILab/Raster2Seq",
+          "licence": "MIT",
+          "commit": "a6c4e27a68d11d7a459f6e4a2601fd887227dd1a",
+          "local": "research/code/Cornell-VAILab__Raster2Seq"
+        }
+      ],
+      "note": "Rooms, doors and windows as labelled polygon sequences from an anchor-guided autoregressive decoder; state of the art on CubiCasa5K and zero-shot on WAFFLE; candidate second room hypothesis for open-plan and merged rooms (MIT code, weights trained on non-commercial data)"
+    },
+    {
+      "id": "2026-trivi-archival-analog-drawings",
+      "year": 2026,
+      "title": "Archival analog drawings for semantic segmentation of Roman architectural heritage using deep learning",
+      "authors": "Trivi",
+      "venue": "ISPRS Archives XLVIII-2/W12-2026, 487–494, doi:10.5194/isprs-archives-XLVIII-2-W12-2026-487-2026",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Semantic segmentation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "other architectural drawing",
+      "country": [
+        "IT"
+      ],
+      "institution": [
+        "Sapienza University of Rome"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://isprs-archives.copernicus.org/articles/XLVIII-2-W12-2026/487/2026/",
+      "pdf": "https://isprs-archives.copernicus.org/articles/XLVIII-2-W12-2026/487/2026/isprs-archives-XLVIII-2-W12-2026-487-2026.pdf",
+      "file": "2026-trivi-archival-analog-drawings.pdf",
+      "note": "U-Net/ResNet-34 segmentation of hatch and texture codes on archival analog drawings with only 19 annotated drawings; closest domain match to our archive plans"
+    },
+    {
+      "id": "2023-hoyer-mic",
+      "year": 2023,
+      "title": "MIC: Masked image consistency for context-enhanced domain adaptation",
+      "authors": "Hoyer, Dai, Wang, Van Gool",
+      "venue": "CVPR 2023 (arXiv 2212.01322)",
+      "taxonomy": {
+        "l1": "Learning strategies",
+        "l2": "Domain adaptation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "natural image"
+      ],
+      "domain": "general vision",
+      "country": [
+        "CH",
+        "DE",
+        "BE"
+      ],
+      "institution": [
+        "ETH Zurich",
+        "Max Planck Society",
+        "KU Leuven"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2212.01322",
+      "pdf": "https://arxiv.org/pdf/2212.01322",
+      "file": "2023-hoyer-mic.pdf",
+      "code": [
+        {
+          "url": "https://github.com/lhoyer/MIC",
+          "licence": "mixed, no root licence: seg/ Apache-2.0, cls/ and det/ MIT; some seg files under the NVIDIA SegFormer licence or non-commercial (AdaptSegNet)",
+          "commit": "2f932a98b5dd9f598aaeb32411863ceea0809314",
+          "local": "research/code/lhoyer__MIC"
+        }
+      ],
+      "note": "EMA-teacher pseudo-labels plus masked-patch consistency for synthetic-to-real adaptation, also shown with CNNs; route for adapting our U-Net to unlabelled archive scans (hatching inside a room is not wall). Reimplement: some code files are non-commercial, weights are Cityscapes-only"
+    },
+    {
+      "id": "2023-hoyer-daformer-hrda",
+      "year": 2023,
+      "title": "Domain adaptive and generalizable network architectures and training strategies for semantic image segmentation (DAFormer, HRDA)",
+      "authors": "Hoyer, Dai, Van Gool",
+      "venue": "IEEE TPAMI (arXiv 2304.13615), doi:10.1109/TPAMI.2023.3320613",
+      "taxonomy": {
+        "l1": "Learning strategies",
+        "l2": "Domain adaptation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "natural image"
+      ],
+      "domain": "general vision",
+      "country": [
+        "CH",
+        "BE",
+        "BG"
+      ],
+      "institution": [
+        "ETH Zurich",
+        "Huawei Technologies (Switzerland)",
+        "KU Leuven",
+        "Sofia University \"St. Kliment Ohridski\""
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2304.13615",
+      "pdf": "https://arxiv.org/pdf/2304.13615",
+      "file": "2023-hoyer-daformer-hrda.pdf",
+      "code": [
+        {
+          "url": "https://github.com/lhoyer/HRDA",
+          "licence": "Apache-2.0 with exceptions: some files under the NVIDIA SegFormer licence or non-commercial (AdaptSegNet)",
+          "commit": "c370b5b0fe3c6238993435819f9a8f1518c413b5",
+          "local": "research/code/lhoyer__HRDA"
+        }
+      ],
+      "note": "High-resolution detail crop plus low-resolution context crop fused by learned scale attention (gains on fine-detail classes such as poles and signs), Rare Class Sampling and ImageNet feature distance; backbone-agnostic additions for thin walls, columns and stairs on large sheets"
+    },
+    {
+      "id": "2023-petitpierre-cadastral-annotation",
+      "year": 2023,
+      "title": "Effective annotation for the automatic vectorization of cadastral maps",
+      "authors": "Petitpierre, Guhennec",
+      "venue": "Digital Scholarship in the Humanities 38(3), 1227–1237, doi:10.1093/llc/fqad006",
+      "taxonomy": {
+        "l1": "Learning strategies",
+        "l2": "Annotation strategy"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "map",
+      "country": [
+        "CH"
+      ],
+      "institution": [
+        "École Polytechnique Fédérale de Lausanne"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1093/llc/fqad006",
+      "pdf": "https://academic.oup.com/dsh/article-pdf/38/3/1227/51309463/fqad006.pdf",
+      "file": null,
+      "note": "Lessons from five cadastral vectorisation projects: 2–3 visually homogeneous classes, annotate only what is visible, iterate, about a dozen sheets bootstrap a model; protocol for labelling our first real archive sheets. Download blocked, open access at https://doi.org/10.1093/llc/fqad006"
+    },
+    {
+      "id": "2025-valverde-topomortar",
+      "year": 2025,
+      "title": "TopoMortar: A dataset to evaluate image segmentation methods focused on topology accuracy",
+      "authors": "Valverde, Koga, Otsuka, Dahl",
+      "venue": "BMVC 2025 (arXiv 2503.03365)",
+      "taxonomy": {
+        "l1": "Learning strategies",
+        "l2": "Topology-aware learning"
+      },
+      "contribution": [
+        "dataset",
+        "benchmark"
+      ],
+      "input": [
+        "natural image"
+      ],
+      "domain": "general vision",
+      "country": [
+        "DK",
+        "FI",
+        "JP"
+      ],
+      "institution": [
+        "Technical University of Denmark",
+        "University of Eastern Finland",
+        "Sojo University"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2503.03365",
+      "pdf": "https://arxiv.org/pdf/2503.03365",
+      "file": "2025-valverde-topomortar.pdf",
+      "code": [
+        {
+          "url": "https://github.com/jmlipman/TopoMortar",
+          "licence": "MIT",
+          "commit": "b1f31f20a41b20aa775c21078b2c432c6dcc26b4",
+          "local": "research/code/jmlipman__TopoMortar"
+        }
+      ],
+      "note": "Brick-wall dataset comparing eight losses: clDice most topologically accurate, Skeleton Recall most robust to noisy labels, augmentation plus self-distillation lifts CE+Dice; basis for an A/B of wall losses scored by room matches and Betti error (MIT code)"
+    },
+    {
+      "id": "2026-petitpierre-semap",
+      "year": 2026,
+      "title": "Generalizable multiscale segmentation of heterogeneous map collections (Semap)",
+      "authors": "Petitpierre",
+      "venue": "arXiv 2603.05037",
+      "taxonomy": {
+        "l1": "Learning strategies",
+        "l2": "Synthetic data and domain generalisation"
+      },
+      "contribution": [
+        "method",
+        "dataset",
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "map",
+      "country": [
+        "CH"
+      ],
+      "institution": [
+        "École Polytechnique Fédérale de Lausanne"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2603.05037",
+      "pdf": "https://arxiv.org/pdf/2603.05037",
+      "file": "2026-petitpierre-semap.pdf",
+      "note": "Semap benchmark (1,439 annotated historical map patches) and procedural synthesis of fills, hatchings, textures cut from real scans and stroke widths (+5.1 mIoU), with two-scale inference; template for compositing hatching and ornament into wall and non-wall regions of our renders"
+    },
+    {
+      "id": "2021-fan-floorplancad",
+      "year": 2021,
+      "title": "FloorPlanCAD: A large-scale CAD drawing dataset for panoptic symbol spotting",
+      "authors": "Fan et al.",
+      "venue": "ICCV 2021 (arXiv 2105.07147)",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Vector plan dataset"
+      },
+      "contribution": [
+        "dataset",
+        "benchmark",
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN",
+        "CA"
+      ],
+      "institution": [
+        "Alibaba Group (China)",
+        "Simon Fraser University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2105.07147",
+      "pdf": "https://arxiv.org/pdf/2105.07147",
+      "file": "2021-fan-floorplancad.pdf",
+      "note": "Introduced panoptic symbol spotting"
+    },
+    {
+      "id": "2022-fan-cadtransformer",
+      "year": 2022,
+      "title": "CADTransformer: Panoptic symbol spotting transformer for CAD drawings",
+      "authors": "Fan et al.",
+      "venue": "CVPR 2022",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "The University of Texas at Austin"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://openaccess.thecvf.com/content/CVPR2022/html/Fan_CADTransformer_Panoptic_Symbol_Spotting_Transformer_for_CAD_Drawings_CVPR_2022_paper.html",
+      "pdf": "https://openaccess.thecvf.com/content/CVPR2022/papers/Fan_CADTransformer_Panoptic_Symbol_Spotting_Transformer_for_CAD_Drawings_CVPR_2022_paper.pdf",
+      "file": "2022-fan-cadtransformer.pdf",
+      "code": [
+        {
+          "url": "https://github.com/VITA-Group/CADTransformer",
+          "licence": "MIT",
+          "commit": "4cf93756642244e4cea35d99912b2d09b20f7387",
+          "local": "research/code/VITA-Group__CADTransformer"
+        }
+      ],
+      "note": "Transformer over primitive tokens; early panoptic baseline on FloorPlanCAD"
+    },
+    {
+      "id": "2022-zheng-gat-cadnet",
+      "year": 2022,
+      "title": "GAT-CADNet: Graph attention network for panoptic symbol spotting in CAD drawings",
+      "authors": "Zheng et al.",
+      "venue": "CVPR 2022",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "DE",
+        "CN",
+        "CA"
+      ],
+      "institution": [
+        "Technical University of Munich",
+        "Alibaba Group (China)",
+        "Simon Fraser University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://openaccess.thecvf.com/content/CVPR2022/html/Zheng_GAT-CADNet_Graph_Attention_Network_for_Panoptic_Symbol_Spotting_in_CAD_CVPR_2022_paper.html",
+      "pdf": "https://openaccess.thecvf.com/content/CVPR2022/papers/Zheng_GAT-CADNet_Graph_Attention_Network_for_Panoptic_Symbol_Spotting_in_CAD_CVPR_2022_paper.pdf",
+      "file": "2022-zheng-gat-cadnet.pdf",
+      "note": "Primitives as graph nodes; instances from predicted edges between primitives"
+    },
+    {
+      "id": "2024-liu-sympoint",
+      "year": 2024,
+      "title": "Symbol as points: Panoptic symbol spotting via point-based representation (SymPoint)",
+      "authors": "Liu et al.",
+      "venue": "ICLR 2024 (arXiv 2401.10556)",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "International Digital Economy Academy",
+        "Vanyi Tech"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2401.10556",
+      "pdf": "https://arxiv.org/pdf/2401.10556",
+      "file": "2024-liu-sympoint.pdf",
+      "code": [
+        {
+          "url": "https://github.com/nicehuster/SymPoint",
+          "licence": "IDEA licence for non-commercial scientific research (custom; also bars military and surveillance use)",
+          "commit": "e3205a6982a6eb0f99fde43d9e9b112da22a6af9",
+          "local": "research/code/nicehuster__SymPoint"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "id": "2024-liu-sympoint-v2",
+      "year": 2024,
+      "title": "SymPoint revolutionized: Boosting panoptic symbol spotting with layer feature enhancement (SymPoint-V2)",
+      "authors": "Liu et al.",
+      "venue": "arXiv 2407.01928",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "International Digital Economy Academy",
+        "Vanyi Tech"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2407.01928",
+      "pdf": "https://arxiv.org/pdf/2407.01928",
+      "file": "2024-liu-sympoint-v2.pdf",
+      "code": [
+        {
+          "url": "https://github.com/nicehuster/SymPointV2",
+          "licence": "none",
+          "commit": "24594875d89a36c1a91da748c999588c8599fe9b",
+          "local": "research/code/nicehuster__SymPointV2"
+        }
+      ],
+      "note": "Gains depend on layer information"
+    },
+    {
+      "id": "2024-yang-cadspotting",
+      "year": 2024,
+      "title": "CADSpotting: Robust panoptic symbol spotting on large-scale CAD drawings",
+      "authors": "Yang et al.",
+      "venue": "arXiv 2412.07377",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method",
+        "dataset"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "ShanghaiTech University",
+        "DGene Digital Technology"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2412.07377",
+      "pdf": "https://arxiv.org/pdf/2412.07377",
+      "file": "2024-yang-cadspotting.pdf",
+      "code": [
+        {
+          "url": "https://github.com/yangfy2023/CADspotting",
+          "licence": "none (empty License section; builds on OneFormer3D, CC BY-NC 4.0)",
+          "commit": "0086140edcfa2d26c1828380efca1c9c67be2540",
+          "local": "research/code/yangfy2023__CADspotting"
+        }
+      ],
+      "note": "Large office/campus drawings (LS-CAD)"
+    },
+    {
+      "id": "2025-luo-archcad-400k",
+      "year": 2025,
+      "title": "ArchCAD-400K: A large-scale CAD drawings dataset and new baseline for panoptic symbol spotting",
+      "authors": "Luo et al.",
+      "venue": "arXiv 2503.22346",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Vector plan dataset"
+      },
+      "contribution": [
+        "dataset",
+        "method"
+      ],
+      "input": [
+        "vector drawing",
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Shanghai Xiandai Architectural Design",
+        "Tongji University",
+        "Shanghai Innovation Institute",
+        "Shanghai Artificial Intelligence Laboratory",
+        "University of Science and Technology of China",
+        "Shanghai Jiao Tong University",
+        "Donghua University",
+        "Shanghai Qi Zhi Institute"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2503.22346",
+      "pdf": "https://arxiv.org/pdf/2503.22346",
+      "file": "2025-luo-archcad-400k.pdf",
+      "code": [
+        {
+          "url": "https://github.com/ArchiAI-LAB/ArchCAD",
+          "licence": "academic use only (custom ACADEMIC USE LICENSE; commercial use prohibited)",
+          "commit": "f72c4b20aea5dbaf06157f0324749ce68342b734",
+          "local": "research/code/ArchiAI-LAB__ArchCAD"
+        }
+      ],
+      "note": "Labels from CAD layers; column class; DPSS baseline"
+    },
+    {
+      "id": "2025-wei-vecformer",
+      "year": 2025,
+      "title": "Point or line? Using line-based representation for panoptic symbol spotting in CAD drawings (VecFormer)",
+      "authors": "Wei et al.",
+      "venue": "NeurIPS 2025 (arXiv 2505.23395)",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN",
+        "HK"
+      ],
+      "institution": [
+        "University of Science and Technology of China",
+        "Shanghai Artificial Intelligence Laboratory",
+        "Shanghai Jiao Tong University",
+        "Tongji University",
+        "Shanghai Xiandai Architectural Design",
+        "Donghua University",
+        "Tsinghua University",
+        "Chinese University of Hong Kong"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2505.23395",
+      "pdf": "https://arxiv.org/pdf/2505.23395",
+      "file": "2025-wei-vecformer.pdf",
+      "code": [
+        {
+          "url": "https://github.com/WesKwong/VecFormer",
+          "licence": "Apache-2.0",
+          "commit": "cdb4795dec18fb60ffae983e9e1b65cbc228c90c",
+          "local": "research/code/WesKwong__VecFormer"
+        }
+      ],
+      "note": "Best reported score without layer priors"
+    },
+    {
+      "id": "2026-gong-textcad",
+      "year": 2026,
+      "title": "Text-aided multi-modal panoptic symbol spotting for CAD floor plan drawings (TextCAD)",
+      "authors": "Gong et al.",
+      "venue": "arXiv 2607.12678",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN",
+        "HK"
+      ],
+      "institution": [
+        "Beihang University",
+        "Hong Kong Polytechnic University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2607.12678",
+      "pdf": "https://arxiv.org/pdf/2607.12678",
+      "file": "2026-gong-textcad.pdf",
+      "note": "Uses text annotations jointly with geometry"
+    },
+    {
+      "id": "2026-chen-polarsym",
+      "year": 2026,
+      "title": "PolarSym: Polar geometry-aware attention for CAD floorplan parsing",
+      "authors": "Chen et al.",
+      "venue": "arXiv 2608.11793",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Panoptic symbol spotting"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Henan University of Economic and Law",
+        "Third Dimension (Henan) Software Technology"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2608.11793",
+      "pdf": "https://arxiv.org/pdf/2608.11793",
+      "file": "2026-chen-polarsym.pdf",
+      "note": ""
+    },
+    {
+      "id": "2023-yang-vectorfloorseg",
+      "year": 2023,
+      "title": "VectorFloorSeg: Two-stream graph attention network for vectorized roughcast floorplan segmentation",
+      "authors": "Yang, Jiang, Pan, Xiao",
+      "venue": "CVPR 2023",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Primitive graph segmentation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "University of Chinese Academy of Sciences",
+        "Microsoft Research Asia (China)"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://openaccess.thecvf.com/content/CVPR2023/html/Yang_VectorFloorSeg_Two-Stream_Graph_Attention_Network_for_Vectorized_Roughcast_Floorplan_Segmentation_CVPR_2023_paper.html",
+      "pdf": "https://openaccess.thecvf.com/content/CVPR2023/papers/Yang_VectorFloorSeg_Two-Stream_Graph_Attention_Network_for_Vectorized_Roughcast_Floorplan_Segmentation_CVPR_2023_paper.pdf",
+      "file": "2023-yang-vectorfloorseg.pdf",
+      "code": [
+        {
+          "url": "https://github.com/DrZiji/VecFloorSeg",
+          "licence": "none",
+          "commit": "2491d2d4788772810e66ed3ebb110c518fff97d0",
+          "local": "research/code/DrZiji__VecFloorSeg"
+        }
+      ],
+      "note": "Rooms as classified faces of the line arrangement, via two-stream graph attention over lines and regions; learned, exact-geometry version of our free-space rooms for vector PDFs and DWGs (code without licence)"
+    },
+    {
+      "id": "2024-carrara-vectorgraphnet",
+      "year": 2024,
+      "title": "VectorGraphNET: Graph attention networks for accurate segmentation of complex technical drawings",
+      "authors": "Carrara, Nousias, Borrmann",
+      "venue": "arXiv 2410.01336",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Primitive graph segmentation"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "Technical University of Munich"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2410.01336",
+      "pdf": "https://arxiv.org/pdf/2410.01336",
+      "file": "2024-carrara-vectorgraphnet.pdf",
+      "note": "PDF paths converted to SVG become graph nodes with geometric and style features, labelled hierarchically by graph attention (FloorPlanCAD wF1 89.0 vs SymPoint 85.5 but lower plain F1, 1.3M weights); route for classifying vector-PDF paths directly, no code released"
+    },
+    {
+      "id": "2022-yue-roomformer",
+      "year": 2022,
+      "title": "Connecting the dots: Floorplan reconstruction using two-level queries (RoomFormer)",
+      "authors": "Yue et al.",
+      "venue": "CVPR 2023 (arXiv 2211.15658)",
+      "taxonomy": {
+        "l1": "Structured prediction",
+        "l2": "Polygon decoder"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "3D scan"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CH"
+      ],
+      "institution": [
+        "ETH Zurich"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2211.15658",
+      "pdf": "https://arxiv.org/pdf/2211.15658",
+      "file": "2022-yue-roomformer.pdf",
+      "code": [
+        {
+          "url": "https://github.com/ywyue/RoomFormer",
+          "licence": "MIT",
+          "commit": "e88a7e3a81e384e15ea5bdc02d893267a2b6cac1",
+          "local": "research/code/ywyue__RoomFormer"
+        }
+      ],
+      "note": "Room polygons as sequences; point-cloud density maps"
+    },
+    {
+      "id": "2024-liu-polyroom",
+      "year": 2024,
+      "title": "PolyRoom: Room-aware transformer for floorplan reconstruction",
+      "authors": "Liu et al.",
+      "venue": "ECCV 2024 (arXiv 2407.10439)",
+      "taxonomy": {
+        "l1": "Structured prediction",
+        "l2": "Polygon decoder"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "3D scan"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN",
+        "SG"
+      ],
+      "institution": [
+        "Institute of Automation",
+        "University of Chinese Academy of Sciences",
+        "Cenozoic Robotics",
+        "Ocean University of China",
+        "Wuhan University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2407.10439",
+      "pdf": "https://arxiv.org/pdf/2407.10439",
+      "file": "2024-liu-polyroom.pdf",
+      "code": [
+        {
+          "url": "https://github.com/3dv-casia/PolyRoom",
+          "licence": "none",
+          "commit": "5521f39c0d6def72ef53c7115580ceb664a739cd",
+          "local": "research/code/3dv-casia__PolyRoom"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "id": "2024-xu-fri-net",
+      "year": 2024,
+      "title": "FRI-Net: Floorplan reconstruction via room-wise implicit representation",
+      "authors": "Xu et al.",
+      "venue": "ECCV 2024 (arXiv 2407.10687)",
+      "taxonomy": {
+        "l1": "Structured prediction",
+        "l2": "Polygon decoder"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "3D scan"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Shenzhen University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2407.10687",
+      "pdf": "https://arxiv.org/pdf/2407.10687",
+      "file": "2024-xu-fri-net.pdf",
+      "code": [
+        {
+          "url": "https://github.com/Daisy-1227/FRI-Net",
+          "licence": "none",
+          "commit": "437eaaf8c77075ad3e4d3688228367e1fceda5d4",
+          "local": "research/code/Daisy-1227__FRI-Net"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "id": "2026-kondratenko-aecv-bench",
+      "year": 2026,
+      "title": "AECV-Bench: Benchmarking multimodal models on architectural and engineering drawings understanding",
+      "authors": "Kondratenko et al.",
+      "venue": "arXiv 2601.04819",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "IT",
+        "AU"
+      ],
+      "institution": [
+        "AECFoundry",
+        "UNSW Sydney"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2601.04819",
+      "pdf": "https://arxiv.org/pdf/2601.04819",
+      "file": "2026-kondratenko-aecv-bench.pdf",
+      "code": [
+        {
+          "url": "https://github.com/AECFoundry/AECV-Bench",
+          "licence": "none",
+          "commit": "e6f93644e351cec11bbe02c4358ba8b3ccbae140",
+          "local": "research/code/AECFoundry__AECV-Bench"
+        }
+      ],
+      "note": "VLMs read text well, count doors and windows poorly"
+    },
+    {
+      "id": "2025-rodionov-floorplanqa",
+      "year": 2025,
+      "title": "FloorplanQA: A benchmark for spatial reasoning in LLMs using structured representations",
+      "authors": "Rodionov et al.",
+      "venue": "arXiv 2507.07644",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "benchmark"
+      ],
+      "input": [
+        "structured layout"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "SA",
+        "US"
+      ],
+      "institution": [
+        "King Abdullah University of Science and Technology",
+        "Miami University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2507.07644",
+      "pdf": "https://arxiv.org/pdf/2507.07644",
+      "file": "2025-rodionov-floorplanqa.pdf",
+      "code": [
+        {
+          "url": "https://github.com/OldDeLorean/FloorplanQA",
+          "licence": "MIT",
+          "commit": "fd59dd0dc4769d2a6209293721c6c9fce761f5fd",
+          "local": "research/code/OldDeLorean__FloorplanQA"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "id": "2025-ratul-sketch2bim",
+      "year": 2025,
+      "title": "Sketch2BIM: A multi-agent human-AI collaborative pipeline to convert hand-drawn floor plans to 3D BIM",
+      "authors": "Ratul et al.",
+      "venue": "arXiv 2510.20838",
+      "taxonomy": {
+        "l1": "Vision-language models and agents",
+        "l2": "Agentic pipeline"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "The University of Texas at Arlington"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2510.20838",
+      "pdf": "https://arxiv.org/pdf/2510.20838",
+      "file": "2025-ratul-sketch2bim.pdf",
+      "note": "Human-in-the-loop pattern"
+    },
+    {
+      "id": "2026-ayanzadeh-llm-agentic-parsing",
+      "year": 2026,
+      "title": "LLM-guided agentic floor plan parsing for accessible indoor navigation of blind and low-vision people",
+      "authors": "Ayanzadeh et al.",
+      "venue": "arXiv 2604.23970",
+      "taxonomy": {
+        "l1": "Vision-language models and agents",
+        "l2": "Agentic pipeline"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "University of Maryland, Baltimore County"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2604.23970",
+      "pdf": "https://arxiv.org/pdf/2604.23970",
+      "file": "2026-ayanzadeh-llm-agentic-parsing.pdf",
+      "note": "Room-label association heuristics"
+    },
+    {
+      "id": "2025-cui-paddleocr-3",
+      "year": 2025,
+      "title": "PaddleOCR 3.0 technical report",
+      "authors": "Cui et al.",
+      "venue": "arXiv 2507.05595",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "OCR system"
+      },
+      "contribution": [
+        "system"
+      ],
+      "input": [
+        "text image"
+      ],
+      "domain": "text and documents",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Baidu (China)"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2507.05595",
+      "pdf": "https://arxiv.org/pdf/2507.05595",
+      "file": "2025-cui-paddleocr-3.pdf",
+      "code": [
+        {
+          "url": "https://github.com/PaddlePaddle/PaddleOCR",
+          "licence": "Apache-2.0",
+          "commit": "dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf",
+          "local": "research/code/PaddlePaddle__PaddleOCR"
+        }
+      ],
+      "note": "PP-OCRv5 (predecessor of PP-OCRv6)"
+    },
+    {
+      "id": "2026-li-archplanvqa",
+      "year": 2026,
+      "title": "ArchPlanVQA: Benchmark and comprehensive evaluation of vision-language models for understanding architectural floor plan CAD drawings",
+      "authors": "Li, Chen, Zheng, He, Yang",
+      "venue": "J. Computing in Civil Engineering 40(5), doi:10.1061/JCCEE5.CPENG-7571",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN",
+        "MO"
+      ],
+      "institution": [
+        "Zhejiang Sci-Tech University",
+        "University of Macau"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1061/JCCEE5.CPENG-7571",
+      "pdf": null,
+      "file": null,
+      "code": [
+        {
+          "url": "https://github.com/pengyang-Li/ArchPlanVQA",
+          "licence": "none",
+          "commit": "3896843de4db3e96da2a9d02cfefbc8b9d63ca34",
+          "local": "research/code/pengyang-Li__ArchPlanVQA"
+        }
+      ],
+      "note": "General VLMs reach 33–38% semantic understanding on CAD-converted plans. Not open access"
+    },
+    {
+      "id": "2018-scheidl-word-beam-search",
+      "year": 2018,
+      "title": "Word Beam Search: A connectionist temporal classification decoding algorithm",
+      "authors": "Scheidl, Fiel, Sablatnig",
+      "venue": "ICFHR 2018, doi:10.1109/ICFHR-2018.2018.00052",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "Decoding and lexicons"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "text image"
+      ],
+      "domain": "text and documents",
+      "country": [
+        "AT"
+      ],
+      "institution": [
+        "TU Wien"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://doi.org/10.1109/ICFHR-2018.2018.00052",
+      "pdf": "https://repositum.tuwien.at/bitstream/20.500.12708/924/2/Scheidl%20Harald%20-%202018%20-%20Word%20Beam%20Search%20A%20Connectionist%20Temporal%20Classification...pdf",
+      "file": "2018-scheidl-word-beam-search.pdf",
+      "code": [
+        {
+          "url": "https://github.com/githubharald/CTCWordBeamSearch",
+          "licence": "MIT",
+          "commit": "6ae8c87265245b7d73f723f56560664ea182ddbb",
+          "local": "research/code/githubharald__CTCWordBeamSearch"
+        }
+      ],
+      "note": "CTC decoding constrained to a dictionary for words while numbers stay free; decode PP-OCR logits against a DE/FR/IT room vocabulary instead of fuzzy matching afterwards (MIT code, author copy)"
+    },
+    {
+      "id": "2025-villena-toro-edocr2",
+      "year": 2025,
+      "title": "Optimizing text recognition in mechanical drawings: A comprehensive approach (eDOCr2)",
+      "authors": "Villena Toro, Tarkian",
+      "venue": "Machines 13(3), 254, doi:10.3390/machines13030254",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "Text in technical drawings"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "SE"
+      ],
+      "institution": [
+        "Linköping University"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://www.mdpi.com/2075-1702/13/3/254",
+      "pdf": "https://www.mdpi.com/2075-1702/13/3/254/pdf",
+      "file": null,
+      "code": [
+        {
+          "url": "https://github.com/javvi51/edocr2",
+          "licence": "MIT",
+          "commit": "f6f96517a531021ac946f6fc45063bdb77440085",
+          "local": "research/code/javvi51__edocr2"
+        }
+      ],
+      "note": "Dimension-text grouping and synthetic training of custom recognisers for engineering drawings (MIT code); recipe for a recogniser for Swiss dimension notation, skip the optional GPT-4o step. Download blocked, open access at https://www.mdpi.com/2075-1702/13/3/254"
+    },
+    {
+      "id": "2026-zhang-pp-ocrv6",
+      "year": 2026,
+      "title": "PP-OCRv6: From 1.5M to 34.5M parameters, surpassing billion-scale VLMs on OCR tasks",
+      "authors": "Zhang et al.",
+      "venue": "arXiv 2606.13108",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "OCR system"
+      },
+      "contribution": [
+        "system"
+      ],
+      "input": [
+        "text image"
+      ],
+      "domain": "text and documents",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Baidu (China)"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2606.13108",
+      "pdf": "https://arxiv.org/pdf/2606.13108",
+      "file": "2026-zhang-pp-ocrv6.pdf",
+      "code": [
+        {
+          "url": "https://github.com/PaddlePaddle/PaddleOCR",
+          "licence": "Apache-2.0",
+          "commit": "dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf",
+          "local": "research/code/PaddlePaddle__PaddleOCR"
+        }
+      ],
+      "note": "Planned upgrade from PP-OCRv5: +5.1 points recognition and +4.6 detection Hmean over PP-OCRv5_server on in-house benchmarks, still CTC so compatible with Word Beam Search; medium/small dictionaries add French, German and Italian, '²' not mentioned"
+    },
+    {
+      "id": "2026-axcelerate-tutorial",
+      "year": 2026,
+      "title": "Interactive floor plan analysis pipeline (tutorial)",
+      "authors": "Maqsood (AxcelerateAI)",
+      "venue": "Vendor blog, 16 Sep 2026",
+      "taxonomy": {
+        "l1": "Practitioner sources",
+        "l2": "Vendor pipeline"
+      },
+      "contribution": [
+        "practice"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "AxcelerateAI"
+      ],
+      "affiliation_source": "web",
+      "page": "https://www.axcelerate.ai/blogs/interactive-floor-plan-analysis-tutorial",
+      "pdf": null,
+      "file": "web/axcelerate-ai Interactive Floor Plan Analysis Pipeline.mhtml",
+      "note": "Five stages: denoise/deskew/tile → wall segmentation (U-Net/HRNet) → doors/windows (YOLOv8, oriented boxes) → OCR (DBNet) → room adjacency graph. Demo on a residential sample; no metrics or code",
+      "kind": "web"
+    },
+    {
+      "id": "2026-axcelerate-solution-page",
+      "year": 2026,
+      "title": "AI floor plan analysis & spatial computing (solution page)",
+      "authors": "AxcelerateAI",
+      "venue": "Vendor page",
+      "taxonomy": {
+        "l1": "Practitioner sources",
+        "l2": "Vendor pipeline"
+      },
+      "contribution": [
+        "practice"
+      ],
+      "input": [
+        "raster drawing",
+        "vector drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "AxcelerateAI"
+      ],
+      "affiliation_source": "web",
+      "page": "https://www.axcelerate.ai/",
+      "pdf": null,
+      "file": "web/axcelerate-ai AI-Powered Floor Plan Analysis.mhtml",
+      "note": "Six stages, OCR before walls; room tags seed room polygons; output schema rooms/walls/doors/windows/text/symbols; on-prem deployment, PoC 4–6 weeks",
+      "kind": "web"
+    },
+    {
+      "id": "2026-axcelerate-model-guide",
+      "year": 2026,
+      "title": "What is the best AI model for floor plan analysis?",
+      "authors": "Maqsood (AxcelerateAI)",
+      "venue": "Vendor blog, 10 Jul 2026 (updated 20 Aug 2026)",
+      "taxonomy": {
+        "l1": "Practitioner sources",
+        "l2": "Vendor pipeline"
+      },
+      "contribution": [
+        "practice"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "AxcelerateAI"
+      ],
+      "affiliation_source": "web",
+      "page": "https://www.axcelerate.ai/blogs/",
+      "pdf": null,
+      "file": "web/axcelerate-ai What is the Best AI Model for Floor Plan Analysis.mhtml",
+      "note": "HRNet/U-Net walls, YOLO OBB symbols, Mask R-CNN door swings, DBNet+CRNN text, ViT+GNN topology; '98%+' claim unsupported; licences not discussed",
+      "kind": "web"
+    },
+    {
+      "id": "2024-ganon-waffle",
+      "year": 2024,
+      "title": "WAFFLE: Multimodal floorplan understanding in the wild",
+      "authors": "Ganon et al.",
+      "venue": "WACV 2025 (arXiv 2412.00955)",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Raster plan dataset"
+      },
+      "contribution": [
+        "dataset",
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "IL",
+        "US"
+      ],
+      "institution": [
+        "Tel Aviv University",
+        "Cornell University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2412.00955",
+      "pdf": "https://arxiv.org/pdf/2412.00955",
+      "file": "2024-ganon-waffle.pdf",
+      "code": [
+        {
+          "url": "https://github.com/TAU-VAILab/WAFFLE",
+          "licence": "none (README names the Wikimedia Commons licensing policy, which is not a software licence)",
+          "commit": "8373f3949aff6193d53fb78f5dd95620591e53ca",
+          "local": "research/code/TAU-VAILab__WAFFLE"
+        }
+      ],
+      "note": "18,556 plans (§3; the abstract says nearly 20K), diverse building types and styles"
+    },
+    {
+      "id": "2025-abouagour-resplan",
+      "year": 2025,
+      "title": "ResPlan: A large-scale vector-graph dataset of 17,000 residential floor plans",
+      "authors": "Abouagour et al.",
+      "venue": "arXiv 2508.14006",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Vector plan dataset"
+      },
+      "contribution": [
+        "dataset"
+      ],
+      "input": [
+        "structured layout"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "Indiana University Bloomington"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2508.14006",
+      "pdf": "https://arxiv.org/pdf/2508.14006",
+      "file": "2025-abouagour-resplan.pdf",
+      "code": [
+        {
+          "url": "https://github.com/m-agour/ResPlan",
+          "licence": "MIT (code), CC-BY-4.0 (data)",
+          "commit": "e2b78fe069aee1ab1e1828a612743f308e3c32a7",
+          "local": "research/code/m-agour__ResPlan"
+        }
+      ],
+      "note": "Room-connectivity graphs (via_door edges)"
+    },
+    {
+      "id": "2024-van-engelenburg-msd",
+      "year": 2024,
+      "title": "MSD: A benchmark dataset for floor plan generation of building complexes",
+      "authors": "van Engelenburg et al.",
+      "venue": "ECCV 2024 (arXiv 2407.10121)",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Vector plan dataset"
+      },
+      "contribution": [
+        "dataset",
+        "benchmark"
+      ],
+      "input": [
+        "structured layout"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "NL",
+        "KR"
+      ],
+      "institution": [
+        "Delft University of Technology",
+        "Sungkyunkwan University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2407.10121",
+      "pdf": "https://arxiv.org/pdf/2407.10121",
+      "file": "2024-van-engelenburg-msd.pdf",
+      "code": [
+        {
+          "url": "https://github.com/caspervanengelenburg/msd",
+          "licence": "none",
+          "commit": "a5d069ee589a7de69464de0ab71a5deaeb84f917",
+          "local": "research/code/caspervanengelenburg__msd"
+        }
+      ],
+      "note": "Derived from Swiss Dwellings"
+    },
+    {
+      "id": "2023-pizarro-mlstruct-fp",
+      "year": 2023,
+      "title": "Large-scale multi-unit floor plan dataset for architectural plan analysis and recognition (MLSTRUCT-FP)",
+      "authors": "Pizarro, Hitschfeld, Sipiran",
+      "venue": "Automation in Construction 156, 105132, doi:10.1016/j.autcon.2023.105132",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Raster plan dataset"
+      },
+      "contribution": [
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CL"
+      ],
+      "institution": [
+        "University of Chile"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1016/j.autcon.2023.105132",
+      "pdf": null,
+      "file": null,
+      "code": [
+        {
+          "url": "https://github.com/MLSTRUCT/MLStructFP",
+          "licence": "MIT",
+          "commit": "91881c66221eeadfe18cc27d281ac019ba94151c",
+          "local": "research/code/MLSTRUCT__MLStructFP"
+        },
+        {
+          "url": "https://github.com/MLSTRUCT/MLStructFP_benchmarks",
+          "licence": "MIT (dvec/, a copy of Deep Vectorization, MPL-2.0)",
+          "commit": "7d3df5634b40448cadc97a58c39b49cc8071edef",
+          "local": "research/code/MLSTRUCT__MLStructFP_benchmarks"
+        }
+      ],
+      "note": "954 multi-unit residential plans with wall and slab polygons; MIT loader, dataset by request form, terms to verify. Not open access"
+    },
+    {
+      "id": "2021-swaileh-versailles-fp",
+      "year": 2021,
+      "title": "Versailles-FP dataset: Wall detection in ancient floor plans",
+      "authors": "Swaileh et al.",
+      "venue": "ICDAR 2021 (arXiv 2103.08064)",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Raster plan dataset"
+      },
+      "contribution": [
+        "dataset",
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "FR",
+        "GB",
+        "CN"
+      ],
+      "institution": [
+        "CY Cergy Paris Université",
+        "École Nationale Supérieure de l'Électronique et de ses Applications",
+        "Centre National de la Recherche Scientifique",
+        "United Kingdom Atomic Energy Authority",
+        "Zhejiang University of Science and Technology"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2103.08064",
+      "pdf": "https://arxiv.org/pdf/2103.08064",
+      "file": "2021-swaileh-versailles-fp.pdf",
+      "note": "Wall masks for 17th–18th-century Versailles palace plans (steerable-filter labels, manually corrected) and a U-Net wall detector; reference for our historical-style test, dataset under a usage agreement"
+    },
+    {
+      "id": "2026-du-mmarch",
+      "year": 2026,
+      "title": "MMArch: Benchmarking multimodal reasoning grounded in architectural evidence",
+      "authors": "Du et al.",
+      "venue": "arXiv 2608.09281",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing",
+        "natural image"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Southwest Jiaotong University",
+        "Shanghai Jiao Tong University",
+        "South China University of Technology",
+        "ModelBest",
+        "East China Normal University",
+        "ShanghaiTech University",
+        "Institute of Automation",
+        "Chongqing University",
+        "Sensetime (China)",
+        "Institute for Advanced Algorithms Research"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2608.09281",
+      "pdf": "https://arxiv.org/pdf/2608.09281",
+      "file": "2026-du-mmarch.pdf",
+      "note": "1,212 short-answer items built from figures in architecture and civil-engineering papers (ten subdomains from structures and seismic to heritage, urban and BIM); best proprietary MLLM 52%, best open model about 30%, experts 95%. Tests principle-grounded reasoning over AEC figures, not plan parsing; context for how far VLMs are from expert reading"
+    },
+    {
+      "id": "2026-zhang-readout-vectorization",
+      "year": 2026,
+      "title": "When should a network emit geometry, and when should it detect it? Readout, reconciliation, and representation in floorplan vectorization",
+      "authors": "Zhang",
+      "venue": "arXiv 2608.25608",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "benchmark",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [],
+      "institution": [],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2608.25608",
+      "pdf": "https://arxiv.org/pdf/2608.25608",
+      "file": "2026-zhang-readout-vectorization.pdf",
+      "code": [
+        {
+          "url": "https://github.com/Cyprinus12138/fpvec-lab",
+          "licence": "none (README only; it declares MIT for code, CC BY 4.0 for ResPlan-FP, CC BY-NC-SA 4.0 for the skv4 labels)",
+          "commit": "f44a475a8c08333d75756fb08a1ace3a14e3b534",
+          "local": "research/code/Cyprinus12138__fpvec-lab"
+        }
+      ],
+      "note": "Same trained network read out as an autoregressive coordinate sequence or as junction/centreline heatmaps assembled into a graph: detection wins on real CubiCasa5K scans (+2.7 to +5.1 wall F1), fusing both outputs adds about 7 points; releases an edit-cost metric, corrected CubiCasa5K labels (skv4) and ResPlan-FP (16,998 plans rendered from ResPlan). Licences per the fpvec-lab README: code MIT, ResPlan-FP data CC BY 4.0, skv4 labels CC BY-NC-SA 4.0 (inherited from CubiCasa5K, research use only); on 7 Oct 2026 the repository held only the README. Supports a detection readout plus fusion; ResPlan-FP is a redistributable test set"
+    },
+    {
+      "id": "2026-chen-floorplan-vln",
+      "year": 2026,
+      "title": "FloorPlan-VLN: A new paradigm for floor plan guided vision-language navigation",
+      "authors": "Chen et al.",
+      "venue": "arXiv 2603.17437",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "dataset",
+        "benchmark",
+        "method"
+      ],
+      "input": [
+        "raster drawing",
+        "natural image"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Institute of Automation",
+        "University of Chinese Academy of Sciences",
+        "Alibaba Group (China)",
+        "Beijing Academy of Artificial Intelligence",
+        "Xiaomi (China)",
+        "FiveAges"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2603.17437",
+      "pdf": "https://arxiv.org/pdf/2603.17437",
+      "file": "2026-chen-floorplan-vln.pdf",
+      "note": "Navigation with semantic floor plans as global priors: over 10k episodes in 72 Matterport3D scenes with more than 100 annotated plans; FP-Nav fine-tunes Qwen-2.5-VL on egocentric frames concatenated with the rasterised plan (over 60% relative gain in success rate). A downstream consumer of parsed plans, not a parsing method"
+    },
+    {
+      "id": "2022-schlagenhauf-text-detection-drawings",
+      "year": 2022,
+      "title": "Text detection on technical drawings for the digitization of brown-field processes",
+      "authors": "Schlagenhauf, Netzer, Hillinger",
+      "venue": "Procedia CIRP 118 (CIRP ICME 2022), doi:10.1016/j.procir.2023.06.064 (arXiv 2205.02659)",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "Text in technical drawings"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "Karlsruhe Institute of Technology"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2205.02659",
+      "pdf": "https://arxiv.org/pdf/2205.02659",
+      "file": "2022-schlagenhauf-text-detection-drawings.pdf",
+      "code": [
+        {
+          "url": "https://github.com/2Obe/Text-Detection-on-Technical-Drawings",
+          "licence": "MIT",
+          "commit": "57c2e2f7e02405a362ff110ebbe1619fd05c7d23",
+          "local": "research/code/2Obe__Text-Detection-on-Technical-Drawings"
+        }
+      ],
+      "note": "Faster R-CNN text detector and Keras-OCR recogniser, both trained on a domain-knowledge generator of artificial technical drawings plus few real ones; beats out-of-the-box Keras-OCR on vertical text and drawing symbols. Supports synthetic training data for our dimension-text detector"
+    },
+    {
+      "id": "2025-khan-engineering-drawing-parsing",
+      "year": 2025,
+      "title": "Automated parsing of engineering drawings for structured information extraction using a fine-tuned document understanding transformer",
+      "authors": "Khan et al.",
+      "venue": "IEEE IEEM 2025, doi:10.1109/IEEM63636.2025.11357576 (arXiv 2505.01530)",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "Text in technical drawings"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "SG"
+      ],
+      "institution": [
+        "Agency for Science, Technology and Research",
+        "Nanyang Technological University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2505.01530",
+      "pdf": "https://arxiv.org/pdf/2505.01530",
+      "file": "2025-khan-engineering-drawing-parsing.pdf",
+      "note": "YOLOv11-OBB finds nine annotation types (GD&T, tolerances, measures, notes, title blocks and others) on 1,367 public mechanical drawings, a fine-tuned Donut parses each crop to JSON; one shared model beats per-class models, but the headline F1 of 97.3% is for the GD&T class only (title blocks 72.9%, notes 83.1%). OCR-free crop-then-parse pattern for annotation blocks; the annotated drawings are not released"
+    },
+    {
+      "id": "2026-ying-rebar-text-recognition",
+      "year": 2026,
+      "title": "An efficient deep learning framework for text detection and recognition in engineering drawings",
+      "authors": "Ying et al.",
+      "venue": "Frontiers in Built Environment 12, 1839808, doi:10.3389/fbuil.2026.1839808",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "Text in technical drawings"
+      },
+      "contribution": [
+        "method",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "CN",
+        "PK"
+      ],
+      "institution": [
+        "Powerchina Huadong Engineering Corporation (China)",
+        "Mohammad Ali Jinnah University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://doi.org/10.3389/fbuil.2026.1839808",
+      "pdf": "https://www.frontiersin.org/journals/built-environment/articles/10.3389/fbuil.2026.1839808/pdf",
+      "file": "2026-ying-rebar-text-recognition.pdf",
+      "note": "Slimmed DBNet detector (3.8M parameters) plus a transformer recogniser for rebar annotations on construction drawings: detection precision 94.2% (recall 97.2%, F1 95.9%); the 96.3% recognition accuracy is measured on ground-truth text crops, not after detection. Drawings from PowerChina HDEC projects; the release statements conflict (annotated crops, weights and code promised, the data availability statement says available on request). Recipe for a small detector-recogniser pair for dimension strings"
+    },
+    {
+      "id": "2022-pizarro-floor-plan-survey",
+      "year": 2022,
+      "title": "Automatic floor plan analysis and recognition",
+      "authors": "Pizarro, Hitschfeld, Sipiran, Saavedra",
+      "venue": "Automation in Construction 140, 104348, doi:10.1016/j.autcon.2022.104348",
+      "taxonomy": {
+        "l1": "Survey",
+        "l2": "Floor plan analysis"
+      },
+      "contribution": [
+        "survey"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CL"
+      ],
+      "institution": [
+        "University of Chile",
+        "Universidad de Los Andes, Chile"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1016/j.autcon.2022.104348",
+      "pdf": null,
+      "file": null,
+      "note": "Review of rule-based and learning-based floor plan analysis on raster images from 1995 to 2021 (walls, doors, rooms, vectorisation, modelling) with datasets, scopes and tasks; the most cited survey of the field. Not open access"
+    },
+    {
+      "id": "2019-rezvanifar-symbol-spotting-survey",
+      "year": 2019,
+      "title": "Symbol spotting for architectural drawings: state-of-the-art and new industry-driven developments",
+      "authors": "Rezvanifar, Cote, Branzan Albu",
+      "venue": "IPSJ Transactions on Computer Vision and Applications 11, 2, doi:10.1186/s41074-019-0055-1",
+      "taxonomy": {
+        "l1": "Survey",
+        "l2": "Floor plan analysis"
+      },
+      "contribution": [
+        "survey",
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CA"
+      ],
+      "institution": [
+        "University of Victoria"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://doi.org/10.1186/s41074-019-0055-1",
+      "pdf": "https://link.springer.com/content/pdf/10.1186/s41074-019-0055-1.pdf",
+      "file": "2019-rezvanifar-symbol-spotting-survey.pdf",
+      "note": "Review of symbol spotting in architectural drawing images: methods reach good recall but poor precision on dense real drawings; proposes template matching with a clutter-tolerant cross-correlation. Background for door, window and fixture detection on our plans"
+    },
+    {
+      "id": "2025-khade-floor-plan-survey",
+      "year": 2025,
+      "title": "A comprehensive survey of floor plan image analysis and related applications",
+      "authors": "Khade, Jariwala, Chattopadhyay",
+      "venue": "IJDAR 29(1), 41–59, doi:10.1007/s10032-025-00528-8",
+      "taxonomy": {
+        "l1": "Survey",
+        "l2": "Floor plan analysis"
+      },
+      "contribution": [
+        "survey"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "IN"
+      ],
+      "institution": [
+        "Sardar Vallabhbhai National Institute of Technology Surat",
+        "Flame University"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1007/s10032-025-00528-8",
+      "pdf": null,
+      "file": null,
+      "note": "Survey of floor plan image analysis that sorts models into nine families (dimensional, room-based, structural, retrieval, object detection, graph, map, residential, area-based) and compares them by dataset, year and reported metrics; most recent journal survey of the field. Not open access"
+    },
+    {
+      "id": "2024-schoenfelder-floor-plan-text-recognition",
+      "year": 2024,
+      "title": "Deep learning-based text detection and recognition on architectural floor plans",
+      "authors": "Schönfelder, Stebel, Andreou, König",
+      "venue": "Automation in Construction 157, 105156, doi:10.1016/j.autcon.2023.105156",
+      "taxonomy": {
+        "l1": "Text recognition",
+        "l2": "Text in technical drawings"
+      },
+      "contribution": [
+        "method",
+        "dataset",
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "Ruhr University Bochum"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1016/j.autcon.2023.105156",
+      "pdf": null,
+      "file": null,
+      "note": "Two-stage text extraction on floor plan images: an object detector finds text boxes and an OCR recogniser reads them; a model comparison picks YOLOv7 for detection and PARSeq for recognition, a new floor plan dataset with text bounding boxes is built, and domain-specific synthetic training data clearly improves detection. For our room stamps (multi-field, German text) it supports detecting each stamp line as its own box and fine-tuning the recogniser on synthetic German stamp text instead of reading whole stamps with general OCR; whether it handles stacked multi-field stamps is not known from the abstract. Not open access (summary from the publisher abstract and citing papers, full text not read)"
+    },
+    {
+      "id": "2026-huang-feld-layout-detection",
+      "year": 2026,
+      "title": "Benchmarking deep learning approaches for AEC engineering drawing layout detection and information extraction",
+      "authors": "Huang et al.",
+      "venue": "EC3 2026 (arXiv 2607.18997)",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Sheet layout and title blocks"
+      },
+      "contribution": [
+        "benchmark",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "other architectural drawing",
+      "country": [
+        "GB"
+      ],
+      "institution": [
+        "BuroHappold (United Kingdom)",
+        "Birmingham City University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2607.18997",
+      "pdf": "https://arxiv.org/pdf/2607.18997",
+      "file": "2026-huang-feld-layout-detection.pdf",
+      "note": "FELD: 551 façade drawing sheets at 300 dpi with nine layout classes (title block, revision table, legend, notes, elevation, sections, GA plan); RF-DETR is best (mAP50 0.949, title block mAP50:95 0.989), Qwen3-VL-8B with LoRA reaches the best F1 (0.911) but takes seconds per sheet, and document-layout pretraining (DocLayout-YOLO) hurts (\"domain interference\"). Closest analogue of our sheet-layout stage: train a COCO-initialised detector on our own sheets; inputs downscaled to 1,344 × 800 px, no data or code released"
+    },
+    {
+      "id": "2025-lombardi-title-block-detection",
+      "year": 2025,
+      "title": "Title block detection and information extraction for enhanced building drawings search",
+      "authors": "Lombardi, Duan, Elnagar, Zaalouk, Ismail, Vakaj",
+      "venue": "EC3 2025 (arXiv 2504.08645)",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Sheet layout and title blocks"
+      },
+      "contribution": [
+        "method",
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "GB"
+      ],
+      "institution": [
+        "BuroHappold (United Kingdom)",
+        "Birmingham City University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2504.08645",
+      "pdf": "https://arxiv.org/pdf/2504.08645",
+      "file": "2025-lombardi-title-block-detection.pdf",
+      "note": "Faster R-CNN (MobileNetV3) detects title block, main content, legend and notes on 1,385 building engineering drawings (title-block accuracy 0.971), then GPT-4o reads the cropped title block; rule baselines, table-structure models and GPT-4o on the whole sheet fail on hard historical drawings. Detect, crop, then read; the cloud reader must be replaced by a self-hosted one for internal plans; no code or data released"
+    },
+    {
+      "id": "2026-peng-qwen-vl-title-blocks",
+      "year": 2026,
+      "title": "Open-source VLMs for engineering drawing metadata: QWEN-VL title-block detection and information extraction",
+      "authors": "Peng, Cui, Marx, Kang",
+      "venue": "Computing in Construction 7 (EC3 2026), doi:10.35490/EC3.2026.252",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Sheet layout and title blocks"
+      },
+      "contribution": [
+        "method",
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "Technische Universität Dresden"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://doi.org/10.35490/EC3.2026.252",
+      "pdf": "https://ec-3.org/wp-content/uploads/2026/08/EC32026_252.pdf",
+      "file": "2026-peng-qwen-vl-title-blocks.pdf",
+      "note": "Qwen2.5-VL-3B with LoRA grounds title blocks (\"Plankopf\") on German bridge drawings (F1 93.8% on 64 test drawings vs 93.1% for YOLOv11-m, which gives tighter boxes; zero-shot grounding failed) and reads scale, drawing name and route from the crop: the Maßstab field reaches word accuracy 0.990 after fine-tuning vs 0.572 zero-shot. Evidence that a small self-hosted VLM can read German-language title-block scales; base model licence \"qwen-research\", data confidential, no code"
+    },
+    {
+      "id": "2025-peng-bridge-drawing-views",
+      "year": 2025,
+      "title": "AI-based extraction and management of text and view information from 2D bridge engineering drawings",
+      "authors": "Peng, Cui, Kang, Marx",
+      "venue": "EG-ICE 2025, pp. 57–65, doi:10.17868/strath.00093312",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Sheet layout and title blocks"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "Technische Universität Dresden"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://doi.org/10.17868/strath.00093312",
+      "pdf": "https://strathprints.strath.ac.uk/93312/7/Peng-etal-EG-ICE-2025-AI-based-extraction-and-management-of-text-and-view.pdf",
+      "file": "2025-peng-bridge-drawing-views.pdf",
+      "note": "YOLOv7 detects the views on 2,000 German bridge drawings (validation mAP@.5 about 0.92), Handprint OCR reads printed and handwritten text, and view titles found by k-means on font height are matched to views by containment, intersection or nearest centre, so each view is cropped and named (\"Draufsicht\", \"Schnitt A-A\"). Recipe for several drawings per sheet, each with its own caption and scale; CC BY"
+    },
+    {
+      "id": "2021-chazalon-icdar-map-segmentation",
+      "year": 2021,
+      "title": "ICDAR 2021 competition on historical map segmentation",
+      "authors": "Chazalon et al.",
+      "venue": "ICDAR 2021 (arXiv 2105.13265); data doi:10.5281/zenodo.4817662",
+      "taxonomy": {
+        "l1": "Datasets and benchmarks",
+        "l2": "Benchmark"
+      },
+      "contribution": [
+        "benchmark",
+        "dataset"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "map",
+      "country": [
+        "FR",
+        "CZ"
+      ],
+      "institution": [
+        "École Pour l'Informatique et les Techniques Avancées",
+        "Université Gustave Eiffel",
+        "Institut national de l’information géographique et forestière",
+        "École des hautes études en sciences sociales",
+        "La Rochelle Université",
+        "Institut National des Sciences Appliquées de Lyon",
+        "University of West Bohemia in Pilsen"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://arxiv.org/abs/2105.13265",
+      "pdf": "https://arxiv.org/pdf/2105.13265",
+      "file": "2021-chazalon-icdar-map-segmentation.pdf",
+      "code": [
+        {
+          "url": "https://github.com/icdar21-mapseg/icdar21-mapseg-eval",
+          "licence": "MIT",
+          "commit": "4186395828b5cf16a136f2cea2f946984d062791",
+          "local": "research/code/icdar21-mapseg__icdar21-mapseg-eval"
+        }
+      ],
+      "note": "Three tasks on Paris atlas sheets (1894–1937): building-block detection given an input mask of the map area, segmentation of the map content area from the sheet scored by the 95th-percentile Hausdorff distance (won by a U-Net-like FCN plus binarisation), and detection of georeferencing-line intersections. Method source for drawing-region masks and their boundary metric; data CC BY 4.0"
+    },
+    {
+      "id": "2023-schwenker-exsclaim",
+      "year": 2023,
+      "title": "EXSCLAIM!: Harnessing materials science literature for self-labeled microscopy datasets",
+      "authors": "Schwenker et al.",
+      "venue": "Patterns 4(11), 100843, doi:10.1016/j.patter.2023.100843 (arXiv 2103.10631)",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Scale and dimension reading"
+      },
+      "contribution": [
+        "system",
+        "dataset"
+      ],
+      "input": [
+        "natural image"
+      ],
+      "domain": "general vision",
+      "country": [
+        "US"
+      ],
+      "institution": [
+        "Northwestern University",
+        "Argonne National Laboratory"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1016/j.patter.2023.100843",
+      "pdf": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10682750/pdf/main.pdf",
+      "file": null,
+      "code": [
+        {
+          "url": "https://github.com/MaterialEyes/exsclaim",
+          "licence": "GPL-3.0",
+          "commit": "003400ee7486568cd229d3ff012613baa2fa6554",
+          "local": "research/code/MaterialEyes__exsclaim"
+        }
+      ],
+      "note": "Toolkit that mines journal figures, separates subfigures and labels them from captions; its scale module detects scale bars and their labels with Faster R-CNN, reads the label with a CRNN and pairs bars and labels by box-centre distance (bar length MAE 5.4%, 82% of labels read on 440 figures, per the evidence brief). Method source for our scale-bar reader from an adjacent field (microscopy); code GPL-3.0, so reimplement. Download blocked, open access at https://doi.org/10.1016/j.patter.2023.100843 (PMC10682750)"
+    },
+    {
+      "id": "2024-faltin-scale-inference",
+      "year": 2024,
+      "title": "Towards a robust deep learning-based scale inference approach in construction drawings",
+      "authors": "Faltin, Schönfelder, König",
+      "venue": "Computing in Civil Engineering 2023 (ASCE i3CE), pp. 721–728, doi:10.1061/9780784485248.087",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Scale and dimension reading"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "DE"
+      ],
+      "institution": [
+        "Ruhr University Bochum"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1061/9780784485248.087",
+      "pdf": null,
+      "file": null,
+      "note": "YOLOv7 localises dimension lines, EasyOCR reads their values and the pixel resolution is found by voting over the pairs; only \"promising results\" are stated, no figures obtained. The only paper found that infers drawing scale itself; same group as the floor plan OCR of Schönfelder et al. Not open access"
+    },
+    {
+      "id": "2025-chang-house-type-recognition",
+      "year": 2025,
+      "title": "Raster image-based house-type recognition and three-dimensional reconstruction technology",
+      "authors": "Chang, Lv, Wang, Pang, Liu",
+      "venue": "Buildings 15(7), 1178, doi:10.3390/buildings15071178",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Segmentation and vectorisation"
+      },
+      "contribution": [
+        "method",
+        "dataset",
+        "system"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Daqing Normal University",
+        "Northeast Forestry University"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.3390/buildings15071178",
+      "pdf": "https://www.mdpi.com/2075-5309/15/7/1178/pdf",
+      "file": null,
+      "note": "Keypoint detection (CPN-Floor) of walls, doors and windows with rule-based candidate filtering on more than 5,000 annotated house plans (over 87% precision, 88% recall), a WebGL 3D viewer, and scale from the dimension strips: YOLOv8 plus Shi–Tomasi corners find the measurement endpoints, OFA-OCR reads the values and outlying per-dimension scales are dropped (\"scale calculation accuracy exceeding 95%\", metric not defined). Template for dimension-strip scale with outlier rejection; no code. Download blocked, open access at https://www.mdpi.com/2075-5309/15/7/1178"
+    },
+    {
+      "id": "2026-lin-drawing-vectorization-cad",
+      "year": 2026,
+      "title": "A hybrid deep learning and rule-based method for architectural drawing vectorization and CAD reconstruction",
+      "authors": "Lin, Wang",
+      "venue": "Buildings 16(5), 1043, doi:10.3390/buildings16051043",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Scale and dimension reading"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "other architectural drawing",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Shanghai University"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.3390/buildings16051043",
+      "pdf": "https://www.mdpi.com/2075-5309/16/5/1043/pdf",
+      "file": null,
+      "note": "Scanned historical architectural drawings to editable CAD: YOLOv11n detects dimension annotations, dimension endpoints and axis-grid markers (mAP50 0.98–0.99), PaddleOCR reads 89.3% of dimension and 91.0% of axis texts, one mm/px estimate per dimension is combined by RANSAC, then rules rebuild the line topology snapped to a 50 mm module (figures per the evidence brief; one worked example). Recipe for dimension-based scale and grid axes on scans; detector is AGPL Ultralytics, no code. Download blocked, open access at https://www.mdpi.com/2075-5309/16/5/1043"
+    },
+    {
+      "id": "2026-liang-dimension-aware-bim",
+      "year": 2026,
+      "title": "Automated dimension-aware 2D-to-BIM reconstruction through cross-modal text-geometry alignment",
+      "authors": "Liang, Fukuda, Yabuki",
+      "venue": "Computing in Construction 7 (EC3 2026), doi:10.35490/EC3.2026.212",
+      "taxonomy": {
+        "l1": "Raster parsing",
+        "l2": "Scale and dimension reading"
+      },
+      "contribution": [
+        "method",
+        "benchmark"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "floor plan",
+      "country": [
+        "JP"
+      ],
+      "institution": [
+        "The University of Osaka",
+        "Tokyo City University"
+      ],
+      "affiliation_source": "pdf",
+      "page": "https://doi.org/10.35490/EC3.2026.212",
+      "pdf": "https://ec-3.org/wp-content/uploads/2026/08/EC32026_212.pdf",
+      "file": "2026-liang-dimension-aware-bim.pdf",
+      "note": "Legacy floor plans to IFC: OCR of dimension texts (90.2% exact), OCR-guided denoising and segmentation, then a metric grid rebuilt from the annotations: the pixel-to-metric ratio is the median of OCR value over pixel gap, each grid spacing is checked and corrected, totals are matched against cumulative spacings, and the plan is scaled separately along x and y; 62 of 200 plans fully correct, with an IFC-based evaluation. Model for robust dimension-string scale with anisotropy; extended journal version doi:10.1016/j.autcon.2026.107204; no code"
+    },
+    {
+      "id": "2026-xu-blueprintagent",
+      "year": 2026,
+      "title": "BlueprintAgent: Constraint-triggered targeted revisits for simulation-ready generation from scanned structural blueprints",
+      "authors": "Xu, Yang, Wang, Fan, Wang",
+      "venue": "Findings of EMNLP 2026 (arXiv 2609.07362)",
+      "taxonomy": {
+        "l1": "Vision-language models and agents",
+        "l2": "Agentic pipeline"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "raster drawing"
+      ],
+      "domain": "engineering drawing",
+      "country": [
+        "CN"
+      ],
+      "institution": [
+        "Tsinghua University"
+      ],
+      "affiliation_source": "openalex+pdf",
+      "page": "https://arxiv.org/abs/2609.07362",
+      "pdf": "https://arxiv.org/pdf/2609.07362",
+      "file": "2026-xu-blueprintagent.pdf",
+      "note": "Multimodal-LLM agent that extracts reinforced-concrete frame models from 300 real scanned structural sheets of 20 projects: a CV probe finds grid label circles and lines, the MLLM reads the labels, and engineering validators (span ratios, cross-floor axis consistency) trigger targeted re-reads of local regions; axis F1 1.000 vs 0.987 for a single zero-shot MLLM. Pattern for validator-triggered re-reading and cross-storey grid consistency; the paper states no data release"
+    },
+    {
+      "id": "2020-yin-layer-classification",
+      "year": 2020,
+      "title": "Automatic layer classification method-based elevation recognition in architectural drawings for reconstruction of 3D BIM models",
+      "authors": "Yin, Tang, Zhou, Wen, Xu, Deng",
+      "venue": "Automation in Construction 113, 103082, doi:10.1016/j.autcon.2020.103082",
+      "taxonomy": {
+        "l1": "Vector CAD parsing",
+        "l2": "Layer and entity classification"
+      },
+      "contribution": [
+        "method"
+      ],
+      "input": [
+        "vector drawing"
+      ],
+      "domain": "other architectural drawing",
+      "country": [
+        "HK",
+        "CN",
+        "SG"
+      ],
+      "institution": [
+        "University of Hong Kong",
+        "University of Nottingham Ningbo China",
+        "National University of Singapore"
+      ],
+      "affiliation_source": "openalex",
+      "page": "https://doi.org/10.1016/j.autcon.2020.103082",
+      "pdf": null,
+      "file": null,
+      "note": "Classifies the layers of CAD drawings by their content rather than their names (ALCM), then recognises elevation views, floor levels and opening offsets and heights to build a façade BIM model: nearly all floor levels found and 88% of visible members measured perfectly on 94 drawings. Layer names are at best a weak feature for our DWG input; classify layers by content. Not open access"
+    }
+  ]
+}
