@@ -74,6 +74,14 @@
   .pick b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
   .pick .sub { color: var(--muted); }
   .pick .caret { font-size: 9px; color: var(--muted); }
+  .ver { display: flex; gap: 2px; }
+  .ver.single { display: none; }
+  .vbtn { padding: 0 8px; }
+  .vbtn:disabled { opacity: 0.4; }
+  .vt { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .vt th, .vt td { text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--border); font-weight: 400; vertical-align: top; }
+  .vt th { color: var(--muted); font-size: 11px; }
+  .vt tr.cur td { font-weight: 600; }
   .pick.narrow .sub { color: var(--accent-ink); font-weight: 600; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; min-width: 0; }
   #grid { display: grid; grid-template-columns: 260px minmax(0, 1fr) 300px; min-height: 0; }
@@ -310,8 +318,9 @@
   <header id="top">
     <div class="brand"><span class="logo">fpx</span><span>Pilot v2 viewer</span></div>
     <div class="picker">
-      <button type="button" class="pick" id="pick" aria-haspopup="true" aria-expanded="false" title="Choose a sheet"><b id="pickname">Sheet</b><span class="sub" id="picksub"></span><span class="caret">▼</span></button>
-      <button type="button" class="pick" id="pickall" aria-haspopup="true" aria-expanded="false" title="Narrow the sheet list by collection, run and tags"><b>Filter</b><span class="sub" id="filtsub"></span><span class="caret">▼</span></button>
+      <button type="button" class="pick" id="pick" aria-haspopup="true" aria-expanded="false" title="Choose a plan"><b id="pickname">Sheet</b><span class="sub" id="picksub"></span><span class="caret">▼</span></button>
+      <button type="button" class="pick" id="pickall" aria-haspopup="true" aria-expanded="false" title="Narrow the plan list by collection and tags"><b>Filter</b><span class="sub" id="filtsub"></span><span class="caret">▼</span></button>
+      <div class="ver" id="ver"><button type="button" class="pick vbtn" id="verprev" title="Earlier version (Shift+H)" aria-label="Earlier version">‹</button><button type="button" class="pick" id="verpick" aria-haspopup="true" aria-expanded="false" title="Pipeline version of this plan"><b id="vername">v3</b><span class="sub" id="versub"></span><span class="caret">▼</span></button><button type="button" class="pick vbtn" id="vernext" title="Later version (H)" aria-label="Later version">›</button></div>
     </div>
     <div class="actions">
       <button type="button" class="btn" id="copylink">Copy link<span class="long"> to view</span></button>
@@ -332,16 +341,17 @@
         </div>
         <div class="legend" id="legend"></div>
         <div id="layers"></div>
-        <div class="note">3D heights are for display only. Plan data stays local (<code>data/</code>, gitignored); curated sheets show their
-          licence, and benchmark-only and BBL sheets must never be shown publicly.</div>
+        <div class="note">3D heights are for display only. The public export (<code>viewer-data/</code>) holds only plans that may be shown
+          publicly: the curated core set with their licences and the Landgut Lohn sheets; benchmark-only plans appear in the local export alone
+          (<code>#data=local</code>).</div>
       </div>
       <div class="rail" data-side="left" title="Expand the layers panel"><button type="button" class="collapse" aria-label="Expand panel">›</button><span class="vlabel">Layers</span></div>
     </aside>
     <main id="stage">
       <canvas id="plan" aria-label="Plan with extracted rooms, walls and openings"></canvas>
       <div id="popup" class="popup" hidden></div>
-      <button type="button" class="snav l" id="prev" title="Previous sheet (←)" aria-label="Previous sheet">‹</button>
-      <button type="button" class="snav r" id="next" title="Next sheet (→)" aria-label="Next sheet">›</button>
+      <button type="button" class="snav l" id="prev" title="Previous plan (←)" aria-label="Previous plan">‹</button>
+      <button type="button" class="snav r" id="next" title="Next plan (→)" aria-label="Next plan">›</button>
       <div class="toolbar" id="toolbar">
         <div class="seg" id="view" role="group" aria-label="View"><button type="button" data-view="2d">2D</button><button type="button" data-view="3d" title="3D heights are for display only">3D</button></div>
         <label class="opv"><span class="muted">Plan</span><input type="range" id="opacity" min="0" max="1" step="0.05" value="1" title="Plan opacity"></label>
@@ -369,6 +379,7 @@
   </div>
 </div>
 <div id="menu" class="pop menu" role="menu" hidden></div>
+<div id="vermenu" class="pop menu" role="menu" hidden></div>
 <div id="filter" class="pop filterpop" role="group" aria-label="Sheet filter" hidden></div>
 <div id="help" class="pop helppop" hidden>
   <h3>Using the viewer</h3>
@@ -378,18 +389,24 @@
     <tr><td>Hover</td><td>Outlines a room, opening, void or the walls</td></tr>
     <tr><td>Click</td><td>Pins it: the popup stays until × or Esc, a click elsewhere replaces it</td></tr>
     <tr><td>1–9, 0</td><td>Toggle the first ten layers in list order</td></tr>
-    <tr><td>← → or [ ]</td><td>Previous and next sheet of the filtered list</td></tr>
+    <tr><td>← → or [ ]</td><td>Previous and next plan of the filtered list</td></tr>
+    <tr><td>H / Shift+H</td><td>Later and earlier version of the plan (v1, v2, v3, benchmark models); the History block under Details compares them</td></tr>
     <tr><td>F</td><td>Fit to rooms</td></tr>
   </table>
-  <p>Everything shown is read from <code>data/out/viewer-data.js</code> (written by <code>export_viewer.py</code>) on this machine; nothing is
-    uploaded. Review checks, the panel state and the sheet filter are kept in this browser only. Upload, the confirmation steps before a run, editing and the
+  <p>Everything shown is read from <code>viewer-data/</code> (written by <code>export_viewer.py</code>; <code>#data=local</code> reads the local export under
+    <code>data/out/</code>); nothing is uploaded. Review checks, the panel state and the sheet filter are kept in this browser only. Upload, the confirmation steps before a run, editing and the
     downloads of the workflow study need the app and are not part of this viewer.</p>
 </div>
 
-<script src="data/out/viewer-data.js"></script>
+<script>
+  // the data folder: viewer-data/ (tracked: the public export) or, with data=local in the link, data/out/viewer-data/
+  (function () { const local = /(^|[#&])data=local(&|$)/.test(location.hash); window.VIEWER_BASE = local ? "data/out/viewer-data/" : "viewer-data/";
+    document.write('<script src="' + window.VIEWER_BASE + 'index.js"><\/script>'); })();
+</script>
 <script>
 "use strict";
-const D = window.VIEWER_DATA;
+const D = window.VIEWER_INDEX || window.VIEWER_DATA;      // the index (light records) or the embedded data of earlier exports
+const BASE = window.VIEWER_BASE || "";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -414,9 +431,9 @@ const AXES = { category: "Category", drawing_type: "Drawing type", challenges: "
 const DATASETS = { cubicasa: "CubiCasa5K", cvcfp: "CVC-FP", waffle: "WAFFLE", commons: "Commons" };
 // the sheet filter in the header: collections, runs and these tag axes of the curated set narrow the sheet list
 const TAG_FILTER = ["drawing_type", "input", "wall_style", "era", "building_type", "challenges"];
-const FILTER_AXES = ["coll", "run", ...TAG_FILTER];
-const FILTER_NAMES = { coll: "Collection", run: "Run", ...AXES };
-const FILTER_LAYOUT = [["coll"], ["run", "wall_style"], ["drawing_type", "input"], ["era", "building_type"]];   // the panel's columns; other axes (challenges) span the width below
+const FILTER_AXES = ["coll", ...TAG_FILTER];
+const FILTER_NAMES = { coll: "Collection", ...AXES };
+const FILTER_LAYOUT = [["coll"], ["wall_style", "drawing_type"], ["input", "era"], ["building_type"]];   // the panel's columns; challenges spans the width below
 const FILTER_KEY = "fpx-viewer:filter";
 // board 1i order: rooms, structure, analysis; keys 1-9, 0 toggle the first ten
 const LAYERS = [
@@ -434,7 +451,7 @@ const CONF_TIP = { high: "Stamp area within 5 % and exactly one stamp", medium: 
 const PANELS_KEY = "fpx-viewer:panels";
 const NARROW = window.matchMedia("(max-width: 860px)");
 
-const state = { i: 0, view: "2d", colour: "room", opacity: 1, off: {}, tab: "rooms", L: {}, pin: null, hover: null, sort: null,
+const state = { i: 0, ver: {}, view: "2d", colour: "room", opacity: 1, off: {}, tab: "rooms", L: {}, pin: null, hover: null, sort: null,
                 focus: false, compare: false, menu: null, help: false, measure: null, allFlags: false, allQa: false, more: false,
                 closed: {}, panels: { left: false, right: false } };
 LAYERS.forEach((l) => (state.L[l.key] = l.on));
@@ -453,6 +470,39 @@ const refName = (s) => (isBench(s) ? "Reference" : "2005 reference");
 const kindOf = (o) => (o.kind === "window" ? "windows" : o.kind.includes("door") ? "doors" : "passages");
 const slug = (t) => String(t ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const planKey = (s) => (s.curated ? `plan:${s.curated.id}` : `sheet:${s.id}`);        // the same plan in several runs shares a key
+// versions of a plan: the run folders exported for it (v1, v2, v3, a benchmark model); the latest pipeline version is the default
+const verOf = (s) => s.version || { label: runLabel(runOf(s) || "(none)"), rank: runRank(runOf(s) || "(none)"), kind: "pipeline", date: "" };
+const planId = (s) => s.plan || (s.curated ? s.curated.id : s.id);
+let PLANS = [], PLAN_OF = [];         // PLANS[k] = { key, items: [sheet indices by version], def }; PLAN_OF[i] = k
+function buildPlans() {
+  const by = new Map();
+  PLANS = []; PLAN_OF = [];
+  D.sheets.forEach((s, i) => {
+    const key = `plan:${planId(s)}`;
+    if (!by.has(key)) { by.set(key, { key, items: [] }); PLANS.push(by.get(key)); }
+    by.get(key).items.push(i);
+    PLAN_OF[i] = PLANS.indexOf(by.get(key));
+  });
+  for (const p of PLANS) {
+    p.items.sort((a, b) => verOf(D.sheets[a]).rank - verOf(D.sheets[b]).rank || a - b);
+    const pipe = p.items.filter((i) => verOf(D.sheets[i]).kind === "pipeline"), pool = pipe.length ? pipe : p.items;
+    p.def = pool[pool.length - 1];
+  }
+}
+const planAt = (i) => PLANS[PLAN_OF[i]];
+const shownOf = (p) => (state.ver[p.key] != null && p.items.includes(state.ver[p.key]) ? state.ver[p.key] : p.def);
+const versions = (i) => planAt(i).items;
+// sheet data is fetched per version (viewer-data/sheets/*.json); the index holds only what the lists and filters need
+async function ensure(i) {
+  const s = D.sheets[i];
+  if (!s.file || s.rooms) return s;
+  const r = await fetch(BASE + s.file);
+  if (!r.ok) throw new Error(`${r.status} ${s.file}`);
+  Object.assign(s, await r.json());
+  return s;
+}
+const loadError = (err) => { console.error(err);
+  stage.insertAdjacentHTML("beforeend", `<div class="empty"><div>Could not load ${esc(String(err.message || err))}.<br>Serve this folder over HTTP (<code>python -m http.server</code>): file:// blocks fetch.</div></div>`); };
 const datasetOf = (s) => { const g = (s.group || "").toLowerCase();                   // public benchmark sheets: the dataset from the group name
   return g.includes("cubicasa") ? "cubicasa" : g.includes("cvc") ? "cvcfp" : g.includes("waffle") ? "waffle" : g.includes("commons") ? "commons" : slug(s.group || "benchmark"); };
 // run folders as readable names: out → v1 run, out-v2b → v2 run, curated-v2 → curated v2 run, bench → benchmark run
@@ -534,7 +584,7 @@ function grossPath(s, r) {           // the gross polygon of a room (to the wall
 }
 function image(s) {
   const g = geo(s);
-  if (!g.img) { g.img = new Image(); g.img.onload = () => { if (S() === s) paintNow(); }; g.img.src = s.image; }
+  if (!g.img) { g.img = new Image(); g.img.onload = () => { if (S() === s) paintNow(); }; g.img.src = /^data:/.test(s.image) ? s.image : BASE + s.image; }
   return g.img;
 }
 
@@ -982,28 +1032,34 @@ function scaleParts(s) {
 const scaleShort = (s) => { const p = scaleParts(s); return p.n ? `1:${p.n}` : p.ppm ? `${p.ppm} px/m` : ""; };
 const shortId = (s) => (s.id.length <= 3 ? s.id.toUpperCase() : "");
 const pickSub = (s) => { const inp = shortInput(s), dup = s.title.toLowerCase().includes(inp.toLowerCase());
-  return [shortId(s), dup ? "" : inp, scaleShort(s), runOf(s)].filter(Boolean).join(" · "); };
+  return [shortId(s), dup ? "" : inp, scaleShort(s)].filter(Boolean).join(" · "); };
 
 let GROUPS = [];
-function sheetGroups() {      // Landgut Lohn (and other plain groups), the curated set, the public benchmarks
+function sheetGroups() {      // Landgut Lohn (and other plain groups), the curated set, the public benchmarks: plans, not versions
   const groups = [], byKey = new Map();
-  D.sheets.forEach((s, i) => {
-    const key = s.curated ? "curated" : isBench(s) ? "bench" : `g:${s.group || "Sheets"}`;
+  PLANS.forEach((p) => {
+    const s = D.sheets[p.def], key = s.curated ? "curated" : isBench(s) ? "bench" : `g:${s.group || "Sheets"}`;
     if (!byKey.has(key)) { byKey.set(key, { key, items: [] }); groups.push(byKey.get(key)); }
-    byKey.get(key).items.push(i);
+    byKey.get(key).items.push(p);
   });
   return groups;
 }
 const groupName = (g) => (g.key === "curated" ? "Curated set" : g.key === "bench" ? "Benchmarks" : g.key.slice(2));
 function renderHeader() {
-  const s = S(), n = navList().length, t = D.sheets.length, nr = narrowed();
+  const s = S(), n = navList().length, t = PLANS.length, nr = narrowed(), vs = versions(state.i), k = vs.indexOf(state.i), v = verOf(s);
   $("pickname").textContent = s.title;
   $("picksub").textContent = pickSub(s);
-  $("pick").title = `${nr ? `${n} of ${t}` : t} sheet${t === 1 ? "" : "s"} in ${GROUPS.length} group${GROUPS.length === 1 ? "" : "s"}`;
+  $("pick").title = `${nr ? `${n} of ${t}` : t} plan${t === 1 ? "" : "s"} in ${GROUPS.length} group${GROUPS.length === 1 ? "" : "s"}`;
   $("filtsub").textContent = nr ? `${n} of ${t}` : `all ${t}`;
   $("pickall").classList.toggle("narrow", nr);
-  $("pickall").title = nr ? `${n} of ${t} sheets pass the filter` : "Narrow the sheet list by collection, run and tags";
-  for (const [id, key] of [["pick", "sheet"], ["pickall", "filter"]]) {
+  $("pickall").title = nr ? `${n} of ${t} plans pass the filter` : "Narrow the plan list by collection and tags";
+  $("vername").textContent = v.label;
+  $("versub").textContent = [v.kind !== "pipeline" ? v.kind : "", v.date].filter(Boolean).join(" · ") || `${k + 1} of ${vs.length}`;
+  $("verpick").title = `${vs.length} version${vs.length === 1 ? "" : "s"} of this plan: ${vs.map((i) => verOf(D.sheets[i]).label).join(", ")}`;
+  $("verprev").disabled = k <= 0;
+  $("vernext").disabled = k >= vs.length - 1;
+  $("ver").classList.toggle("single", vs.length <= 1);
+  for (const [id, key] of [["pick", "sheet"], ["pickall", "filter"], ["verpick", "version"]]) {
     $(id).classList.toggle("on", state.menu === key);
     $(id).setAttribute("aria-expanded", state.menu === key);
   }
@@ -1029,9 +1085,6 @@ function buildFacets() {
     if (s.curated) { const c = (s.curated.tags.category || [])[0] || "Curated"; fv.coll = [`curated:${slug(c)}`]; add("coll", fv.coll[0], c, "", "Curated set", 1); }
     else if (isBench(s)) { const k = datasetOf(s); fv.coll = [`bench:${k}`]; add("coll", fv.coll[0], DATASETS[k] || s.group, "", "Benchmarks", 2); }
     else { const g = s.group || "Sheets"; fv.coll = [`g:${slug(g)}`]; add("coll", fv.coll[0], g, "", "", 0); }
-    const run = runOf(s) || "(none)";
-    fv.run = [run];
-    add("run", run, runLabel(run), run === "(none)" ? "" : run, "", runRank(run));
     for (const ax of TAG_FILTER) {
       const t = s.curated ? s.curated.tags[ax] : null;
       fv[ax] = (Array.isArray(t) ? t : t ? [t] : []).map(String);
@@ -1039,11 +1092,9 @@ function buildFacets() {
     }
     return fv;
   });
-  const outFirst = (v) => (v.key === "out" || v.key.startsWith("out-") ? 0 : 1);
   for (const ax of FILTER_AXES) {
     const list = [...vals[ax].values()];
-    if (ax === "run") list.sort((a, b) => a.rank - b.rank || outFirst(a) - outFirst(b) || a.key.localeCompare(b.key));
-    else if (ax === "coll") list.sort((a, b) => a.rank - b.rank);                        // sections in order, data order within
+    if (ax === "coll") list.sort((a, b) => a.rank - b.rank);                             // sections in order, data order within
     else list.sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
     FACETS[ax] = { name: FILTER_NAMES[ax], values: list, keys: new Set(list.map((v) => v.key)) };
   }
@@ -1054,9 +1105,9 @@ const passes = (i) => FILTER_AXES.every((ax) => passesAxis(i, ax));
 const passesExcept = (i, skip) => FILTER_AXES.every((ax) => ax === skip || passesAxis(i, ax));
 const narrowed = () => FILTER_AXES.some((ax) => state.off[ax] && state.off[ax].size > 0);
 const isOnly = (ax, key) => { const off = state.off[ax]; return !!off && !off.has(key) && FACETS[ax].values.every((v) => v.key === key || off.has(v.key)); };
-function facetCounts(ax) {      // sheets per value, given the other axes
+function facetCounts(ax) {      // plans per value, given the other axes
   const counts = {};
-  D.sheets.forEach((s, i) => { if (passesExcept(i, ax)) for (const k of FV[i][ax]) counts[k] = (counts[k] || 0) + 1; });
+  PLANS.forEach((p) => { const i = p.def; if (passesExcept(i, ax)) for (const k of FV[i][ax]) counts[k] = (counts[k] || 0) + 1; });
   return counts;
 }
 // the filter in the hash (f.coll, f.run, f.era, ...) and in localStorage: per axis the checked keys, or "!" and the unchecked ones when
@@ -1091,7 +1142,7 @@ const saveFilter = () => { const o = {}; for (const [ax, v] of filterEntries()) 
 function renderFilter() {
   const f = $("filter");
   if (state.menu !== "filter") { f.hidden = true; return; }
-  const top = f.hidden ? 0 : f.scrollTop, n = navList().length, t = D.sheets.length;
+  const top = f.hidden ? 0 : f.scrollTop, n = navList().length, t = PLANS.length;
   const act = document.activeElement, keep = act && f.contains(act) && act.dataset.ax ? [act.dataset.ax, act.dataset.key] : null;
   const cap = (ax) => `<div class="fcap"><span>${esc(FACETS[ax].name)}</span><button type="button" class="link2" data-all="${ax}">all</button><span class="dot">·</span><button type="button" class="link2" data-none="${ax}">none</button></div>`;
   const opt = (ax, v, cnt) => `<label class="fopt${cnt ? "" : " zero"}"><input type="checkbox" data-ax="${ax}" data-key="${esc(v.key)}"${state.off[ax] && state.off[ax].has(v.key) ? "" : " checked"}><span class="t">${esc(v.label)}${v.sub ? ` <span class="fd">(${esc(v.sub)})</span>` : ""}</span><span class="n">${cnt}</span></label>`;
@@ -1109,10 +1160,10 @@ function renderFilter() {
     return `<div class="fgroup${cols > 1 ? " fspan" : ""}">${cap(ax)}<div class="fopts">${lists.join("")}</div></div>`;
   };
   const placed = new Set(FILTER_LAYOUT.flat());
-  let html = `<div class="fhead"><b>Filter sheets</b><span class="n">${n} of ${t} sheet${t === 1 ? "" : "s"}</span><button type="button" class="link2" id="freset"${narrowed() ? "" : " disabled"}>Reset</button></div><div class="fbody">`;
+  let html = `<div class="fhead"><b>Filter plans</b><span class="n">${n} of ${t} plan${t === 1 ? "" : "s"}</span><button type="button" class="link2" id="freset"${narrowed() ? "" : " disabled"}>Reset</button></div><div class="fbody">`;
   for (const col of FILTER_LAYOUT) html += `<div class="fcol">${col.filter((ax) => FACETS[ax]).map((ax) => group(ax, 1)).join("")}</div>`;
   for (const ax of FILTER_AXES) if (!placed.has(ax)) html += group(ax, 4);
-  html += `</div><div class="fhint">Tags belong to the curated plans: narrowing a tag group hides the sheets without tags (Landgut Lohn and the plain benchmark sheets). Counts are the sheets left given the other groups.</div>`;
+  html += `</div><div class="fhint">Tags belong to the curated plans: narrowing a tag group hides the plans without tags (Landgut Lohn). Counts are the plans left given the other groups.</div>`;
   f.innerHTML = html;
   f.hidden = false;
   const r = $("pickall").getBoundingClientRect();
@@ -1121,18 +1172,19 @@ function renderFilter() {
   f.scrollTop = top;
   if (keep) { const el = f.querySelector(`input[data-ax="${keep[0]}"][data-key="${CSS.escape(keep[1])}"]`); if (el) el.focus({ preventScroll: true }); }
 }
-function renderMenu() {           // the sheet dropdown: every group, only the sheets that pass the filter
+function renderMenu() {           // the plan dropdown: every group, only the plans that pass the filter; and the version dropdown
   const m = $("menu");
-  renderFilter();
+  renderFilter(); renderVersions();
   if (state.menu !== "sheet") { m.hidden = true; return; }
-  const list = navList(), on = new Set(list), t = D.sheets.length;
+  const list = navList(), on = new Set(list), t = PLANS.length;
   const item = (i) => { const s = D.sheets[i];
-    return `<button type="button" class="mitem${i === state.i ? " on" : ""}" role="menuitem" data-i="${i}"><span>${esc(s.title)}${runOf(s) ? ` · ${esc(runOf(s))}` : ""}</span><span class="mm">${esc(sheetMeta(s))}</span></button>`; };
-  let html = `<div class="mhead"><span>${list.length} of ${t} sheet${t === 1 ? "" : "s"}</span><button type="button" class="link2" id="mfilter">${narrowed() ? "Edit filter" : "Filter"}</button></div>`;
-  if (!on.has(state.i)) html += `<div class="mgroup">Current sheet · outside the filter</div>${item(state.i)}`;
+    return `<button type="button" class="mitem${i === state.i ? " on" : ""}" role="menuitem" data-i="${i}"><span>${esc(s.title)}</span><span class="mm">${esc(sheetMeta(s))}</span></button>`; };
+  let html = `<div class="mhead"><span>${list.length} of ${t} plan${t === 1 ? "" : "s"}</span><button type="button" class="link2" id="mfilter">${narrowed() ? "Edit filter" : "Filter"}</button></div>`;
+  if (!on.has(state.i)) html += `<div class="mgroup">Current plan · outside the filter</div>${item(state.i)}`;
   for (const g of GROUPS) {
     let cap = null;
-    for (const i of g.items) {
+    for (const p of g.items) {
+      const i = shownOf(p);
       if (!on.has(i)) continue;
       const s = D.sheets[i], sub = s.curated ? s.curated.tags.category[0] : isBench(s) ? s.group : "";
       const c = `${groupName(g)}${sub ? ` · ${sub}` : ""}`;
@@ -1140,15 +1192,43 @@ function renderMenu() {           // the sheet dropdown: every group, only the s
       html += item(i);
     }
   }
-  if (!list.length) html += '<div class="mempty">No sheet passes the filter.</div>';
+  if (!list.length) html += '<div class="mempty">No plan passes the filter.</div>';
   m.innerHTML = html;
   m.hidden = false;
   const r = $("pick").getBoundingClientRect();
   m.style.left = `${clamp(r.left + r.width / 2 - m.offsetWidth / 2, 8, window.innerWidth - m.offsetWidth - 8)}px`;
   m.style.top = `${r.bottom + 6}px`;
 }
-
-// ---------- left panel ----------
+function renderVersions() {       // the version dropdown of the current plan
+  const m = $("vermenu");
+  if (state.menu !== "version") { m.hidden = true; return; }
+  const vs = versions(state.i);
+  m.innerHTML = `<div class="mhead"><span>${vs.length} version${vs.length === 1 ? "" : "s"} of this plan</span></div>` + vs.map((i) => {
+    const x = D.sheets[i], v = verOf(x), st = verStats(x);
+    return `<button type="button" class="mitem${i === state.i ? " on" : ""}" role="menuitem" data-i="${i}"><span>${esc(v.label)}${v.kind !== "pipeline" ? ` · ${esc(v.kind)}` : ""}${i === planAt(i).def ? " · default" : ""}</span><span class="mm">${esc([v.date, st.text].filter(Boolean).join(" · "))}</span></button>`;
+  }).join("");
+  m.hidden = false;
+  const r = $("verpick").getBoundingClientRect();
+  m.style.left = `${clamp(r.left + r.width / 2 - m.offsetWidth / 2, 8, window.innerWidth - m.offsetWidth - 8)}px`;
+  m.style.top = `${r.bottom + 6}px`;
+}
+// the figures a version is compared by, from the index (counts, summary), so that versions not loaded yet show them too
+function verStats(x) {
+  const e = x.summary || {}, sc = e.scores || {}, ro = e.rooms || {}, c = x.counts || {};
+  const rooms = c.rooms ?? (x.rooms ? x.rooms.length : null), qa = c.qa ?? (x.qa ? qaOf(x).length : null);
+  const matched = sc.rooms_ref != null ? `${sc.rooms_matched}/${sc.rooms_ref}` : ro.reference != null ? `${ro.matched_iou50}/${ro.reference}` : "";
+  const walls = sc.wall_iou ?? e.walls_iou;
+  const parts = [rooms != null ? plural(rooms, "room") : "", matched ? `${matched} matched` : "", walls ? `walls IoU ${num(walls, 2)}` : "", qa != null ? `${qa} QA` : ""];
+  return { rooms, matched, walls, qa, text: parts.filter(Boolean).join(" · ") };
+}
+function historyPane(s) {         // Details: the same plan through the versions
+  const vs = versions(state.i);
+  if (vs.length < 2) return "";
+  const rows = vs.map((i) => { const x = D.sheets[i], v = verOf(x), st = verStats(x);
+    return `<tr class="${i === state.i ? "cur" : ""}"><td><button type="button" class="link2" data-ver="${i}">${esc(v.label)}</button>${v.kind !== "pipeline" ? `<span class="muted"> ${esc(v.kind)}</span>` : ""}${i === planAt(i).def ? '<span class="muted"> · default</span>' : ""}</td><td>${esc(v.date || "")}</td><td>${st.rooms ?? "–"}</td><td>${esc(st.matched || "–")}</td><td>${st.walls ? num(st.walls, 2) : "–"}</td><td>${st.qa ?? "–"}</td></tr>`; }).join("");
+  return `<section class="block"><h3>History</h3><table class="vt"><tr><th>Version</th><th>Date</th><th>Rooms</th><th>Matched</th><th>Walls IoU</th><th>QA</th></tr>${rows}</table>
+    <div class="muted small">The same plan through the pipeline versions, and benchmark models where they were run. H and Shift+H step through them; the latest pipeline version is the default.</div></section>`;
+}
 function layerInfo(s, key) {
   const n = (k) => s.openings.filter((o) => kindOf(o) === k).length;
   switch (key) {
@@ -1428,7 +1508,8 @@ function detailsPane(s) {
         sc.rooms_ref != null ? ["Rooms matched (IoU ≥ 0.5)", `${sc.rooms_matched}/${sc.rooms_ref} (${sc.rooms_pred} found, mean IoU ${sc.rooms_mean_iou})`] : null], "lft")
         : '<div class="muted">No ground truth for this sheet.</div>'}`
     : `<h3>Scores vs 2005 reference</h3>${kv([["Rooms IoU ≥ 0.5", `${ro.matched_iou50}/${ro.reference} (mean IoU ${num(ro.mean_iou, 2)})`],
-        ro.median_abs_area_error_pct != null ? ["Median area error", `${ro.median_abs_area_error_pct} %`] : null, ["Walls IoU", num(e.walls_iou, 2)],
+        ro.median_abs_area_error_pct != null ? ["Median area error", `${ro.median_abs_area_error_pct} %`] : null,
+        ["Walls IoU", `${num(e.walls_iou, 2)}${e.walls_iou_regularised != null ? ` <span class="muted">· straight segments ${num(e.walls_iou_regularised, 2)}</span>` : ""}`],
         ["GF IoU", `${num(e.gf_iou, 2)} (${e.gf_area_error_pct > 0 ? "+" : ""}${e.gf_area_error_pct} %)`],
         ["Openings found", `exterior ${op.exterior_recall}, interior ${op.interior_recall}`],
         ["Connections", `${cn.correct}/${cn.reference_edges} (F1 ${num(cn.f1, 2)})`], e.qa_issues != null ? ["QA issues", e.qa_issues] : null], "lft")}
@@ -1446,6 +1527,7 @@ function detailsPane(s) {
       <div id="measureout" class="col" style="gap:10px">${measureOut(s)}</div>
     </section>
     <section class="block">${scores}${hasRef(s) || isBench(s) ? scoreStrip(s) : ""}</section>
+    ${historyPane(s)}
     ${s.curated ? `<section class="block">${planInfo(s.curated)}</section>` : ""}`;
 }
 function renderRight() {
@@ -1488,24 +1570,29 @@ function renderAll() {
 }
 
 // ---------- state changes ----------
-function select(i) {
+function select(i, keepMenu = false) {      // the version's data is fetched first (no-op when embedded or already loaded)
   if (i == null || i < 0 || !D.sheets[i]) return;
-  Object.assign(state, { i, pin: null, hover: null, focus: false, compare: false, measure: null, sort: null, allFlags: false, allQa: false, more: false, menu: null });
-  loadChecks(); renderAll(); fitRooms();
+  const menu = keepMenu ? state.menu : null;
+  ensure(i).then(() => {
+    Object.assign(state, { i, pin: null, hover: null, focus: false, compare: false, measure: null, sort: null, allFlags: false, allQa: false, more: false, menu });
+    state.ver[planAt(i).key] = i;
+    loadChecks(); renderAll(); fitRooms();
+  }).catch(loadError);
 }
-const navList = () => D.sheets.map((s, i) => i).filter((i) => passes(i));       // the sheets that pass the filter, in data order
+const navList = () => PLANS.map((p) => shownOf(p)).filter((i) => passes(i));      // one sheet per plan (its shown version) that passes the filter
+function stepVersion(d) {
+  const vs = versions(state.i), k = vs.indexOf(state.i);
+  if (vs.length > 1) select(vs[(k + d + vs.length) % vs.length], state.menu === "filter");
+}
 function step(d) {
   const l = navList(), k = l.indexOf(state.i);
   if (l.length) select(k < 0 ? l[d > 0 ? 0 : l.length - 1] : l[(k + d + l.length) % l.length]);
 }
-// a changed filter keeps the current sheet, unless the same plan passes in another run (e.g. only "v3 run" checked): then that run is shown
+// a changed filter keeps the current plan while it passes; otherwise the first plan that does is shown
 function setFilter(off) {
   state.off = off;
   saveFilter();
-  if (!passes(state.i)) {
-    const key = planKey(S()), alt = navList().find((i) => planKey(D.sheets[i]) === key);
-    if (alt != null) { const menu = state.menu; select(alt); state.menu = menu; }
-  }
+  if (!passes(state.i)) { const l = navList(); if (l.length) { select(l[0], true); return; } }
   renderAll();
 }
 function checkFilter(ax, key, on) {
@@ -1539,9 +1626,9 @@ function togglePanel(side) {
 function setTab(tab) { state.tab = tab; renderRight(); writeHash(); }
 
 function writeHash() {
-  const s = S(), p = new URLSearchParams(), runs = D.sheets.filter((x) => x.id === s.id);
-  p.set("sheet", s.id);
-  if (runs.length > 1) p.set("run", runs.indexOf(s));
+  const s = S(), p = new URLSearchParams();
+  p.set("sheet", planId(s));
+  if (state.i !== planAt(state.i).def) p.set("v", verOf(s).label);
   if (state.view !== "2d") p.set("view", state.view);
   if (state.colour !== "room") p.set("colour", state.colour);
   for (const l of LAYERS) if (state.L[l.key] !== l.on) p.set(l.key, state.L[l.key] ? "1" : "0");
@@ -1553,14 +1640,18 @@ function writeHash() {
   if (state.panels.right) p.set("right", "0");
   try { history.replaceState(null, "", `#${p.toString()}`); } catch (e) { /* file:// may refuse; the link button still works */ }
 }
-// initial state from the URL hash, e.g. #sheet=s2&view=3d&colour=confidence&graph=0&pin=r006&left=0, or #f.run=out-v3&f.era=before+1850;
-// sheet takes a sheet id or a curated plan id; the layer and tab keys and tag=axis:value of the earlier viewers still work
+// initial state from the URL hash, e.g. #sheet=s2&v=v2&view=3d&colour=confidence&graph=0&pin=r006&left=0, or #f.era=before+1850;
+// sheet takes a plan id (curated id, s1-s3) or a sheet id, v a version label; the layer and tab keys, run=N and tag=axis:value of the earlier viewers still work
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   let named = false;
   if (p.has("sheet")) {
-    const want = p.get("sheet"), all = D.sheets.map((s, i) => [s, i]).filter(([s]) => s.id === want || (s.curated && s.curated.id === want));
-    if (all.length) { state.i = (all[+p.get("run") || 0] || all[0])[1]; named = true; }
+    const want = p.get("sheet"), all = D.sheets.map((s, i) => [s, i]).filter(([s]) => planId(s) === want || s.id === want || (s.curated && s.curated.id === want));
+    if (all.length) {
+      const pl = planAt(all[0][1]), byLabel = p.has("v") ? pl.items.find((i) => verOf(D.sheets[i]).label === p.get("v")) : null;
+      state.i = byLabel ?? (p.has("run") && all[+p.get("run")] ? all[+p.get("run")][1] : pl.def);     // run=N: links of the earlier viewer
+      state.ver[pl.key] = state.i; named = true;
+    }
   }
   if (p.get("view") === "3d") { state.view = "3d"; Object.assign(cam, { az: 20, el: 37 }); }
   if (["room", "confidence", "accuracy"].includes(p.get("colour"))) state.colour = p.get("colour");
@@ -1595,6 +1686,10 @@ $("menu").addEventListener("click", (e) => {
   if (it) select(+it.dataset.i);
   else if (e.target.id === "mfilter") openMenu("filter");
 });
+$("verpick").addEventListener("click", () => openMenu("version"));
+$("verprev").addEventListener("click", () => stepVersion(-1));
+$("vernext").addEventListener("click", () => stepVersion(1));
+$("vermenu").addEventListener("click", (e) => { const it = e.target.closest(".mitem"); if (it) select(+it.dataset.i); });
 $("filter").addEventListener("change", (e) => { const d = e.target.dataset; if (d.ax) checkFilter(d.ax, d.key, e.target.checked); });
 $("filter").addEventListener("click", (e) => {
   const b = e.target.closest("button");
@@ -1605,7 +1700,7 @@ $("filter").addEventListener("click", (e) => {
 });
 const within = (e, sel) => e.target instanceof Element && !!e.target.closest(sel);
 document.addEventListener("pointerdown", (e) => {
-  if (state.menu && !within(e, "#menu, #filter, .pick")) { state.menu = null; renderHeader(); renderMenu(); }
+  if (state.menu && !within(e, "#menu, #filter, #vermenu, .pick")) { state.menu = null; renderHeader(); renderMenu(); }
   if (state.help && !within(e, "#help, #helpbtn")) { state.help = false; $("help").hidden = true; $("helpbtn").setAttribute("aria-expanded", "false"); }
 });
 $("helpbtn").addEventListener("click", () => {
@@ -1674,10 +1769,11 @@ function action(act) {
   }
 }
 function panelClick(e) {
-  const el = e.target.closest("[data-act], [data-room], [data-flag], [data-sort], [data-fax], [data-tab]");
+  const el = e.target.closest("[data-act], [data-room], [data-flag], [data-sort], [data-fax], [data-tab], [data-ver]");
   if (!el || el.disabled) return;
   e.preventDefault();
   const s = S(), d = el.dataset;
+  if (d.ver) { select(+d.ver); return; }
   if (d.room) { setPin({ type: "room", id: d.room }); return; }
   if (d.flag) { const f = flagged(s).find((x) => x.key === d.flag); if (f) setPin(pinOfFlag(f), true); return; }
   if (d.sort) {
@@ -1715,6 +1811,8 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "[" || e.key === "ArrowLeft") step(-1);
   else if (e.key === "]" || e.key === "ArrowRight") step(1);
   else if (e.key === "f" || e.key === "F") fitRooms();
+  else if (e.key === "h") stepVersion(1);
+  else if (e.key === "H") stepVersion(-1);
 });
 NARROW.addEventListener("change", renderPanels);
 
@@ -1739,24 +1837,28 @@ if (!D || !D.sheets || !D.sheets.length) {
   $("pickname").textContent = "No sheets";
 } else {
   readColours();
+  buildPlans();
   GROUPS = sheetGroups();
   buildFacets();
+  state.i = PLANS.length ? PLANS[0].def : 0;
   const params = readHash();
-  loadChecks();
-  renderPanels();
-  resize();
-  renderAll();
-  fitRooms();
-  if (params.has("pin") && roomById(S(), params.get("pin"))) setPin({ type: "room", id: params.get("pin") });
-  if (params.get("review") === "1") nextFlag(null);
-  if (["all", "filter", "sheet", "curated", "bench"].includes(params.get("menu"))) { state.menu = params.get("menu") === "sheet" ? "sheet" : "filter"; renderHeader(); renderMenu(); }
-  if (params.has("measure")) {
-    const v = params.get("measure").split(",").map(Number);
-    if (v.length >= 4 && v.every(Number.isFinite)) { state.measure = { on: false, a: v.slice(0, 2), b: v.slice(2, 4), real: v[4] || null }; state.tab = "details"; renderRight(); draw(); }
-  }
-  new ResizeObserver(resize).observe(stage);
-  window.addEventListener("resize", () => { if (state.menu) renderMenu(); });
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColours(); renderAll(); });
+  ensure(state.i).then(() => {
+    loadChecks();
+    renderPanels();
+    resize();
+    renderAll();
+    fitRooms();
+    if (params.has("pin") && roomById(S(), params.get("pin"))) setPin({ type: "room", id: params.get("pin") });
+    if (params.get("review") === "1") nextFlag(null);
+    if (["all", "filter", "sheet", "curated", "bench"].includes(params.get("menu"))) { state.menu = params.get("menu") === "sheet" ? "sheet" : "filter"; renderHeader(); renderMenu(); }
+    if (params.has("measure")) {
+      const v = params.get("measure").split(",").map(Number);
+      if (v.length >= 4 && v.every(Number.isFinite)) { state.measure = { on: false, a: v.slice(0, 2), b: v.slice(2, 4), real: v[4] || null }; state.tab = "details"; renderRight(); draw(); }
+    }
+    new ResizeObserver(resize).observe(stage);
+    window.addEventListener("resize", () => { if (state.menu) renderMenu(); });
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColours(); renderAll(); });
+  }).catch(loadError);
 }
 </script>
 </body>

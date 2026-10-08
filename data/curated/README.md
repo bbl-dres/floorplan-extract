@@ -8,6 +8,8 @@ A hand-picked set of 56 floor plans for the [pilot v2 viewer](../../pilot/v2-pip
 
 Only this README and `plans.json` are tracked. The images, the render label maps and `plans.local.json` stay local (gitignored).
 
+**Core set.** 24 plans carry `"core": true`: the ones the [viewer](../../pilot/v2-pipeline/viewer.html) shows and compares across pipeline versions, so that the set stays constant. One plan per challenge, and only plans that may be shown publicly (`use` is never "benchmark only", since the viewer's data is tracked and published): the WAFFLE flats and mosque (baseline poché, breezeway, single-line walls, colour fills, column grid), six US federal construction and FM sheets (dimension chains and tags, blueprint, construction stages, hatched CAD survey, life-safety overlay, stamps in every office), the El Paso courthouse 1888, ten Swiss historical plans (Bundeshaus, Landesmuseum, Rathaus Bern, Schloss Wart, Grand Théâtre, Hallwyl survey, Netstal photo, Neumühle, the Vienna sanatorium, Globus-Heimeli, the Capuchin convent) and one Swiss Dwellings render. The other 32 plans serve spot checks (`curated.py run all`) and the local viewer export (`export_viewer.py --local`); the CVC-FP, CubiCasa5K and FloorPlanCAD plans among them stay out of the public viewer by their licence.
+
 ## Files
 
 | File | Content |

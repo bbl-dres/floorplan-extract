@@ -1,7 +1,7 @@
 {
  "meta": {
   "schema_version": "1.0",
-  "updated": "2026-10-07",
+  "updated": "2026-10-08",
   "description": "Curated floor plans of maximum variety for the pilot v2 viewer and for spot checks of the pipeline: drawing styles, eras, building types and the known weak spots (hatching, ornament, columns, open plan, stamps, poché scans). Each plan carries its licence, its permitted use, its scale (where known), its reference (where one exists) and categorical tags from the vocabularies below. Images are copies in data/curated/images (gitignored); this index is tracked. BBL plans go only into data/curated/plans.local.json (same schema, gitignored, never published or sent anywhere). pilot/v2-pipeline/curated.py validates both files and loads the plans; data/curated/README.md explains how to add one.",
   "fields": {
    "id": "Short stable slug (lowercase, digits, hyphens): source prefix (cc, cvc, wf, cm, syn) and a few words; also the stem of `file`",
@@ -24,7 +24,8 @@
    "language": "Languages of the text on the sheet as ISO 639-1 codes, or ['none']; values from meta.vocabularies.language",
    "challenges": "What the plan tests in the pipeline (all that apply); values from meta.vocabularies.challenges",
    "why": "One sentence: why this plan is in the set",
-   "render": "Only for renders: {floors, floor_id, seed, style}: the floors pickle (path relative to the repository), the floor in it, the random seed and the synth.Renderer style choices that `python curated.py render` uses to draw the image, label map and rooms again"
+   "render": "Only for renders: {floors, floor_id, seed, style}: the floors pickle (path relative to the repository), the floor in it, the random seed and the synth.Renderer style choices that `python curated.py render` uses to draw the image, label map and rooms again",
+   "core": "true for the core set: the plans the viewer shows and compares across pipeline versions, one per challenge and all publicly showable (use is never \"benchmark only\"), so that the set stays constant; the other plans serve spot checks (`curated.py run all`) and a local viewer export (`export_viewer.py --local`)"
   },
   "vocabularies": {
    "source": {
@@ -238,7 +239,8 @@
     "non-metric units",
     "thin walls"
    ],
-   "why": "The densest real working sheet in the set: dimension chains in feet and inches, oval door tags, section flags, steel-column callouts, matchlines and a key plan around outlined walls."
+   "why": "The densest real working sheet in the set: dimension chains in feet and inches, oval door tags, section flags, steel-column callouts, matchlines and a key plan around outlined walls.",
+   "core": true
   },
   {
    "id": "cp-nara-juneau-1911",
@@ -338,7 +340,8 @@
     "perspective",
     "non-metric units"
    ],
-   "why": "A blueprint photographed on its sheet: white lines on a dark ground, dense dimensions and door tags, a polarity no training render has."
+   "why": "A blueprint photographed on its sheet: white lines on a dark ground, dense dimensions and door tags, a polarity no training render has.",
+   "core": true
   },
   {
    "id": "cp-habs-stamford-po-1939",
@@ -388,7 +391,8 @@
     "thin walls",
     "non-metric units"
    ],
-   "why": "Construction stages, temporary partitions and X-crossed areas drawn over an existing federal post office: the conversion plan, where many lines are not walls of either state."
+   "why": "Construction stages, temporary partitions and X-crossed areas drawn over an existing federal post office: the conversion plan, where many lines are not walls of either state.",
+   "core": true
   },
   {
    "id": "fpcad-0060-0042",
@@ -678,7 +682,8 @@
     "thin walls",
     "large sheet"
    ],
-   "why": "A Brandschutzplan analogue: red egress routes with travel distances and rated partitions drawn across a faint grey base plan, with a code summary and symbol key beside it."
+   "why": "A Brandschutzplan analogue: red egress routes with travel distances and rated partitions drawn across a faint grey base plan, with a code summary and symbol key beside it.",
+   "core": true
   },
   {
    "id": "cp-usace-bde-hq-1f",
@@ -728,7 +733,8 @@
     "large sheet",
     "non-metric units"
    ],
-   "why": "A current federal office headquarters with a name and area stamp in every room (\"TEAM RM 150 SF\"), workstations and cores: the closest public analogue to an FM area plan."
+   "why": "A current federal office headquarters with a name and area stamp in every room (\"TEAM RM 150 SF\"), workstations and cores: the closest public analogue to an FM area plan.",
+   "core": true
   },
   {
    "id": "cp-usace-hq-2f",
@@ -878,7 +884,8 @@
     "columns",
     "small rooms"
    ],
-   "why": "The federal parliament itself: poché walls with patterned paving, rosettes and curved chamber seating, the review's case of seats split into rooms."
+   "why": "The federal parliament itself: poché walls with patterned paving, rosettes and curved chamber seating, the review's case of seats split into rooms.",
+   "core": true
   },
   {
    "id": "cm-post-zuerich",
@@ -971,7 +978,8 @@
     "non-metric units",
     "seating"
    ],
-   "why": "A single government hall whose diagonal paving fills the room, with numbered seats along the walls and a scale bar in Bern Schuh that gives 67 px/m on a 562 px scan."
+   "why": "A single government hall whose diagonal paving fills the room, with numbered seats along the walls and a scale bar in Bern Schuh that gives 67 px/m on a 562 px scan.",
+   "core": true
   },
   {
    "id": "cm-landesmuseum-eg",
@@ -1019,7 +1027,8 @@
     "courtyards",
     "non-orthogonal walls"
    ],
-   "why": "A federal museum building managed by BBL, drawn faintly on yellowed paper with red marked rooms: the low-contrast archive sheet in the set."
+   "why": "A federal museum building managed by BBL, drawn faintly on yellowed paper with red marked rooms: the low-contrast archive sheet in the set.",
+   "core": true
   },
   {
    "id": "cm-theatre-geneve-1880",
@@ -1068,7 +1077,8 @@
     "stairs and voids",
     "hatching that is not wall"
    ],
-   "why": "A public theatre split down its axis into two floors, with a horseshoe auditorium of seats, curved stairs and hatched corridor floors."
+   "why": "A public theatre split down its axis into two floors, with a horseshoe auditorium of seats, curved stairs and hatched corridor floors.",
+   "core": true
   },
   {
    "id": "cp-habs-nhdvs-admin-2011",
@@ -1118,7 +1128,8 @@
     "dimension chains",
     "small rooms"
    ],
-   "why": "A modern CAD measured drawing of an administration building: hatched masonry walls, a patterned vestibule floor, dimension chains, section flags and room sizes."
+   "why": "A modern CAD measured drawing of an administration building: hatched masonry walls, a patterned vestibule floor, dimension chains, section flags and room sizes.",
+   "core": true
   },
   {
    "id": "cp-nara-el-paso-1888",
@@ -1165,7 +1176,8 @@
     "massive walls",
     "small rooms"
    ],
-   "why": "A federal post office and courthouse floor from the Supervising Architect's office at about 110 px/m: poché walls, cursive room names with sizes in feet and a 1/8-inch scale note, in place of the 18 px/m Bundesgericht print."
+   "why": "A federal post office and courthouse floor from the Supervising Architect's office at about 110 px/m: poché walls, cursive room names with sizes in feet and a 1/8-inch scale note, in place of the 18 px/m Bundesgericht print.",
+   "core": true
   },
   {
    "id": "cm-sternwarte-goettingen-1900",
@@ -1345,7 +1357,8 @@
     "stairs and voids",
     "low contrast"
    ],
-   "why": "Two ward floors of a Viennese sanatorium by the Bundeshaus architect on one engraved plate, rooms marked by letters explained in a legend: the hospital plan at about 50 px/m that replaces the 13 px/m Altein page."
+   "why": "Two ward floors of a Viennese sanatorium by the Bundeshaus architect on one engraved plate, rooms marked by letters explained in a legend: the hospital plan at about 50 px/m that replaces the 13 px/m Altein page.",
+   "core": true
   },
   {
    "id": "cm-neumuehle-1850",
@@ -1390,7 +1403,8 @@
     "massive walls",
     "site context"
    ],
-   "why": "An industrial plan where water channels and mill machinery in colour wash cross the walls, with only part of the building in poché."
+   "why": "An industrial plan where water channels and mill machinery in colour wash cross the walls, with only part of the building in poché.",
+   "core": true
   },
   {
    "id": "cp-habs-orlando-station",
@@ -1490,7 +1504,8 @@
     "stairs and voids",
     "massive walls"
    ],
-   "why": "Coffered and stuccoed ceilings drawn inside every room, the ornament gap of pilot finding 7, with a legend and a 10 m scale bar to check the scale."
+   "why": "Coffered and stuccoed ceilings drawn inside every room, the ornament gap of pilot finding 7, with a legend and a 10 m scale bar to check the scale.",
+   "core": true
   },
   {
    "id": "cm-capucins-solothurn",
@@ -1534,7 +1549,8 @@
     "stairs and voids",
     "courtyards"
    ],
-   "why": "A hand-drawn 17th-century manuscript plan with cross-hatched walls, a cloister and stair flights on stained paper: the oldest drawing in the set."
+   "why": "A hand-drawn 17th-century manuscript plan with cross-hatched walls, a cloister and stair flights on stained paper: the oldest drawing in the set.",
+   "core": true
   },
   {
    "id": "cm-hallwyl-1913",
@@ -1582,7 +1598,8 @@
     "non-orthogonal walls",
     "stairs and voids"
    ],
-   "why": "A 1:50 survey for a restoration with hatched masonry, pencil notes and a calligraphic title: the kind of historical survey sheet BBL holds for its monuments."
+   "why": "A 1:50 survey for a restoration with hatched masonry, pencil notes and a calligraphic title: the kind of historical survey sheet BBL holds for its monuments.",
+   "core": true
   },
   {
    "id": "cm-netstal-photo",
@@ -1628,7 +1645,8 @@
     "non-orthogonal walls",
     "columns"
    ],
-   "why": "The only camera photo: a yellowed, creased sheet in slight perspective and uneven light, pews filling the nave of an octagonal church."
+   "why": "The only camera photo: a yellowed, creased sheet in slight perspective and uneven light, pews filling the nave of an octagonal church.",
+   "core": true
   },
   {
    "id": "wf-velim-church",
@@ -1713,7 +1731,8 @@
     "open plan",
     "low resolution"
    ],
-   "why": "A prayer hall that is one room defined by a grid of columns next to an open courtyard, with ground truth."
+   "why": "A prayer hall that is one room defined by a grid of columns next to an open courtyard, with ground truth.",
+   "core": true
   },
   {
    "id": "wf-crypte-st-victor",
@@ -2442,7 +2461,8 @@
    "challenges": [
     "baseline"
    ],
-   "why": "A clean poché flat with door swings and casement windows and a written scale that cannot be used on a raster: the WAFFLE control."
+   "why": "A clean poché flat with door swings and casement windows and a written scale that cannot be used on a raster: the WAFFLE control.",
+   "core": true
   },
   {
    "id": "wf-dogtrot",
@@ -2484,7 +2504,8 @@
     "courtyards",
     "thin walls"
    ],
-   "why": "Outlined walls around an open breezeway and a porch: outdoor space inside the footprint that is not a room."
+   "why": "Outlined walls around an open breezeway and a porch: outdoor space inside the footprint that is not a room.",
+   "core": true
   },
   {
    "id": "wf-houseflrplan",
@@ -2524,7 +2545,8 @@
     "low resolution",
     "stairs and voids"
    ],
-   "why": "Walls as single lines with gaps for doors at 291 × 201 px: the thinnest walls and the lowest resolution in the set."
+   "why": "Walls as single lines with gaps for doors at 291 × 201 px: the thinnest walls and the lowest resolution in the set.",
+   "core": true
   },
   {
    "id": "wf-zoning-flat",
@@ -2567,7 +2589,8 @@
     "colour fills",
     "open plan"
    ],
-   "why": "Rooms filled by use with a Cyrillic legend, grey walls and green built-in storage that is not wall."
+   "why": "Rooms filled by use with a Cyrillic legend, grey walls and green built-in storage that is not wall.",
+   "core": true
   },
   {
    "id": "cm-globus-heimeli-1932",
@@ -2612,7 +2635,8 @@
     "thin walls",
     "stairs and voids"
    ],
-   "why": "A 1930s Swiss house with stencilled room names and sizes, furniture and an overall 11.00 m dimension: dimension-string scale on a small scan."
+   "why": "A 1930s Swiss house with stencilled room names and sizes, furniture and an overall 11.00 m dimension: dimension-string scale on a small scan.",
+   "core": true
   },
   {
    "id": "syn-ifc-ac20-1og",
@@ -2859,7 +2883,8 @@
      "multi": false,
      "keyplan": false
     }
-   }
+   },
+   "core": true
   }
  ]
 }

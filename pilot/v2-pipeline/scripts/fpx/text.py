@@ -152,19 +152,26 @@ def quad_size(q):
 
 
 def crop_quad(img, q):
-    """Perspective crop of a quad (as PP-OCR crops its boxes), upright as detected: tall crops are not rotated here."""
+    """Perspective crop of a quad (as PP-OCR crops its boxes), upright as detected: tall crops are not rotated here.
+    The warp runs on the quad's own window of the image: OpenCV refuses source images of 32,767 px or more (the OCR
+    image of a large construction sheet), and the window is faster."""
+    q = np.asarray(q, np.float32)
     w, h = quad_size(q)
     w, h = max(int(round(w)), 1), max(int(round(h)), 1)
+    H, W = img.shape[:2]
+    x0, y0 = max(int(np.floor(q[:, 0].min())) - 2, 0), max(int(np.floor(q[:, 1].min())) - 2, 0)
+    x1, y1 = min(int(np.ceil(q[:, 0].max())) + 3, W), min(int(np.ceil(q[:, 1].max())) + 3, H)
     dst = np.array([[0, 0], [w, 0], [w, h], [0, h]], np.float32)
-    M = cv2.getPerspectiveTransform(np.asarray(q, np.float32), dst)
-    return cv2.warpPerspective(img, M, (w, h), borderMode=cv2.BORDER_REPLICATE, flags=cv2.INTER_CUBIC)
+    M = cv2.getPerspectiveTransform((q - np.array([x0, y0], np.float32)).astype(np.float32), dst)
+    return cv2.warpPerspective(img[y0:y1, x0:x1], M, (w, h), borderMode=cv2.BORDER_REPLICATE, flags=cv2.INTER_CUBIC)
 
 
 def recognise(img, quads, engine):
     """Batched recognition of the quads' crops (grey image). A tall quad is recognised rotated clockwise and
     counter-clockwise (vertical dimensions read upward or downward) and keeps the better score. Returns items with
     the text, the axis-aligned box, the recogniser's confidence, the angle (0 or 90) and the character height."""
-    if not quads:
+    quads = [q for q in quads if max(quad_size(q)) < 30000]    # a quad this long is a frame or dimension line, not text
+    if not quads:                                                 # (and OpenCV cannot warp a 32,767 px crop: USACE sheets)
         return []
     from rapidocr.ch_ppocr_rec import TextRecInput
     crops, jobs = [], []

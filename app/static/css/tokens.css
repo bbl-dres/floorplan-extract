@@ -1,0 +1,112 @@
+/* Design tokens of the floor plan workflow app (after docs/wireframes/261007_Viewer and Workflow UX study.html).
+   Every colour, size, space, radius and shadow used by styles.css and by the canvas code (app.js reads the --*-canvas
+   values and the layer colours) lives here. Semantic tokens (success, warning, danger, info) are the only ones the
+   components use for states; the plan-layer colours are shared by the legend and the canvas. */
+:root {
+  /* brand */
+  --accent: oklch(0.55 0.12 230);
+  --accent-hover: oklch(0.5 0.12 230);
+  --accent-text: oklch(0.42 0.11 230);
+  --accent-light: oklch(0.95 0.02 230);
+  --accent-border: oklch(0.75 0.06 230);
+  --accent-disabled: #b9c4d6;
+  --accent-canvas: #2f6ea6;            /* the accent as hex: canvas strokes and alpha fills (hexA) need it */
+
+  /* neutrals */
+  --ink: #1a1d21;                      /* dark surfaces: log, tooltip */
+  --text: #1a1d21;
+  --muted: #646b74;
+  --text-disabled: #9aa1ab;
+  --icon-muted: #b4bac3;
+  --border: #dfe2e6;
+  --border-light: #f0f1f3;
+  --border-dashed: #c9cdd3;
+  --bg: #f5f6f7;
+  --bg-track: #eef0f2;
+  --grid: #e3e6ea;
+  --surface: #fff;
+  --on-accent: #fff;
+
+  /* semantic */
+  --success: #2e9e5b;
+  --success-bg: #e6f4ec;
+  --success-text: #1f7a45;
+  --warning: #d99a1e;
+  --warning-bg: #fdf6e3;
+  --warning-border: #e8c777;
+  --warning-text: #5c3d00;
+  --warning-text-strong: #8a5a00;     /* labels of the amber cue boxes on the canvas */
+  --danger: #d0433b;
+  --danger-bg: #fbe9e7;
+  --danger-border: #efb3ad;
+  --danger-text: #8a2a24;
+  --info: #1f78b4;
+  --neutral-canvas: #8a8f99;           /* drawings not selected for extraction, the segmentation overlay swatch */
+
+  /* plan layers (legend and canvas) */
+  --walls: #2b3a55;
+  --doors: #d0433b;
+  --windows: #2f8fd8;
+  --passages: #f08a24;
+  --columns: #6b7280;
+  --stairs: #c23fbf;
+  --voids: #1f78b4;
+  --graph: #0f766e;
+  --gf: #111827;
+
+  /* type */
+  --font: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --fs-2xs: 11px;                      /* uppercase labels, severity tags */
+  --fs-xs: 12px;                       /* secondary lines, code, notes */
+  --fs-sm: 13px;                       /* controls, cards, lists */
+  --fs-base: 14px;                     /* body */
+  --fs-md: 15px;                       /* section headings, emphasised values */
+  --fs-lg: 17px;                       /* results panel heading */
+  --fs-xl: 20px;                       /* step titles, big figures */
+  --fs-2xl: 22px;                      /* upload screen title */
+  --lh: 1.45;
+  --tracking-label: .06em;
+  --weight-semibold: 600;
+
+  /* space (4 px grid) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+
+  /* radius */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-xl: 12px;
+  --r-pill: 999px;
+
+  /* shadow */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, .06);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, .1);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, .2);
+  --shadow-tip: 0 4px 14px rgba(0, 0, 0, .18);
+  --scrim: rgba(26, 29, 33, .35);
+
+  /* control heights */
+  --ctl-sm: 28px;
+  --ctl-md: 32px;
+  --ctl-input: 36px;
+  --ctl-lg: 40px;
+  --ctl-xl: 44px;
+  --focus-ring: 2px solid var(--accent-border);
+
+  /* layout */
+  --topbar-h: 56px;
+  --panel-w: 400px;
+  --panel-w-narrow: 340px;
+  --side-w: 260px;
+  --side-w-narrow: 220px;
+  --upload-w: 640px;
+  --modal-w: 560px;
+  --grid-size: 24px;
+}

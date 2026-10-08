@@ -32,7 +32,7 @@ IMAGES = CURATED / "images"
 SINGLE = ("source", "category", "drawing_type", "input", "era", "building_type", "use")
 ARRAYS = ("wall_style", "content", "language", "challenges")
 NON_EMPTY = ("wall_style", "language", "challenges")            # content may be empty (walls only)
-OPTIONAL = {"render"}
+OPTIONAL = {"render", "core"}
 RENDER_SOURCES = {"IFC-Bench render", "Swiss Dwellings render"}
 ID_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 # exact licence -> permitted use (meta.vocabularies.use)

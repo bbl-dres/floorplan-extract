@@ -175,6 +175,7 @@ details summary { cursor: pointer; font-size: 12px; color: var(--muted); }
 .storey-list { display: flex; flex-direction: column; gap: 8px; }
 .storey-row { display: grid; grid-template-columns: 18px 74px 1fr 24px; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #fff; }
 .storey-row.on { border-color: var(--accent-border); background: var(--accent-light); }
+.storey-row.plain { grid-template-columns: 1fr 24px; }
 .storey-row .grip { color: #b4bac3; font-size: 14px; letter-spacing: -2px; display: flex; flex-direction: column; gap: 0; }
 .storey-row .grip button { border: 0; background: none; padding: 0; cursor: pointer; color: #9aa1ab; font-size: 10px; line-height: 1; height: 11px; }
 .storey-row .grip button:hover { color: var(--text); }

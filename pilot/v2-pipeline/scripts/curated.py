@@ -2,7 +2,7 @@
 
     python curated.py                       # validate plans.json (and plans.local.json if present), print a summary
     python curated.py render [ids]          # draw the synthetic renders of the manifest again (image, label map, rooms)
-    python curated.py run ids [--out DIR] [--model PATH]   # stages 0-10 on curated plans ("all" or no ids: every plan;
+    python curated.py run ids [--out DIR] [--model PATH]   # stages 0-10 on curated plans ("all" or no ids: every plan; "core": the viewer set;
                                             # default output data/curated-test, default model common.MODEL)
 
 The manifest, its schema and the loaders are fpeval.datasets.curated. BBL plans go only into plans.local.json
@@ -52,6 +52,8 @@ def run(ids, out_dir=TEST_OUT, model_path=None, cfg=None):
     engine = pipeline.ocr_engine()
     if ids in ([], ["all"]):                              # every plan of the manifest (plus plans.local.json)
         ids = list(entries)
+    elif ids == ["core"]:                                 # the core set the viewer shows (plans.json: "core": true)
+        ids = [k for k, e in entries.items() if e.get("core")]
     failed = []
     for pid in ids:
         if entries[pid].get("_local") and not out_dir.resolve().is_relative_to(DATA.resolve()):
@@ -81,7 +83,7 @@ def main(argv):
         return 0
     if argv[:1] == ["run"]:
         ap = cli("stages 0-10 on curated plans", out=TEST_OUT, threads=12)
-        ap.add_argument("ids", nargs="*", help='plan ids ("all" or none: every plan)')
+        ap.add_argument("ids", nargs="*", help='plan ids ("all" or none: every plan; "core": the viewer set)')
         a = ap.parse_args(argv[1:])
         cfg = setup(a)
         run(a.ids, Path(a.out), a.model, cfg)

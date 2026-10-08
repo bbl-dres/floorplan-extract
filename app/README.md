@@ -1,7 +1,7 @@
 # Floor plan workflow app (local prototype)
 
 A working prototype of the workflow designed in `docs/wireframes/261007_Viewer and Workflow UX study.html`:
-upload, building area, scale, storeys and run, results and export. Processing uses the pilot v2 pipeline
+upload, building area, scale, run, results and export (the storey naming and ordering of the study is left out for now). Processing uses the pilot v2 pipeline
 (`pilot/v2-pipeline`, package `fpx`). Everything runs on this machine; nothing is uploaded anywhere.
 
 ## Start
@@ -12,7 +12,9 @@ From the repository root:
     Floor plan workflow app: http://127.0.0.1:8765/
 
 Open the printed address in a browser. `app/index.html` opened from disk only shows a notice that the server must
-be running (a page opened as a file cannot reach the local server).
+be running (a page opened as a file cannot reach the local server). The same page served by another local server (for
+example `python -m http.server` in the repository) loads but cannot upload: that server answers the upload with 501 and
+closes the connection, which the browser reports as "Failed to fetch".
 
 Needs the pipeline's dependencies (torch, opencv, shapely, rapidocr, pymupdf, ezdxf, ...) and the segmenter
 checkpoint (`pilot/v2-pipeline/data/model-v2/segmenter.pt`, or `V2_MODEL`). The upload page shows a pipeline check;
@@ -26,7 +28,7 @@ anything missing (model file, OCR engine, a library, a DWG converter) is named t
 | Upload | 1c | Drop PDF, JPG, PNG, TIFF or DXF files. Each file becomes a sheet job: normalisation (`fpx.inputs`), deskew, OCR of the sheet, layout (`fpx.layout`: regions and drawings), a scale proposal per drawing (`fpx.scale.drawing_scale`). |
 | 1 Building area | 1d | The detected drawings of the sheet with the floor plan's bounding box and handles. Select which drawings to extract, move the handles, or skip the sheet. |
 | 2 Scale | 2a, 2b, 2c | The proposal with its cues highlighted on the sheet (caption or title-block note, scale bar, dimension strings), scale, resolution and pixel size side by side; change the dpi; or measure a known distance with two clicks. |
-| 3 Storeys | 1f | Order and name the confirmed drawings, add a storey, run the extraction (stages 2-10, one sheet at a time, with progress per stage). |
+| 3 Run | 1f | The confirmed drawings (leave one out with ×, add a sheet), then run the extraction (stages 2-10, one sheet at a time, with progress per stage). Storey names and order are not asked for yet; the screen keeps the key `storeys` in saved projects and deep links. |
 | Results | 1g, 1h | Rooms, walls, openings, stairs, voids and GF on the drawing (colour by room or QA confidence, layers, zoom), the extraction summary, the "needs review" list, all QA issues, a room list with a checked state per room, downloads: JSON, DXF, overlay PNG, room list CSV. |
 
 ## Layout

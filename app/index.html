@@ -44,10 +44,10 @@ Floor plan workflow app: http://127.0.0.1:8765/</pre>
   <div class="modal-card">
     <div class="modal-head"><h2>How this works</h2><button class="btn btn-icon" id="help-close" aria-label="Close">&times;</button></div>
     <ol>
-      <li><b>Upload</b> one sheet per storey (PDF, JPG, PNG, TIFF, DXF). The pipeline normalises the file, reads the text, finds the drawings on the sheet and proposes a scale for each one.</li>
+      <li><b>Upload</b> one sheet per floor plan (PDF, JPG, PNG, TIFF, DXF). The pipeline normalises the file, reads the text, finds the drawings on the sheet and proposes a scale for each one.</li>
       <li><b>Building area</b>: confirm the detected outline of the floor plan. Drag the handles so the whole building is inside and the title block, legend and dimension chains stay out.</li>
       <li><b>Scale</b>: check the scale read from the notes, a scale bar or the dimension strings, and the resolution. If nothing was found, or the value looks wrong, measure a known distance on the drawing.</li>
-      <li><b>Storeys</b>: name and order the storeys, then run the extraction (walls, openings, stairs, rooms, areas, QA). About one minute per sheet on this machine, mostly OCR.</li>
+      <li><b>Run</b>: check the confirmed drawings, then run the extraction (walls, openings, stairs, rooms, areas, QA). About one minute per sheet on this machine, mostly OCR.</li>
       <li><b>Results</b>: review the rooms, tick the ones you checked, and download the JSON and the DXF.</li>
     </ol>
     <p class="muted">Everything runs locally in <code>app/data/</code> (gitignored). Nothing is uploaded anywhere.</p>

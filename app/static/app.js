@@ -1,4 +1,4 @@
-/* Floor plan workflow app: upload -> building area -> scale -> storeys and run -> results and export.
+/* Floor plan workflow app: upload -> building area -> scale -> run -> results and export.
    Follows the boards of docs/wireframes/261007_Viewer and Workflow UX study.html (1c, 1d, 2a-2c, 1f, 1g/1h). */
 'use strict';
 
@@ -343,11 +343,11 @@ function mount(node, crumb) {
 function go(name, cursor) {
   if (cursor) P.cursor = Object.assign({ sheet: 0, pkg: 0, drawing: 0 }, cursor);
   P.screen = name; screenName = name; saveProject();
-  ({ upload: renderUpload, area: renderArea, scale: renderScale, storeys: renderStoreys, results: renderResults }[name] || renderUpload)();
+  ({ upload: renderUpload, area: renderArea, scale: renderScale, storeys: renderRun, run: renderRun, results: renderResults }[name] || renderUpload)();   // 'storeys' stays the key of the run step (saved projects, deep links)
 }
 function onJobsChanged() {
   if (screenName === 'upload') renderUpload({ keepInput: true });
-  else if (screenName === 'storeys') renderStoreys({ patch: true });
+  else if (screenName === 'storeys') renderRun({ patch: true });
   else if (screenName === 'area' || screenName === 'scale') {
     const job = J[P.sheets[P.cursor.sheet]];
     if (job && !busy(job)) go(screenName);
@@ -377,7 +377,7 @@ async function renderUpload({ keepInput } = {}) {
     ondragover: (e) => { e.preventDefault(); drop.classList.add('over'); }, ondragleave: () => drop.classList.remove('over'),
     ondrop: (e) => { e.preventDefault(); drop.classList.remove('over'); uploadFiles([...e.dataTransfer.files]); } },
     h('div', { class: 'arrow' }, '↑'), h('div', { class: 'title' }, 'Drop floor plans here'),
-    h('div', { class: 'muted small' }, 'PDF, JPG, PNG, TIFF, DXF · up to 300 MB each · several storeys at once'),
+    h('div', { class: 'muted small' }, 'PDF, JPG, PNG, TIFF, DXF · up to 300 MB each · several sheets at once'),
     h('button', { class: 'btn btn-primary', style: 'margin-top:6px;height:38px;padding:0 18px', onclick: (e) => { e.stopPropagation(); input.click(); } }, 'Choose files'));
   const list = h('div', { class: 'file-list' });
   for (const id of P.sheets) {
@@ -404,13 +404,13 @@ async function renderUpload({ keepInput } = {}) {
   const steps = h('div', { class: 'steps3' },
     stepCard('Step 1', 'Building area', 'Confirm the detected outline, leave out the title block.'),
     stepCard('Step 2', 'Scale', 'Read from dimension strings or the title block; measure if neither exists.'),
-    stepCard('Step 3', 'Storeys', 'Order the sheets, then run the extraction.'));
+    stepCard('Step 3', 'Run', 'Check the confirmed drawings, then run the extraction.'));
   const status = h('div', { class: 'status-line' }, h('span', { class: 'spinner' }), 'Checking the local pipeline…');
   const main = h('main', { class: 'upload grid-bg' }, h('div', { class: 'upload-inner' },
-    h('div', { style: 'display:flex;flex-direction:column;gap:4px' }, h('h2', null, adding ? 'Add a storey' : 'New project'),
-      h('p', { class: 'muted pretty' }, adding ? 'Upload another sheet of the same building. It goes through the same two checks, then joins the storeys list.'
-        : 'Upload one sheet per storey. Vector PDFs and scans both work; scans should be 300 dpi or better.')),
-    drop, input, P.sheets.length ? list : null, cont, adding ? h('button', { class: 'btn btn-lg', onclick: () => go('storeys') }, '‹ Back to the storeys') : steps, status));
+    h('div', { style: 'display:flex;flex-direction:column;gap:4px' }, h('h2', null, adding ? 'Add a sheet' : 'New project'),
+      h('p', { class: 'muted pretty' }, adding ? 'Upload another sheet of the same building. It goes through the same two checks, then joins the list to extract.'
+        : 'Upload one sheet per floor plan. Vector PDFs and scans both work; scans should be 300 dpi or better.')),
+    drop, input, P.sheets.length ? list : null, cont, adding ? h('button', { class: 'btn btn-lg', onclick: () => go('storeys') }, '‹ Back to run') : steps, status));
   mount(main, adding ? projectName() : null);
   startPolling();
   if (!health) { try { health = await getJSON('/api/health'); } catch (e) { health = { ok: false, items: { server: { ok: false, detail: e.message } } }; } }
@@ -431,7 +431,10 @@ async function uploadFiles(files) {
       P.sheets.push(r.id); saveProject();
       await refreshJob(r.id);
     } catch (e) {
-      alert(`${f.name}: ${e.message}`);
+      // a TypeError from fetch is a network failure: the page was not opened from the app server (python app/server.py,
+      // http://127.0.0.1:8765/) but from disk or another local server, whose answer to the upload closes the connection
+      const hint = e instanceof TypeError ? ' – no app server behind this page: start `python app/server.py` and open the address it prints' : '';
+      alert(`${f.name}: ${e.message}${hint}`);
     }
   }
   renderUpload();
@@ -734,79 +737,77 @@ function renderScale() {
   renderPanel();
 }
 
-// --- Step 3: storeys and run (board 1f) ----------------------------------------------------------------------------
+// --- Step 3: run (board 1f; the storey naming and ordering are left out for now) -------------------------------------
 
-let storeyView = { index: 0 };
-function renderStoreys({ patch } = {}) {
+let runView = { index: 0 };
+function renderRun({ patch } = {}) {
   const rows = storeyRows();
-  if (patch && screenName === 'storeys' && $('#storey-list')) { fillStoreyList(rows); updateRunState(rows); return; }
-  storeyView.index = Math.min(storeyView.index, Math.max(0, rows.length - 1));
+  if (patch && screenName === 'storeys' && $('#storey-list')) { fillList(rows); updateRunState(rows); return; }
+  runView.index = Math.min(runView.index, Math.max(0, rows.length - 1));
   const stage = h('main', { class: 'stage grid-bg' });
   const pill = h('div', { class: 'pill', style: 'padding:0 6px;gap:10px' });
   stage.append(h('div', { class: 'stage-top' }, pill));
-  const listEl = h('div', { class: 'storey-list', id: 'storey-list' });
-  const runBtn = h('button', { class: 'btn btn-primary btn-xl', id: 'btn-run', disabled: !rows.length, onclick: runExtraction }, 'Run extraction');
-  const runNote = h('div', { class: 'muted small', id: 'run-note', style: 'text-align:center' }, 'About 1 minute per sheet on this machine, mostly OCR.');
   const n = rows.length;
   const panel = h('aside', { class: 'panel' },
     h('div', { class: 'progress-bars' }, h('span', { class: 'on' }), h('span', { class: 'on' }), h('span', { class: 'on' })),
-    h('div', null, h('div', { class: 'eyebrow' }, 'Step 3 of 3 · Storeys'), h('h2', null, n ? 'Ready to extract' : 'No storey yet')),
-    h('p', { class: 'muted pretty' }, n === 1 ? 'One sheet is confirmed. Add more storeys of the same building, or run the extraction now.' : n ? `${n} drawings are confirmed. Order them from the lowest storey up, name them, then run the extraction.` : 'Every drawing was skipped. Upload a sheet or go back and select a drawing.'),
-    h('div', { style: 'display:flex;flex-direction:column;gap:8px' }, h('div', { class: 'section-title' }, `${n} storey${n === 1 ? '' : 's'}`), listEl,
-      h('button', { class: 'add-storey', onclick: () => go('upload') }, '+ Add storey')),
+    h('div', null, h('div', { class: 'eyebrow' }, 'Step 3 of 3 · Run'), h('h2', null, n ? 'Ready to extract' : 'Nothing to extract')),
+    h('p', { class: 'muted pretty' }, n ? `${n} drawing${n === 1 ? ' is' : 's are'} confirmed. Run the extraction, or add another sheet first.` : 'Confirm a building area and a scale first, or add a sheet.'),
+    h('div', { style: 'display:flex;flex-direction:column;gap:8px' }, h('div', { class: 'section-title' }, `${n} drawing${n === 1 ? '' : 's'}`), h('div', { class: 'storey-list', id: 'storey-list' }),
+      h('button', { class: 'add-storey', onclick: () => go('upload') }, '+ Add sheet')),
     h('div', { id: 'run-errors' }),
-    h('div', { style: 'margin-top:auto;display:flex;flex-direction:column;gap:8px' }, runBtn, runNote));
+    h('div', { style: 'margin-top:auto;display:flex;flex-direction:column;gap:8px' },
+      h('button', { class: 'btn btn-primary btn-xl', id: 'btn-run', disabled: !n, onclick: runExtraction }, 'Run extraction'),
+      h('div', { class: 'muted small', id: 'run-note', style: 'text-align:center' }, 'About 1 minute per sheet on this machine, mostly OCR.')));
   mount(h('div', { class: 'step' }, stage, panel), projectName());
   viewer = new Viewer(stage);
-  function showStorey(i) {
-    storeyView.index = i; const r = rows[i];
-    put(pill, h('button', { class: 'btn-x', onclick: () => showStorey((i - 1 + rows.length) % rows.length) }, '‹'),
-      h('b', null, r ? (r.label || r.dr.title || r.dr.id) : '–'), h('span', { class: 'muted' }, r ? `${r.job.name} · ${scaleText(r)}` : 'no storey'),
-      h('button', { class: 'btn-x', onclick: () => showStorey((i + 1) % rows.length) }, '›'));
+  function show(i) {
+    runView.index = i; const r = rows[i];
+    put(pill, h('button', { class: 'btn-x', onclick: () => show((i - 1 + rows.length) % rows.length) }, '‹'),
+      h('b', null, r ? (r.dr.title || r.dr.id) : '–'), h('span', { class: 'muted' }, r ? `${r.job.name} · ${scaleText(r)}` : 'no drawing'),
+      h('button', { class: 'btn-x', onclick: () => show((i + 1) % rows.length) }, '›'));
     if (!r) { viewer.img = null; viewer.draw(); return; }
     const f = r.pkg.preview.scale;
     viewer.overlay = (c, v) => { v.poly(polygonOf(r.job, r.pkg, r.dr).map(([x, y]) => [x * f, y * f]), { stroke: ACCENT, width: 1.5, dash: [6, 4] }); };
     viewer.load(`/api/sheets/${r.id}/file/${r.pkg.preview.file}`).catch(() => {});
-    fillStoreyList(rows);
+    fillList(rows);
   }
-  fillStoreyList(rows); updateRunState(rows); showStorey(storeyView.index);
+  fillList(rows); updateRunState(rows); show(runView.index);
   startPolling();
 
-  function fillStoreyList(rows) {
-    listEl.replaceChildren();
+  // the list, the button and the note are found by id: the poll calls these after the render that created them
+  function fillList(rows) {
+    const el = $('#storey-list'); if (!el) return;
+    el.replaceChildren();
     rows.forEach((r, i) => {
-      const inp = h('input', { type: 'text', value: r.label, placeholder: 'Storey', title: 'Storey name (EG, 1. OG, ...)', onchange: async (e) => { r.conf.storey = e.target.value; try { await postJSON(`/api/sheets/${r.id}/confirm`, { confirm: { [keyOf(r.pkg, r.dr)]: { storey: e.target.value } } }); } catch (err) { alert(err.message); } } });
-      const grip = h('span', { class: 'grip' }, h('button', { title: 'Move up', onclick: () => moveStorey(i, -1) }, '▲'), h('button', { title: 'Move down', onclick: () => moveStorey(i, 1) }, '▼'));
       const meta = [scaleText(r), r.conf.polygon_px ? 'area set by hand' : 'area confirmed', r.pkg.summary.input_class];
-      const status = runStatus(r);
-      listEl.append(h('div', { class: 'storey-row' + (i === storeyView.index ? ' on' : ''), onclick: (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') showStorey(i); } },
-        grip, inp, h('div', { class: 'f' }, h('div', { class: 'n' }, r.job.name + (packagesOf(r.job).length > 1 ? ` · p. ${r.pkg.index + 1}` : '') + (r.dr.title ? ` · ${r.dr.title}` : '')), h('div', { class: 'm' }, meta.join(' · '), status)),
-        h('button', { class: 'btn-x', title: 'Remove from the extraction', onclick: () => removeStorey(r) }, '×')));
+      el.append(h('div', { class: 'storey-row plain' + (i === runView.index ? ' on' : ''), onclick: (e) => { if (e.target.tagName !== 'BUTTON') show(i); } },
+        h('div', { class: 'f' }, h('div', { class: 'n' }, r.job.name + (packagesOf(r.job).length > 1 ? ` · p. ${r.pkg.index + 1}` : '') + (r.dr.title ? ` · ${r.dr.title}` : '')), h('div', { class: 'm' }, meta.join(' · '), runStatus(r))),
+        h('button', { class: 'btn-x', title: 'Leave this drawing out of the extraction', onclick: () => leaveOut(r) }, '×')));
     });
   }
-  function moveStorey(i, d) { const j = i + d; if (j < 0 || j >= P.order.length) return; [P.order[i], P.order[j]] = [P.order[j], P.order[i]]; saveProject(); storeyView.index = j; fillStoreyList(storeyRows()); }
-  async function removeStorey(r) {
+  async function leaveOut(r) {
     try { const res = await postJSON(`/api/sheets/${r.id}/confirm`, { confirm: { [keyOf(r.pkg, r.dr)]: { extract: false } } }); r.job.confirm = res.confirm; } catch (e) { return alert(e.message); }
-    P.order = P.order.filter((k) => k !== r.key); saveProject(); renderStoreys();
+    P.order = P.order.filter((k) => k !== r.key); saveProject(); renderRun();
   }
   function updateRunState(rows) {
+    const runBtn = $('#btn-run'), runNote = $('#run-note'); if (!runBtn || !runNote) return;
     const jobs = [...new Set(rows.map((r) => r.job))];
     const running = jobs.some((j) => busy(j));
     const allDone = rows.length && rows.every((r) => r.res && r.res.outputs);
     const errs = jobs.filter((j) => j.status === 'error' && j.error);
     const errBox = $('#run-errors'); if (errBox) put(errBox, ...errs.map((j) => errorBox(j)));
     if (running) { runBtn.disabled = true; put(runBtn, h('span', { class: 'spinner', style: 'border-color:rgba(255,255,255,.4);border-top-color:#fff' }), 'Extracting…'); const cur = jobs.find((j) => j.progress); runNote.textContent = cur && cur.progress ? `${cur.name}: ${cur.progress.stage}` : 'waiting for the worker…'; }
-    else if (allDone) { runBtn.disabled = false; runBtn.textContent = 'View results ›'; runBtn.onclick = () => go('results'); runNote.textContent = 'Extraction finished. Run it again after changing an area or a scale.'; if (storeyView.autoResults) { storeyView.autoResults = false; go('results'); } }
+    else if (allDone) { runBtn.disabled = false; runBtn.textContent = 'View results ›'; runBtn.onclick = () => go('results'); runNote.textContent = 'Extraction finished. Run it again after changing an area or a scale.'; if (runView.autoResults) { runView.autoResults = false; go('results'); } }
     else { runBtn.disabled = !rows.length; runBtn.textContent = rows.some((r) => r.res) ? 'Run extraction again' : 'Run extraction'; runBtn.onclick = runExtraction; runNote.textContent = 'About 1 minute per sheet on this machine, mostly OCR.'; }
   }
   async function runExtraction() {
     const jobs = [...new Set(storeyRows().map((r) => r.job))];
-    storeyView.autoResults = true;
+    runView.autoResults = true;
     for (const j of jobs) {
       if (busy(j)) continue;
       try { await postJSON(`/api/sheets/${j.id}/run`, {}); await refreshJob(j.id); } catch (e) { alert(`${j.name}: ${e.message}`); }
     }
-    renderStoreys({ patch: true });
+    renderRun({ patch: true });
   }
 }
 function scaleText(r) {
@@ -867,8 +868,8 @@ async function renderResults() {
   // --- left: storeys, colour, layers
   function drawLeft() {
     put(left, 
-      h('div', { class: 'storey-pick' }, h('div', { class: 'section-title', style: 'margin-bottom:4px' }, 'Storeys'),
-        rows.map((r, i) => h('button', { class: r.key === row.key ? 'on' : '', onclick: () => { P.resultsKey = r.key; saveProject(); renderResults(); } }, h('span', null, r.label || r.dr.title || `Storey ${i + 1}`), h('span', { class: 'z' }, scaleText(r))))),
+      h('div', { class: 'storey-pick' }, h('div', { class: 'section-title', style: 'margin-bottom:4px' }, 'Drawings'),
+        rows.map((r, i) => h('button', { class: r.key === row.key ? 'on' : '', onclick: () => { P.resultsKey = r.key; saveProject(); renderResults(); } }, h('span', null, r.label || r.dr.title || `Drawing ${i + 1}`), h('span', { class: 'z' }, scaleText(r))))),
       h('div', { style: 'display:flex;flex-direction:column;gap:6px' }, h('div', { class: 'section-title' }, 'Colour rooms by'),
         h('div', { class: 'seg' }, h('button', { class: RV.colour === 'room' ? 'on' : '', onclick: () => { RV.colour = 'room'; drawLeft(); viewer.draw(); } }, 'Room'), h('button', { class: RV.colour === 'confidence' ? 'on' : '', onclick: () => { RV.colour = 'confidence'; drawLeft(); viewer.draw(); } }, 'QA confidence')),
         RV.colour === 'confidence' ? h('div', { class: 'legend-rows' },
@@ -984,7 +985,7 @@ async function renderResults() {
       h('div', { class: 'export-row' }, h('span', { class: 'f' }, 'XLSX'), h('span', { class: 'd' }, 'Room list, floor figures, openings, QA (Excel)'), dl(D.files.json.replace(/\.json$/, '.xlsx'))),
       h('div', { class: 'export-row' }, h('span', { class: 'f' }, 'IFC'), h('span', { class: 'd' }, 'IFC 4.3: spaces with net/gross quantities, walls, doors, windows, stairs, slab (nominal heights)'), dl(D.files.json.replace(/\.json$/, '.ifc'))),
       h('div', { class: 'export-row' }, h('span', { class: 'f off' }, 'PDF'), h('span', { class: 'd' }, 'Not yet available'), h('button', { class: 'btn', disabled: true }, 'Soon'))),
-    h('div', { class: 'section', style: 'border-top:0;padding-top:0' }, h('button', { class: 'btn', onclick: () => go('storeys') }, '‹ Storeys and run')));
+    h('div', { class: 'section', style: 'border-top:0;padding-top:0' }, h('button', { class: 'btn', onclick: () => go('storeys') }, '‹ Run')));
   drawLeft(); drawStats(); drawRoomList(); drawInspector();
 }
 function drawPolyWithHoles(c, v, poly, fill, stroke, dash, width = 1.5) {
