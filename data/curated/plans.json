@@ -780,7 +780,7 @@
   },
   {
    "id": "cp-usace-acsc-security",
-   "title": "Army Community Service Center (large), Electronic Security System plan (Exhibit C-4), reduced to 11 × 8.5 in, 2011",
+   "title": "Army Community Service Center (large), Electronic Security System plan (Exhibit C-4), reduced to 11 × 8.5 in, 2011 (rendered at 600 dpi)",
    "source": "US federal drawings",
    "origin": "data/benchmark/construction-plans/pdf/usace-hnc-acsc-standard-drawings-2011.pdf#page=11",
    "file": "images/cp-usace-acsc-security.png",
@@ -793,7 +793,7 @@
    "use": "public domain or CC0",
    "scale": {
     "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (the sheet states 1/8\" = 1'-0\", but it is an 11 × 8.5 in exhibit reduced from the full sheet, so the note does not hold; room sizes such as 15' x 14' remain)"
+    "method": "unknown: proposed by the pipeline (the sheet states 1/8\" = 1'-0\", but it is an 11 × 8.5 in exhibit reduced from the full sheet, so the note does not hold; room sizes such as 15' x 14' remain; page rendered at 600 dpi because its lettering is only 8 px at 200 dpi)"
    },
    "reference": {
     "content": "none",
@@ -881,54 +881,6 @@
    "why": "The federal parliament itself: poché walls with patterned paving, rosettes and curved chamber seating, the review's case of seats split into rooms."
   },
   {
-   "id": "cm-bundesgericht-1927",
-   "title": "Federal Supreme Court, Lausanne: upper and ground floor plans, 1:650, 1927",
-   "source": "Wikimedia Commons",
-   "origin": "data/benchmark/commons-plans/images/c03.jpg",
-   "file": "images/cm-bundesgericht-1927.jpg",
-   "licence": "Public domain",
-   "attribution": {
-    "author": "Jacques Béguin, Louis-Ernest Prince",
-    "date": "1927-11",
-    "page": "https://commons.wikimedia.org/wiki/File:Bundesgerichtsgebäude_Lausanne,_Grundriss.jpg"
-   },
-   "use": "public domain or CC0",
-   "scale": {
-    "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (scale note 1:650 and scale bars on the sheet; the scan resolution of the print is not known)"
-   },
-   "reference": {
-    "content": "none",
-    "source": ""
-   },
-   "category": "Administrative and public buildings",
-   "drawing_type": "publication plan",
-   "input": "scan grey",
-   "wall_style": [
-    "poché"
-   ],
-   "era": "1900–1949",
-   "building_type": "office/administrative",
-   "content": [
-    "several drawings",
-    "furniture",
-    "scale note",
-    "scale bar",
-    "title block"
-   ],
-   "language": [
-    "de"
-   ],
-   "challenges": [
-    "several floors",
-    "small rooms",
-    "columns",
-    "courtyards",
-    "stairs and voids"
-   ],
-   "why": "A federal administrative building in BBL's portfolio: two floors on one sheet, rows of furnished offices along corridors, columned hall and courtyards."
-  },
-  {
    "id": "cm-post-zuerich",
    "title": "Zürich: the new post office building and the projected Poststrasse, with surroundings (1830s)",
    "source": "Wikimedia Commons",
@@ -988,8 +940,8 @@
    },
    "use": "public domain or CC0",
    "scale": {
-    "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (scale bar in Bern Schuh, 1 Schuh = 0.2933 m)"
+    "px_per_m": 67.4,
+    "method": "known: scale bar of 12 Bern Schuh (1 Schuh = 0.2933 m) measured at 237 px on the sheet"
    },
    "reference": {
     "content": "none",
@@ -1017,10 +969,9 @@
    "challenges": [
     "hatching that is not wall",
     "non-metric units",
-    "low resolution",
     "seating"
    ],
-   "why": "A single government hall whose diagonal paving fills the room, with numbered seats along the walls and a scale bar in Bern Schuh."
+   "why": "A single government hall whose diagonal paving fills the room, with numbered seats along the walls and a scale bar in Bern Schuh that gives 67 px/m on a 562 px scan."
   },
   {
    "id": "cm-landesmuseum-eg",
@@ -1120,95 +1071,6 @@
    "why": "A public theatre split down its axis into two floors, with a horseshoe auditorium of seats, curved stairs and hatched corridor floors."
   },
   {
-   "id": "cm-goetheanum-1",
-   "title": "First Goetheanum, Dornach: hall storey (Saalgeschoss), c. 1913–1922",
-   "source": "Wikimedia Commons",
-   "origin": "data/benchmark/commons-plans/images/c17.jpg",
-   "file": "images/cm-goetheanum-1.jpg",
-   "licence": "CC0",
-   "attribution": {
-    "author": "Alabasterstein",
-    "date": "2011-12-17",
-    "page": "https://commons.wikimedia.org/wiki/File:Erstes_Goetheanum_-_Riss_des_Saalgeschosses.jpg"
-   },
-   "use": "public domain or CC0",
-   "scale": {
-    "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (no scale on the sheet)"
-   },
-   "reference": {
-    "content": "none",
-    "source": ""
-   },
-   "category": "Administrative and public buildings",
-   "drawing_type": "publication plan",
-   "input": "scan grey",
-   "wall_style": [
-    "poché"
-   ],
-   "era": "1900–1949",
-   "building_type": "public/institutional",
-   "content": [
-    "seating"
-   ],
-   "language": [
-    "none"
-   ],
-   "challenges": [
-    "curved walls",
-    "columns",
-    "seating",
-    "massive walls"
-   ],
-   "why": "Two intersecting domed halls drawn as curved poché ringed by columns and filled with seats: no straight wall and no text to anchor the scale."
-  },
-  {
-   "id": "cm-observatoire-geneve-1830",
-   "title": "Geneva observatory built in 1830: south elevation above the plan",
-   "source": "Wikimedia Commons",
-   "origin": "https://upload.wikimedia.org/wikipedia/commons/1/10/Geneve_old_Observatory_plan.jpg",
-   "file": "images/cm-observatoire-geneve-1830.jpg",
-   "licence": "Public domain",
-   "attribution": {
-    "author": "Alfred Gautier",
-    "date": "c. 1830",
-    "page": "https://commons.wikimedia.org/wiki/File:Geneve_old_Observatory_plan.jpg"
-   },
-   "use": "public domain or CC0",
-   "scale": {
-    "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (scale bar of 40 pieds de roi, 1 pied = 0.3248 m)"
-   },
-   "reference": {
-    "content": "none",
-    "source": ""
-   },
-   "category": "Administrative and public buildings",
-   "drawing_type": "publication plan",
-   "input": "scan 1-bit",
-   "wall_style": [
-    "outlined"
-   ],
-   "era": "before 1850",
-   "building_type": "public/institutional",
-   "content": [
-    "several drawings",
-    "scale bar",
-    "title block"
-   ],
-   "language": [
-    "fr"
-   ],
-   "challenges": [
-    "several floors",
-    "non-metric units",
-    "low resolution",
-    "non-orthogonal walls",
-    "stairs and voids"
-   ],
-   "why": "A small institutional building with an elevation drawn above the plan and a scale in French feet, at under 500 px wide."
-  },
-  {
    "id": "cp-habs-nhdvs-admin-2011",
    "title": "National Home for Disabled Volunteer Soldiers, Mountain Branch, Administration Building (Johnson City, Tennessee): first floor, HABS measured drawing, 2011",
    "source": "Wikimedia Commons",
@@ -1259,6 +1121,98 @@
    "why": "A modern CAD measured drawing of an administration building: hatched masonry walls, a patterned vestibule floor, dimension chains, section flags and room sizes."
   },
   {
+   "id": "cp-nara-el-paso-1888",
+   "title": "U.S. Post Office and Custom House, El Paso (Texas): third floor plan with court room, 1/8 in = 1 ft, 1888",
+   "source": "Wikimedia Commons",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Floor_Plan_for_the_Post_Office_and_Custom_House_in_El_Paso%2C_Texas_-_NARA_-_6082272.jpg",
+   "file": "images/cp-nara-el-paso-1888.jpg",
+   "licence": "Public domain (PD-USGov; NARA 6082272)",
+   "attribution": {
+    "author": "Office of the Supervising Architect, U.S. Treasury Department (Will A. Freret; NARA, Record Group 121)",
+    "date": "1888",
+    "page": "https://commons.wikimedia.org/wiki/File:Floor_Plan_for_the_Post_Office_and_Custom_House_in_El_Paso,_Texas_-_NARA_-_6082272.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note 1/8 in = 1 ft and room sizes in feet and inches such as 30'-6\" x 48'-6\"; Commons original 6848 px wide)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "permit or design drawing",
+   "input": "scan colour",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1850–1899",
+   "building_type": "office/administrative",
+   "content": [
+    "room stamps",
+    "dimensions",
+    "scale note",
+    "title block",
+    "annotations"
+   ],
+   "language": [
+    "en"
+   ],
+   "challenges": [
+    "hand lettering",
+    "non-metric units",
+    "massive walls",
+    "small rooms"
+   ],
+   "why": "A federal post office and courthouse floor from the Supervising Architect's office at about 110 px/m: poché walls, cursive room names with sizes in feet and a 1/8-inch scale note, in place of the 18 px/m Bundesgericht print."
+  },
+  {
+   "id": "cm-sternwarte-goettingen-1900",
+   "title": "Göttingen observatory: ground plan of the building, 1:400, 1900 (Wilhelm Schur)",
+   "source": "Wikimedia Commons",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/4/45/Pl%C3%A4ne_der_Sternwarte_G%C3%B6ttingen%2C_I._Grundriss_des_Geb%C3%A4udes%2C_1900.jpg",
+   "file": "images/cm-sternwarte-goettingen-1900.jpg",
+   "licence": "Public domain",
+   "attribution": {
+    "author": "Wilhelm Schur (Ableitung relativer Oerter des Mondes gegen die Sonne, Göttingen 1900)",
+    "date": "1900",
+    "page": "https://commons.wikimedia.org/wiki/File:Pläne_der_Sternwarte_Göttingen,_I._Grundriss_des_Gebäudes,_1900.jpg"
+   },
+   "use": "public domain or CC0",
+   "scale": {
+    "px_per_m": null,
+    "method": "unknown: proposed by the pipeline (scale note 1:400; the scan resolution of the print is not known)"
+   },
+   "reference": {
+    "content": "none",
+    "source": ""
+   },
+   "category": "Administrative and public buildings",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
+   "wall_style": [
+    "poché"
+   ],
+   "era": "1900–1949",
+   "building_type": "public/institutional",
+   "content": [
+    "room stamps",
+    "scale note",
+    "title block",
+    "legend"
+   ],
+   "language": [
+    "de"
+   ],
+   "challenges": [
+    "curved walls",
+    "small rooms",
+    "non-orthogonal walls"
+   ],
+   "why": "A scientific institute with domed observing rooms and a meridian hall, printed at 1:400 and scanned at 4344 px: the public institutional plan that replaces the 475 px Geneva observatory."
+  },
+  {
    "id": "cm-sporthotel-1og",
    "title": "Sporthotel (Bernina road), first floor (I. Etage), 1900",
    "source": "Wikimedia Commons",
@@ -1302,56 +1256,10 @@
    "why": "Thirty-odd numbered guest rooms and baths along a corridor in heavy poché: the cellular layout of an administrative floor at hotel scale."
   },
   {
-   "id": "cm-altein-1917",
-   "title": "Sanatorium Altein, Arosa: ground floor and first floor, 1917",
-   "source": "Wikimedia Commons",
-   "origin": "data/benchmark/commons-plans/images/c14.jpg",
-   "file": "images/cm-altein-1917.jpg",
-   "licence": "Public domain",
-   "attribution": {
-    "author": "Das Werk. Architektur und Kunst, vol. 4 (1917)",
-    "date": "1917",
-    "page": "https://commons.wikimedia.org/wiki/File:Altein_Grundriss_EG.jpg"
-   },
-   "use": "public domain or CC0",
-   "scale": {
-    "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (scale bar on the sheet)"
-   },
-   "reference": {
-    "content": "none",
-    "source": ""
-   },
-   "category": "Hospitals and hotels",
-   "drawing_type": "publication plan",
-   "input": "scan grey",
-   "wall_style": [
-    "poché"
-   ],
-   "era": "1900–1949",
-   "building_type": "hospital",
-   "content": [
-    "several drawings",
-    "room stamps",
-    "scale bar",
-    "furniture"
-   ],
-   "language": [
-    "de"
-   ],
-   "challenges": [
-    "several floors",
-    "small rooms",
-    "thin walls",
-    "low resolution"
-   ],
-   "why": "A hospital building with two floors stacked on one small journal page, thin partitions and tiny room names."
-  },
-  {
    "id": "cm-kantonsspital-zh",
    "title": "Old cantonal hospital Zürich (Fig. 4, Hospital in Zürich), 1835",
    "source": "Wikimedia Commons",
-   "origin": "data/benchmark/commons-plans/images/c16.jpg",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Zuerich_Altes_Kantonsspital_ZfB.jpg",
    "file": "images/cm-kantonsspital-zh.jpg",
    "licence": "Public domain",
    "attribution": {
@@ -1362,7 +1270,7 @@
    "use": "public domain or CC0",
    "scale": {
     "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (scale note '0,001 = 1m', i.e. 1:1000, and a scale bar)"
+    "method": "unknown: proposed by the pipeline (scale note '0,001 = 1m', i.e. 1:1000, and a scale bar; Commons original 4800 px wide)"
    },
    "reference": {
     "content": "none",
@@ -1393,50 +1301,51 @@
    "why": "A public hospital as a 4:1 strip of wards and numbered rooms in sepia lithography: an elongated sheet with walls only a few pixels thick."
   },
   {
-   "id": "cm-hauptbahnhof-wanner",
-   "title": "Zürich main station (Wanner plans): ground and upper floor, 1865–1871",
+   "id": "cm-abz-heilanstalt-wien-1888",
+   "title": "Private sanatorium of Dr. A. Eder, Vienna (Hans Auer): first and second floor plans, Allgemeine Bauzeitung 1888, plate 5",
    "source": "Wikimedia Commons",
-   "origin": "data/benchmark/commons-plans/images/c08.jpg",
-   "file": "images/cm-hauptbahnhof-wanner.jpg",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/7/7d/1888abz_Sanatorium_Fuerth_2.jpg",
+   "file": "images/cm-abz-heilanstalt-wien-1888.jpg",
    "licence": "Public domain",
    "attribution": {
-    "author": "Jakob Friedrich Wanner",
-    "date": "1865–1871",
-    "page": "https://commons.wikimedia.org/wiki/File:CH-NB_-_Zürich_-_Hauptbahnhof_-_Wannerpläne_-_EAD-151466.tif"
+    "author": "Prof. Hans Auer (Allgemeine Bauzeitung 1888, Bl. 5; R. v. Waldheim art. Anst. Wien)",
+    "date": "1888",
+    "page": "https://commons.wikimedia.org/wiki/File:1888abz_Sanatorium_Fuerth_2.jpg"
    },
    "use": "public domain or CC0",
    "scale": {
     "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (Commons rendition; scale bar on the sheet)"
+    "method": "unknown: proposed by the pipeline (20 m scale bar on the sheet)"
    },
    "reference": {
     "content": "none",
     "source": ""
    },
-   "category": "Industry and transport",
-   "drawing_type": "permit or design drawing",
-   "input": "scan colour",
+   "category": "Hospitals and hotels",
+   "drawing_type": "publication plan",
+   "input": "scan grey",
    "wall_style": [
     "poché"
    ],
    "era": "1850–1899",
-   "building_type": "transport",
+   "building_type": "hospital",
    "content": [
     "several drawings",
+    "room stamps",
     "legend",
-    "title block",
-    "scale bar"
+    "scale bar",
+    "title block"
    ],
    "language": [
     "de"
    ],
    "challenges": [
     "several floors",
-    "columns",
-    "open plan",
+    "small rooms",
+    "stairs and voids",
     "low contrast"
    ],
-   "why": "A station hall with long colonnades and two floors on yellowed paper: open halls bounded by columns instead of walls."
+   "why": "Two ward floors of a Viennese sanatorium by the Bundeshaus architect on one engraved plate, rooms marked by letters explained in a legend: the hospital plan at about 50 px/m that replaces the 13 px/m Altein page."
   },
   {
    "id": "cm-neumuehle-1850",
@@ -1484,49 +1393,55 @@
    "why": "An industrial plan where water channels and mill machinery in colour wash cross the walls, with only part of the building in poché."
   },
   {
-   "id": "cm-kw-matte-1891",
-   "title": "Matte power station, Bern: turbine and generator hall, 1891 (published 1893)",
+   "id": "cp-habs-orlando-station",
+   "title": "Atlantic Coast Line Railroad Station, Orlando (Florida, built 1926): first floor plan, 3/32 in = 1 ft, HABS measured drawing (sheet 2 of 6)",
    "source": "Wikimedia Commons",
-   "origin": "https://upload.wikimedia.org/wikipedia/commons/c/cb/Grundriss_KW_Matte_1891.png",
-   "file": "images/cm-kw-matte-1891.png",
-   "licence": "Public domain",
+   "origin": "https://upload.wikimedia.org/wikipedia/commons/1/1a/First_Floor_Plan_-_Atlantic_Coastline_Railroad_Station%2C_1402_Sligh_Boulevard%2C_Orlando%2C_Orange_County%2C_FL_HABS_FLA%2C48-ORL%2C1-_%28sheet_2_of_6%29.png",
+   "file": "images/cp-habs-orlando-station.png",
+   "licence": "Public domain (PD-USGov-NPS; HABS FL-260, FLA,48-ORL,1-)",
    "attribution": {
-    "author": "unknown author (Schweizerische Bauzeitung 1893, Heft 15)",
-    "date": "1893",
-    "page": "https://commons.wikimedia.org/wiki/File:Grundriss_KW_Matte_1891.png"
+    "author": "John Parks (HABS, National Park Service)",
+    "date": null,
+    "page": "https://commons.wikimedia.org/wiki/File:First_Floor_Plan_-_Atlantic_Coastline_Railroad_Station,_1402_Sligh_Boulevard,_Orlando,_Orange_County,_FL_HABS_FLA,48-ORL,1-_(sheet_2_of_6).png"
    },
    "use": "public domain or CC0",
    "scale": {
-    "px_per_m": null,
-    "method": "unknown: proposed by the pipeline (a few dimension strings, mostly on the machines)"
+    "px_per_m": 123.03,
+    "method": "known: 3/32\" = 1'-0\" on a 19 × 24 in HABS sheet scanned at 400 dpi (9648 × 7584 px; the Commons page states the sheet size)"
    },
    "reference": {
     "content": "none",
     "source": ""
    },
    "category": "Industry and transport",
-   "drawing_type": "publication plan",
+   "drawing_type": "survey drawing",
    "input": "scan grey",
    "wall_style": [
     "outlined"
    ],
-   "era": "1850–1899",
-   "building_type": "industrial",
+   "era": "1950–1989",
+   "building_type": "transport",
    "content": [
-    "machinery",
+    "room stamps",
     "dimensions",
-    "site context"
+    "scale bar",
+    "scale note",
+    "section markers",
+    "furniture",
+    "notes",
+    "title block"
    ],
    "language": [
-    "de"
+    "en"
    ],
    "challenges": [
-    "overlaid symbols",
-    "low resolution",
-    "thin walls",
-    "curved walls"
+    "dimension chains",
+    "non-metric units",
+    "hand lettering",
+    "open plan",
+    "large sheet"
    ],
-   "why": "Three turbines and generators fill a hall drawn in thin lines on a halftone-grey page: machinery that is neither wall nor room, at 534 px."
+   "why": "A railway station with waiting room, ticket and baggage rooms and arcades, hand-drafted as a HABS sheet of the Amtrak era at about 120 px/m: the transport plan that replaces the Wanner station scan of under 10 px/m, and the set's only drawing from 1950-1989."
   },
   {
    "id": "cm-schloss-wart-1894",

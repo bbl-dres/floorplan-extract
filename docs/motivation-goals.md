@@ -34,7 +34,7 @@ The market offers no suitable solution (§4). This motivates an in-house approac
 | Furniture | Where drawn | `IfcFurniture` |
 | Derived per floor | GF (required), room connections, EBF and zone proposals | `IfcBuildingStorey` with `Qto_BuildingStoreyBaseQuantities` (GrossFloorArea); zones as `IfcZone` |
 
-**Outputs.** JSON following the [data model](pipeline.md#4-data-model) (a versioned schema will follow), DWG in predefined layers (to be defined in the next version), IFC 4.3 with the classes above, PDF and Excel.
+**Outputs.** JSON following the [data model](pipeline.md#4-data-model) (a versioned schema will follow), DWG in predefined layers (to be defined in the next version; today a DXF on the CAD-Richtlinie layers), IFC 4.3 with the classes above (first writer in the pilot), PDF, and Excel (room list, floor figures, openings, QA).
 
 **Use cases.**
 - Area quantities for reporting, e.g. net zero.

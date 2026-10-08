@@ -213,6 +213,7 @@ The segmenter works at one resolution (50 px/m), so each drawing needs a scale b
 - **Classify** exterior and interior walls (outer contour) and massive or lightweight construction from the legend where it exists, otherwise by thickness and fill (flagged as a heuristic).
 - *Pilot v1:* stroke-width filtering reached wall IoU 0.61 on the CAD print. Junctions fragmented, window openings split the exterior wall into piers, and tiled stoves, fireplaces and stair stringers came out as walls.
 - *Pilot v2:* the trained segmenter reached wall IoU 0.87 on the CAD print and 0.58 on the poché scan (v1: 0.36). Ceiling stucco drawn inside rooms was partly read as walls.
+- *Pilot v2, code review:* gaps the segmenter leaves in a wall are bridged from the sheet's ink: from every wall end a ray runs to the next wall within 2 m, and the piece is drawn when a band of the wall's own thickness holds ink along 60 % of it or more (outlined, hatched and solid walls all do; a door leaves only its jambs). Bridged pieces are flagged for review. Degree-2 nodes left by spur pruning are contracted, so a straight wall is one segment; thickness no longer carries the distance transform's +1 px. Walls are classed exterior or interior from what lies on either side of their centre line (stage 8).
 
 ### 4. Doors and Windows
 
@@ -220,6 +221,7 @@ The segmenter works at one resolution (50 px/m), so each drawing needs a scale b
 - Fuse both: every door and window is hosted by a wall. Door or window follows from symbol and host (exterior wall: window or balcony door; interior wall: door, including empty door openings); width from the gap, swing from the arc.
 - Doors and windows are always separate classes, never one "opening" class. Empty door openings without a leaf are doors of their own type and count as connections.
 - *Pilot:* windows, balcony doors and interior doors use the same swing symbol, so position decides. Wide openings without door leaves merged neighbouring rooms.
+- *Pilot v2, code review:* the host wall is found along the segment's extended centre line (centre lines stop at the jambs, so an opening's centre lies off the end by half its width): hosts for 10 of 42 openings on S1 before, 13 after, so hosting stays open until openings are intervals on a continuous wall graph (P3 of the code review). An open passage is accepted only between two wall ends that face each other; a wall end facing the flank of another wall is a corridor corner and was splitting corridors (oracle: 367 passages, 24 wrong, became 60 and 8). Interior openings drawn like windows no longer connect rooms.
 
 ### 5. Stairs and Voids
 
@@ -229,6 +231,7 @@ The segmenter works at one resolution (50 px/m), so each drawing needs a scale b
 - Voids are not floor area; voids over 5 m² are cut out of the GF (CAD-Richtlinie).
 - Later: link stairs across floors.
 - *Pilot:* the main stair fell into three fragments plus the void. The stamp "17.98" probably excludes the void of about 5.2 m² (to verify).
+- *Pilot v2, code review:* stairs are objects inside their room, not room boundaries (`stair_flights` on the room). The earlier convex-hull split cut 80 % of the staircases on Swiss Dwellings floors in two (most are enclosed by walls) and corridors with them; now a stair room is cut along the outline only when the stamps demand it (a stair stamp inside the outline, or stamps on both sides). Voids have a kind: a stair eye (the free space between the flights, under a void label) or an air space (a whole region labelled Luftraum/Vide, which is then no room); they are measured on the unclosed barrier, and the GF deduction applies to stair eyes over 5 m² and to every air space (plan-check's wording "Treppenaugen > 5 m², Lufträume"; to confirm with BBL).
 
 ### 6. Rooms
 
@@ -237,6 +240,7 @@ The segmenter works at one resolution (50 px/m), so each drawing needs a scale b
 - Snap outlines to the inner wall faces (SIA 416 net area) and regularise. Every room of 0.25 m² or more keeps a polygon (CAD-Richtlinie); small unlabelled regions are flagged for review.
 - *Pilot v1:* segmentation-based rooms reached mean IoU 0.76. The median area error dropped from 14.7% to 3.8% after a 10 cm snap to the wall face, which is why snapping is a stage of its own.
 - *Pilot v2:* rooms as faces between walls and closed openings: 15/15 rooms, mean IoU 0.89, median area error 2.7% without snapping. On perfect labels of held-out Swiss Dwellings floors, free-space rooms reach recall 0.77; most misses are open-plan areas without a wall.
+- *Pilot v2, code review:* the building mask keeps every enclosed region that holds a door or window (a second wing or building on the sheet), not only the largest; the stair split and the corridor-splitting passages are gone (above). On perfect labels of 120 held-out floors rooms went from recall 0.853 / precision 0.836 to 0.866 / 0.965, mean IoU 0.930 to 0.949, and the post-processing runs a third faster (slices instead of full-image passes per region). Traced contours are simplified by 0.6 px before the half-pixel offset, so polygons have tens of vertices instead of hundreds without an area bias. What remains with perfect labels is open plan: a separation-line head (centre-line report §10.7) is the next step, together with faces of the wall graph (recall 0.89 at precision 1.00 on oracle floors) reconciled room by room with the free-space regions.
 
 ### 7. Room Attributes
 
@@ -254,7 +258,9 @@ These outputs are not drawn as objects; they are derived from walls, rooms and o
 - **GF per floor** (required, `R_GESCHOSSPOLYGON`): outer contour of walls and rooms at the outer wall faces (SIA 416); voids such as stairwell openings over 5 m² and air spaces cut out;\[95\] balconies and loggias excluded. One floor per storey: drawings of the same storey on several sheets are merged by reference points or grid axes.
 - **EBF proposal:** floor areas inside the thermal envelope that need heating or cooling, to outer dimensions (SIA 380).\[96\] Plans rarely show which rooms are heated, so the proposal excludes unheated spaces by usage (e.g. garages, storage) and a person confirms it.
 - **Zones** (fire compartments, security, rental or workspace zones): rooms grouped by attribute; where zones are drawn as colour overlays, as on fire-protection and FM plans, segmented by colour with the legend and confirmed by a person.
-- **Room connections:** each opening becomes an edge between the two rooms on either side. A missed or misassigned door breaks escape-route, accessibility and workspace analyses, so door recall matters more than for other symbols.
+- **Room connections:** each door (of any type, including empty door openings) becomes an edge between the two rooms on either side, with the door's type and confidence on the edge; windows and interior openings drawn like windows connect nothing. A missed or misassigned door breaks escape-route, accessibility and workspace analyses, so door recall matters more than for other symbols.
+- **Three areas per room** (§4): net at the inner wall faces (voids excluded), gross with the room's share of the walls, and the tagged area. The gross polygon comes from a partition of the wall band: every wall, column, door and window pixel goes to the nearest room, so neighbours meet at the wall centre line and an exterior wall is shared between the room and the outside (its outer half belongs to nobody). SIA 416 defines gross areas per storey, not per room; this per-room share is BBL's allocation rule and is written next to IFC's own net/gross quantities, never in their place.
+- **GF and AGF:** rooms with outdoor usage (balconies, loggias, terraces) leave the GF outline once their usage is known; their area is reported as AGF.
 
 ### 9. Scale Confirmation and QA
 
@@ -266,12 +272,13 @@ These outputs are not drawn as objects; they are derived from walls, rooms and o
   - ground floor vs. the official survey (AV) footprint (e.g. converted with [av2geobau](https://github.com/claeis/av2geobau)), registered with the north arrow or reference points; floor count vs. the federal building register (GWR);
   - every opening is hosted by a wall; every room is reachable in the connectivity graph;
   - no element outside its drawing mask.
-- **Confidence:** high, medium or low per element, with the reason.
+- **Confidence:** high, medium or low per element, with the reason. Each QA issue carries its own severity (error: wrong or unusable; warning: likely wrong, check; info: worth a look), separate from the element's confidence. The stamp is checked against the net and the polygon area (stamps often include a stair eye), with a tolerance of at least 0.3 m² so that a two-pixel band on a small room is not a finding.
 
 ### 10. Review and Export
 
 - **Review:** overlay on the original sheet with its regions, filter by confidence, edit polygons, attributes, regions and the scale; a list of flagged rooms leads the reviewer (see the user workflow in §3). The [pilot viewer](../pilot/v2-pipeline/viewer.html) is a prototype that follows the workflow design study (sheet tabs, layers merged with the legend, a pinned inspector per room, a room list, stepping through flagged rooms, offline 2D and 3D); editing polygons, attributes and the scale is not built yet.
 - **Export:** JSON following the data model (§4; a versioned schema will follow); DWG in predefined layers (today the CAD-Richtlinie layers `R_RAUMPOLYGON`, `R_AOID`, `R_GESCHOSSPOLYGON`, `R_RAUMPOLYGON-ABZUG`, `A_ARCHITEKTUR`, `A_SCHRAFFUR`, `V_TEXT`, `V_PLANLAYOUT`; the full layer set is to be defined), one file per floor, validated by plan-check (written as DXF, so a DXF-to-DWG step is needed); IFC with IfcOpenShell; PDF for review and distribution; Excel room and area lists.
+- *Pilot v2, code review:* the export stage writes four files per drawing: the JSON (schema 1.0), the DXF on the CAD-Richtlinie layers, an Excel workbook (`fpx/xlsx.py`: Räume with net, gross and stamp areas and the review state, Geschoss, Öffnungen, QA, Meta) and an IFC 4.3 model (`fpx/ifc.py`: IfcSpace per room with Qto_SpaceBaseQuantities and a BBL property set carrying the stamp and wall-share figures, IfcWall per segment with Pset_WallCommon.IsExternal, IfcDoor and IfcWindow, IfcStairFlight, IfcColumn, IfcSlab with the deducted voids as openings, first-level space boundaries between doors and the rooms they connect; nominal heights from the configuration, marked as such; reproducible GUIDs). Hosting doors and windows in their walls as IfcOpeningElement follows once openings are intervals on the wall graph.
 - **Learning loop:** corrections, including corrected regions and scales, become training data.
 
 ## 6. Components
@@ -302,6 +309,7 @@ Candidates per stage; the recommended starter stack and the full lists are in [o
 - **Benchmarks only:** non-commercial sets (FloorPlanCAD, ArchCAD-400K, CubiCasa5K, CVC-FP) ([datasets](literature-review.md#7-datasets)).
 - Prepared training data goes to [`data/`](../data/README.md); a curated set of varied plans for the viewer is in [`data/curated/`](../data/curated/README.md).
 - Augraphy-style defects in the renderer (folds, shadows, bleed-through, fading, 1-bit dithering).
+- *Pilot v2, second review:* renderer 3.0 draws the construction-drawing content above as a negative set (dimension chains on the facades and interior strings, section and detail markers, axis bubbles, door and window tags, level markers, furniture; all background, their lettering in the text head), fixes the casement/door confusion, labels shafts and lifts as voids and adds a door-swing head. Model v3 trained on it leads on FloorPlanCAD (mean of four 0.28 → 0.32, wall F1 0.39 → 0.41) and on CubiCasa doors (IoU 0.45 → 0.55); the frozen validation renders (`--val-cache`) make runs comparable ([model card](../pilot/v2-pipeline/MODEL_CARD.md)).
 
 ## 8. Evaluation
 

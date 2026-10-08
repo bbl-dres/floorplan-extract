@@ -2,6 +2,9 @@
 pilot/**/data/
 __pycache__/
 
+# Workflow app: uploaded sheets, previews and pipeline outputs (BBL plans) stay local; the app code is tracked
+app/data/
+
 # Training and evaluation data stay local (BBL data is non-public, datasets have their own licences); only the README is tracked
 data/*
 !data/README.md

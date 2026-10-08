@@ -1,6 +1,6 @@
 # Curated Plans
 
-A hand-picked set of 58 floor plans for the [pilot v2 viewer](../../pilot/v2-pipeline/viewer.html) and for spot checks of the pipeline. The plans are chosen for maximum variety, not as a random sample:
+A hand-picked set of 56 floor plans for the [pilot v2 viewer](../../pilot/v2-pipeline/viewer.html) and for spot checks of the pipeline. The plans are chosen for maximum variety, not as a random sample:
 - drawing styles and inputs (scans, photo, born-digital, renders);
 - eras and building types, weighted towards federal administrative and public buildings like BBL's portfolio;
 - the drawings BBL actually receives: construction drawings (dimension chains, axes, tags, section markers, stage overlays) and FM-style plans (area stamps, safety and security overlays, few dimensions);
@@ -13,7 +13,7 @@ Only this README and `plans.json` are tracked. The images, the render label maps
 | File | Content |
 |---|---|
 | `plans.json` | The manifest: a `meta` branch that documents every field and the controlled vocabularies (as in [research/papers.json](../../research/papers.json)), then one entry per plan |
-| `images/<id>.<ext>` | The copy of each plan: byte-identical to its origin, or the Commons file as downloaded; USACE sheets are their PDF pages rendered at 200 dpi (`origin` names the PDF and page) |
+| `images/<id>.<ext>` | The copy of each plan: byte-identical to its origin, or the Commons file as downloaded; USACE sheets are their PDF pages rendered at 200 dpi (`origin` names the PDF and page; the reduced security exhibit at 600 dpi, because its lettering is 8 px at 200 dpi) |
 | `images/<id>_label.png`, `images/<id>_rooms.json` | Renders: the renderer's label map (classes of `fpx.model`) and the floor's room polygons in image pixels. FloorPlanCAD blocks: their six-class label map (no rooms) |
 | `plans.local.json` | BBL plans only, same schema; gitignored (see below) |
 
@@ -24,10 +24,10 @@ Per plan the manifest records:
 - `reference`: what ground truth exists and where it comes from;
 - the tags `drawing_type` (construction drawing, FM plan, survey drawing, permit or design drawing, publication plan, marketing plan, diagram, synthetic), `input`, `wall_style`, `era`, `building_type`, `content`, `language` and `challenges`, plus `why` (one sentence) and `category` (the viewer group).
 
-[`pilot/v2-pipeline/curated.py`](../../pilot/v2-pipeline/curated.py) validates the manifest against its own vocabularies and loads the plans:
+[`pilot/v2-pipeline/code/curated.py`](../../pilot/v2-pipeline/code/curated.py) validates the manifest against its own vocabularies and loads the plans:
 
 ```
-cd pilot/v2-pipeline
+cd pilot/v2-pipeline/code
 python curated.py                    # validate plans.json (+ plans.local.json); exit 1 on errors; counts per tag
 python curated.py render [ids]       # draw the synthetic renders again (image, label map, rooms)
 python curated.py run ids|all [--model PATH]   # stages 0-10 through bench.py, outputs in data/curated-test
@@ -41,17 +41,19 @@ In code, `curated.load(id)` returns `(image, px_per_m or None, scale method, ref
 |---|---|---|
 | Construction drawings | 9 | USACE A-103 enlarged plan (dimension chains, door tags, section flags), a 1911 federal ink working drawing, a Navy hospital blueprint (inverted), the Stamford post office with 1940–41 construction stages, five FloorPlanCAD blocks (two schools, two hospital blocks, an office) |
 | FM and safety plans | 4 | USACE life-safety plan, electronic-security plan (reduced print: its scale note is wrong), two headquarters floors with name and area stamps in every room |
-| Administrative and public buildings | 9 | Bundeshaus 1902, Federal Supreme Court 1927, Zürich post office, Bern council chamber, Landesmuseum, Grand Théâtre Genève, first Goetheanum, Geneva observatory, a HABS CAD survey of an administration building (2011) |
-| Hospitals and hotels | 3 | Sporthotel 1900, Sanatorium Altein 1917, old Kantonsspital Zürich |
-| Industry and transport | 3 | Zürich main station (Wanner), Neumühle mill, Matte power station |
+| Administrative and public buildings | 8 | Bundeshaus 1902, Zürich post office, Bern council chamber, Landesmuseum, Grand Théâtre Genève, Göttingen observatory 1900, El Paso post office and courthouse 1888 (Supervising Architect), a HABS CAD survey of an administration building (2011) |
+| Hospitals and hotels | 3 | Sporthotel 1900, Hans Auer's Vienna sanatorium 1888 (Allgemeine Bauzeitung plate, two floors), old Kantonsspital Zürich |
+| Industry and transport | 2 | Orlando railway station (HABS measured drawing of the Amtrak era), Neumühle mill |
 | Monuments and churches | 10 | Schloss Wart, Schloss Hallwyl survey, 17th-century Capuchin convent, Netstal church (photo), six WAFFLE plans (churches, castle, palace, mosque) |
 | Housing | 16 | CubiCasa5K (2 per style group), CVC-FP (1 per subset), four WAFFLE flats and houses, Globus-Heimeli 1932 |
 | Synthetic renders | 4 | KIT institute office floor, dental clinic, Digital Hub open-plan offices (IFC-Bench), a Swiss Dwellings apartment floor; whole floors at 50 px/m in contrasting styles, with complete label maps |
 
 The construction drawings and FM plans are US federal (public domain) or Chinese (FloorPlanCAD, benchmark only): no Swiss or EU construction drawing with an open licence exists (see `data/benchmark/construction-plans/SOURCE.md`). Their scale is known where the sheet states one and the page size is known (USACE PDFs rendered at 200 dpi: 41–123 px/m) and for FloorPlanCAD (100 px/m); the photographed and Commons sheets leave it to the pipeline.
 
+Resolution: the pipeline works at 50 px/m, and its OCR needs lettering of about 12 px or more. A plan whose native resolution is well below 25 px/m (upsampled more than twice) or whose room lettering is under 10 px does not work and is not kept. The review of October 2026 removed six such plans (Federal Supreme Court print at 18 px/m, Sanatorium Altein at 13 px/m, the Wanner station at under 10 px/m, the first Goetheanum at 14 px/m, the Geneva observatory at 475 px, the Matte power station at 534 px); the small WAFFLE diagrams stay because they come with ground truth and the pipeline scores them. The borderline sheets (Grand Théâtre at about 25 px/m, Capuchin convent at about 18 px/m, Landesmuseum at about 26 px/m, Kantonsspital at about 35 px/m, Pio Monte at 284 px) are kept for what they test, not for their resolution.
+
 Gaps:
-- no plan drawn 1950–1989 (public-domain plans of that period are rare);
+- only one plan drawn 1950–1989 (the Orlando station HABS sheet; public-domain plans of that period are rare);
 - complex wall hatches (SIA material hatches, insulation bands) in only three plans; the renderer's material style is too faint on the IFC storeys to stand in, so add renders once the renderer draws Werkplan styles;
 - no Swiss construction or CAFM plan: BBL's own plans fill these gaps locally (`plans.local.json`).
 

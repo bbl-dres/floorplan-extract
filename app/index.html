@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floor plan extraction</title>
+<link rel="stylesheet" href="static/app.css">
+</head>
+<body>
+<noscript>This app needs JavaScript.</noscript>
+
+<div id="offline" class="offline" hidden>
+  <div class="offline-card">
+    <div class="brand"><span class="logo">fpx</span><span class="brand-name">Floor plan extraction</span></div>
+    <h2>The page was opened from disk</h2>
+    <p>This page talks to a local server that runs the extraction pipeline on this machine. Opened as a file it cannot reach it.</p>
+    <p>Start the server from the repository root and open the address it prints:</p>
+    <pre>python app/server.py
+Floor plan workflow app: http://127.0.0.1:8765/</pre>
+    <p class="muted">Plans are processed locally and are not uploaded anywhere.</p>
+  </div>
+</div>
+
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">fpx</span><span class="brand-name">Floor plan extraction</span>
+      <span id="crumb" class="crumb" hidden><span class="crumb-sep">/</span><span id="crumb-text"></span></span>
+    </div>
+    <div class="topbar-right">
+      <button id="btn-start-over" class="btn" hidden>Start over</button>
+      <div class="lang">EN<span class="caret">&#9660;</span></div>
+      <button id="btn-help" class="btn">Help</button>
+      <button class="btn btn-icon" title="Settings" disabled aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+      </button>
+      <span class="avatar" id="avatar">DR</span>
+    </div>
+  </header>
+  <div id="screen" class="screen"></div>
+</div>
+
+<div id="help" class="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>How this works</h2><button class="btn btn-icon" id="help-close" aria-label="Close">&times;</button></div>
+    <ol>
+      <li><b>Upload</b> one sheet per storey (PDF, JPG, PNG, TIFF, DXF). The pipeline normalises the file, reads the text, finds the drawings on the sheet and proposes a scale for each one.</li>
+      <li><b>Building area</b>: confirm the detected outline of the floor plan. Drag the handles so the whole building is inside and the title block, legend and dimension chains stay out.</li>
+      <li><b>Scale</b>: check the scale read from the notes, a scale bar or the dimension strings, and the resolution. If nothing was found, or the value looks wrong, measure a known distance on the drawing.</li>
+      <li><b>Storeys</b>: name and order the storeys, then run the extraction (walls, openings, stairs, rooms, areas, QA). About one minute per sheet on this machine, mostly OCR.</li>
+      <li><b>Results</b>: review the rooms, tick the ones you checked, and download the JSON and the DXF.</li>
+    </ol>
+    <p class="muted">Everything runs locally in <code>app/data/</code> (gitignored). Nothing is uploaded anywhere.</p>
+  </div>
+</div>
+
+<div id="fatal" class="error-box" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:30" hidden></div>
+<script>
+  // a script error must never leave a silent blank page: show it, with the file and line
+  (function () {
+    function show(msg) { var el = document.getElementById('fatal'); if (!el) return; el.hidden = false; el.innerHTML = '<b>Script error:</b> ' + String(msg).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }); }
+    window.addEventListener('error', function (e) { show((e.message || e.error) + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')); });
+    window.addEventListener('unhandledrejection', function (e) { show(e.reason && e.reason.stack ? e.reason.stack.split('\n').slice(0, 3).join(' ') : e.reason); });
+  })();
+</script>
+<script src="static/app.js"></script>
+</body>
+</html>
