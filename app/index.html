@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Floor plan extraction</title>
-<link rel="stylesheet" href="static/app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%232f6ea6%27/%3E%3Ctext x=%2716%27 y=%2721%27 font-family=%27IBM Plex Sans,system-ui,sans-serif%27 font-size=%2713%27 font-weight=%27700%27 fill=%27white%27 text-anchor=%27middle%27%3Efpx%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+<script type="importmap">{ "imports": { "three": "./js/vendor/three/three.module.min.js" } }</script>
 </head>
 <body>
 <noscript>This app needs JavaScript.</noscript>
@@ -29,32 +32,30 @@ Floor plan workflow app: http://127.0.0.1:8765/</pre>
     </div>
     <div class="topbar-right">
       <button id="btn-start-over" class="btn" hidden>Start over</button>
-      <div class="lang">EN<span class="caret">&#9660;</span></div>
+      <div id="download-menu" class="menu" hidden>
+        <button class="btn btn-primary" aria-haspopup="menu" aria-expanded="false">Download <span class="caret" aria-hidden="true">&#9660;</span></button>
+        <div class="menu-list" role="menu" hidden></div>
+      </div>
       <button id="btn-help" class="btn">Help</button>
-      <button class="btn btn-icon" title="Settings" disabled aria-label="Settings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
-      </button>
-      <span class="avatar" id="avatar">DR</span>
     </div>
   </header>
   <div id="screen" class="screen"></div>
 </div>
 
-<div id="help" class="modal" hidden>
+<div id="help" class="modal" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
   <div class="modal-card">
-    <div class="modal-head"><h2>How this works</h2><button class="btn btn-icon" id="help-close" aria-label="Close">&times;</button></div>
+    <div class="modal-head"><h2 id="help-title">How this works</h2><button class="btn btn-icon" id="help-close" aria-label="Close">&times;</button></div>
     <ol>
-      <li><b>Upload</b> one sheet per floor plan (PDF, JPG, PNG, TIFF, DXF). The pipeline normalises the file, reads the text, finds the drawings on the sheet and proposes a scale for each one.</li>
+      <li><b>Upload</b> one sheet per floor plan (PDF, JPG, PNG, TIFF, DXF), or try the demo sheet. The drawings, title block and notes are found within seconds, without text recognition.</li>
       <li><b>Building area</b>: confirm the detected outline of the floor plan. Drag the handles so the whole building is inside and the title block, legend and dimension chains stay out.</li>
       <li><b>Scale</b>: check the scale read from the notes, a scale bar or the dimension strings, and the resolution. If nothing was found, or the value looks wrong, measure a known distance on the drawing.</li>
-      <li><b>Run</b>: check the confirmed drawings, then run the extraction (walls, openings, stairs, rooms, areas, QA). About one minute per sheet on this machine, mostly OCR.</li>
-      <li><b>Results</b>: review the rooms, tick the ones you checked, and download the JSON and the DXF.</li>
+      <li><b>Results</b>: the extraction starts when the scale is confirmed and the walls, openings, stairs and rooms appear on the plan as they are found (about a minute per sheet, mostly text recognition). Then review the rooms, tick the ones you checked, and download the JSON, Excel, DXF, IFC, CSV or PNG from the Download menu.</li>
     </ol>
     <p class="muted">Everything runs locally in <code>app/data/</code> (gitignored). Nothing is uploaded anywhere.</p>
   </div>
 </div>
 
-<div id="fatal" class="error-box" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:30" hidden></div>
+<div id="fatal" class="error-box fatal" hidden></div>
 <script>
   // a script error must never leave a silent blank page: show it, with the file and line
   (function () {
@@ -63,6 +64,6 @@ Floor plan workflow app: http://127.0.0.1:8765/</pre>
     window.addEventListener('unhandledrejection', function (e) { show(e.reason && e.reason.stack ? e.reason.stack.split('\n').slice(0, 3).join(' ') : e.reason); });
   })();
 </script>
-<script src="static/app.js"></script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

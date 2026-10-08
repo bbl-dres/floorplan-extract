@@ -87,7 +87,8 @@ OCR_RES_STEPS = 4                                       # the drawing OCR resolu
 
 
 def run_document(path, model=None, engine=None, cfg=DEFAULT, out_dir=None, stages=STAGES, kinds=("floor plan",),
-                 load_opts=None, packages=None, sheet_ocr=True, overrides=None, cache_dir=None, progress=None):
+                 load_opts=None, packages=None, sheet_ocr=True, overrides=None, cache_dir=None, progress=None,
+                 scale=True, ocr_boxes=None, anchors=None, after=None):
     """Normalise an upload (fpx.inputs) and run every floor-plan drawing on it through the pipeline.
 
     Per sheet package: deskew (raster inputs), sheet text (native runs, plus one OCR pre-pass of the whole sheet with
@@ -113,7 +114,17 @@ def run_document(path, model=None, engine=None, cfg=DEFAULT, out_dir=None, stage
     cache_dir: OCR items are cached there as JSON per (package raster, region, resolution) so that a second call on
     the same sheet (the app's extraction after its analysis, a rerun after a scale change) costs no OCR; default
     out_dir/ocr_cache when out_dir is given. packages: already loaded (and deskewed) packages instead of `path`.
-    progress: callback(key, stage label) before each step.
+    progress: callback(key, stage label) before each step. scale=False stops after the layout (the app's building-area
+    step: regions and drawings within seconds, no OCR, no model; the drawings' scale records stay None). ocr_boxes:
+    {package id: [(x0, y0, x1, y1), ...]} in sheet pixels limits the sheet OCR pre-pass to those boxes (the app's
+    scale step: title block, the caption band of a drawing, its confirmed area, scale bars), each cached on its own.
+    anchors: {package id: {drawing id: drawing record}} from an earlier layout of the same sheet (the app's step 1,
+    without text); the drawings of this run take the id of the anchored drawing they overlap most (bbox IoU >= 0.3),
+    so overrides keyed by the earlier ids and the output names stay with the same drawing when the layout with text
+    numbers the drawings differently, and an anchored drawing this layout no longer finds is kept with its earlier
+    area (with_region); a drawing only this layout finds is skipped unless an override selects it: what the user
+    confirmed is what runs. after: callback(key, stage, sheet) after each per-drawing stage (triage, text, then
+    segment ... qa) with the fpx.model.Sheet as it stands, for live views of the work in progress.
     Returns [{"package", "layout", "texts", "drawings": [{"drawing", "scale", "sheet" (fpx.model.Sheet or None),
     "times", "skipped", "error", "texts", "crop_offset", "text_ocr", "second_pass"}], "times", "deskew"}].
     pipeline.run(sheet, ...) is unchanged for sheets loaded whole (it keeps its own OCR)."""
@@ -142,12 +153,14 @@ def run_document(path, model=None, engine=None, cfg=DEFAULT, out_dir=None, stage
         say(pkg.id, "1 sheet text")
         ocr_items, info = [], None
         if engine is not None and sheet_ocr:
-            ocr_items, info = sheet_text(pkg, engine, cfg, cache_dir)
+            ocr_items, info = sheet_text(pkg, engine, cfg, cache_dir, boxes=(ocr_boxes or {}).get(pkg.id))
             pkg.provenance["sheet_ocr"] = info
         times["sheet text"] = round(time.time() - t, 1)
         t = time.time()
         say(pkg.id, "1b layout")
         lay = layout.analyse(pkg, texts=ocr_items, cfg=cfg)
+        if anchors and anchors.get(pkg.id):
+            _anchor_drawings(lay, anchors[pkg.id], cfg)
         times["layout"] = round(time.time() - t, 1)
         texts = layout._merge_texts([x for x in pkg.text if not x.get("invisible") and x.get("text")], ocr_items)
         sheet_notes = lay["sheet"]["sheet_scale_notes"]
@@ -168,10 +181,14 @@ def run_document(path, model=None, engine=None, cfg=DEFAULT, out_dir=None, stage
                 selected = ov.get("extract")
                 if selected is False:
                     rec["skipped"] = "deselected by the user" + (f": {ov['note']}" if ov.get("note") else "")
+                elif selected is None and d.get("anchored") == "new":
+                    rec["skipped"] = "found by the layout with text only, not among the confirmed drawings"
                 elif selected is None and d["kind"] not in kinds:
                     rec["skipped"] = f"kind {d['kind']}: only {', '.join(kinds)} go through stages 2-9"
                 run_it = bool(stages) and rec["skipped"] is None
                 want_model = model if rec["skipped"] is None and not ov.get("px_per_m") else None   # the door search only for drawings to extract
+                if not scale:                              # layout only (the app's building-area step)
+                    continue
                 t = time.time()
                 say(key, "1c scale")
                 crop, (ox, oy), mask = _crop(pkg.img, d)
@@ -196,7 +213,7 @@ def run_document(path, model=None, engine=None, cfg=DEFAULT, out_dir=None, stage
                     rec["skipped"] = "no scale: no cue, no prior and nothing confirmed (two-point calibration)"
                     continue
                 _drawing_stages(pkg, d, lay, crop, (ox, oy), mask, inside, s, rec, model, engine, cfg, out_dir, stages,
-                                ocr_items, info, cache_dir, skew, say, key)
+                                ocr_items, info, cache_dir, skew, say, key, after)
             except Exception as ex:                        # one drawing failing must not take the others down
                 rec["error"] = f"{type(ex).__name__}: {ex}"
                 rec["traceback"] = traceback.format_exc()
@@ -217,10 +234,12 @@ def run_document(path, model=None, engine=None, cfg=DEFAULT, out_dir=None, stage
 
 
 def _drawing_stages(pkg, d, lay, crop, offset, mask, inside, s, rec, model, engine, cfg, out_dir, stages,
-                    ocr_items, info, cache_dir, skew, say, key):
+                    ocr_items, info, cache_dir, skew, say, key, after=None):
     """Stages 2-10 of one drawing at its proposed (or confirmed) scale, with the stamp-area cue after stage 9 and one
-    rerun when it moves an unconfirmed scale by more than cfg.scale_cue_agreement."""
+    rerun when it moves an unconfirmed scale by more than cfg.scale_cue_agreement. after(key, stage, sheet) is
+    called after each stage that ran."""
     from . import scale as fscale
+    done = after or (lambda key, stage, sheet: None)
     t = time.time()
     say(key, "2 text (OCR inside the drawing)")
     items, tinfo = drawing_text_items(pkg, d, crop, offset, mask, s["px_per_m"], ocr_items, info, engine, cfg, cache_dir)
@@ -239,15 +258,19 @@ def _drawing_stages(pkg, d, lay, crop, offset, mask, inside, s, rec, model, engi
             sheet.meta["triage"]["route"] = "raster pipeline per drawing (fpx.pipeline.run_document)"
         if skew:
             sheet.meta["deskew"] = skew                     # done once on the sheet, not again per drawing
+        if "triage" in stages:
+            done(key, "triage", sheet)
         if "text" in stages:
             say(key, LABELS["text"])
             t = time.time()
             _drawing_text(sheet, engine, d, cfg)
             times["text"] = round(time.time() - t, 1)
+            done(key, "text", sheet)
         for stage in DRAWING_STAGES:
             if stage in stages and stage != "export":
                 say(key, LABELS[stage])
                 times.update(run(sheet, model=model, engine=engine, cfg=cfg, out_dir=out_dir, stages=(stage,)))
+                done(key, stage, sheet)
         if n_pass == 1:
             rec["times"].update(times)
         else:
@@ -336,13 +359,43 @@ def _cache_write(path, items, info):
     path.write_text(json.dumps({"items": items, "info": info}, ensure_ascii=False, default=_jsonable), encoding="utf-8")
 
 
-def sheet_text(pkg, engine, cfg=DEFAULT, cache_dir=None):
-    """The OCR pre-pass of the whole sheet (fpx.scale.read_text: characters resampled to ~16 px, boxes in sheet
-    pixels), cached in cache_dir per raster and parameter set. Returns (items, info)."""
+def sheet_text(pkg, engine, cfg=DEFAULT, cache_dir=None, boxes=None):
+    """The OCR pre-pass of the sheet (fpx.scale.read_text: characters resampled to ~16 px, boxes in sheet pixels),
+    cached in cache_dir per raster and parameter set. With boxes [(x0, y0, x1, y1)] only those parts of the sheet are
+    read, each cached on its own (the app reads the title block, the caption band and the confirmed area of a
+    drawing instead of the whole sheet); an item whose centre lies in an earlier box is not read twice. Returns
+    (items, info); info["factor"] is the smallest resampling factor of the boxes."""
     from . import scale as fscale
     dpi = pkg.dpi if pkg.dpi_trusted else None
     tag = (f"pre-c{cfg.scale_ocr_char_px:g}-{cfg.scale_ocr_small_px:g}-{cfg.scale_ocr_enlarge_px:g}_t{cfg.scale_ocr_tile}"
            f"_o{cfg.scale_ocr_overlap}_m{cfg.scale_ocr_max_side}_r{cfg.ocr_rotated_scale:g}_c{cfg.ocr_min_conf:g}_d{dpi or 0:g}")
+    if boxes:
+        H, W = pkg.img.shape[:2]
+        items, factor, secs, hits, done = [], None, 0.0, 0, []
+        for b in boxes:
+            x0, y0 = max(0, int(math.floor(b[0]))), max(0, int(math.floor(b[1])))
+            x1, y1 = min(W, int(math.ceil(b[2]))), min(H, int(math.ceil(b[3])))
+            if x1 - x0 < 8 or y1 - y0 < 8:
+                continue
+            path = _cache_path(cache_dir, pkg, f"box{x0}-{y0}-{x1}-{y1}", tag)
+            cached = _cache_read(path)
+            if cached is not None:
+                part, pinfo = cached["items"], cached["info"]
+                hits += 1
+            else:
+                part, pinfo = fscale.read_text(pkg.img[y0:y1, x0:x1], engine, cfg, dpi=dpi)
+                part = [dict(t, box=(t["box"][0] + x0, t["box"][1] + y0, t["box"][2] + x0, t["box"][3] + y0)) for t in part]
+                _cache_write(path, part, pinfo)
+            for t in part:
+                cx, cy = (t["box"][0] + t["box"][2]) / 2, (t["box"][1] + t["box"][3]) / 2
+                if not any(bx0 <= cx < bx1 and by0 <= cy < by1 for bx0, by0, bx1, by1 in done):
+                    items.append(t)
+            done.append((x0, y0, x1, y1))
+            f = pinfo.get("factor")
+            factor = f if factor is None or f is None else min(factor, f)
+            secs += pinfo.get("seconds") or 0.0
+        return items, {"source": "sheet pre-pass (bounded)", "boxes": len(done), "factor": factor, "items": len(items),
+                       "seconds": round(secs, 1), "cached": bool(done) and hits == len(done)}
     path = _cache_path(cache_dir, pkg, "sheet", tag)
     cached = _cache_read(path)
     if cached is not None:
@@ -630,6 +683,60 @@ def _drawing_text(sheet, engine, d, cfg):
             t["role"] = role(t["text"].strip())
     sheet.text = items
     return items
+
+
+def _bbox_iou(a, b):
+    """Intersection over union of two boxes (x0, y0, x1, y1)."""
+    def area(bb):
+        return max(0.0, bb[2] - bb[0]) * max(0.0, bb[3] - bb[1])
+    inter = area((max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])))
+    union = area(a) + area(b) - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _anchor_drawings(lay, anchors, cfg=DEFAULT, min_iou=0.3):
+    """Give each drawing of the layout the id of the anchored drawing ({id: record of an earlier layout}) it overlaps
+    most (bbox IoU >= min_iou, each anchor used once); drawings without an anchor get fresh ids that collide with no
+    anchor id; anchors without a drawing are revived from their record with their area as the region (with_region)
+    and appended, flagged in the record and in lay["flags"]. In place."""
+    drawings = lay["drawings"]
+    taken = {}
+    for aid, rec in anchors.items():
+        best, best_iou = None, min_iou
+        for d in drawings:
+            if id(d) in taken:
+                continue
+            iou = _bbox_iou([float(v) for v in d["bbox_px"]], [float(v) for v in rec["bbox_px"]])
+            if iou > best_iou:
+                best, best_iou = d, iou
+        if best is not None:
+            taken[id(best)] = aid
+    used, n = set(anchors) | set(taken.values()), 0
+    for d in drawings:
+        if id(d) in taken:
+            d["id"] = taken[id(d)]
+            d["anchored"] = "matched"
+        else:
+            n += 1
+            while f"d{n}" in used:
+                n += 1
+            d["id"] = f"d{n}"
+            d["anchored"] = "new"
+            used.add(d["id"])
+    for aid, rec in anchors.items():
+        if aid in taken.values():
+            continue
+        try:
+            d = with_region({k: v for k, v in rec.items() if not k.startswith("_")}, rec["polygon_px"], lay, cfg)
+        except (ValueError, KeyError) as ex:
+            lay["flags"].append({"severity": "medium", "message": f"drawing {aid} of the earlier layout could not be kept: {ex}"})
+            continue
+        d["id"] = aid
+        d["mask"]["reason"] = "area of the earlier layout (no text), kept: the layout with text has no drawing here"
+        d["kind_reason"] = (d.get("kind_reason") or "") + "; kept from the earlier layout"
+        d["anchored"] = "revived"
+        lay["flags"].append({"severity": "low", "message": f"drawing {aid}: not found by the layout with text, kept with its earlier area"})
+        drawings.append(d)
 
 
 def _scale_summary(s):

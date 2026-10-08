@@ -1,14 +1,20 @@
 """Access to the pilot v2 pipeline (package fpx) for the workflow app.
 
 Everything the app needs from the pipeline goes through this module: the one path constant (PIPELINE_DIR), the lazy
-model and OCR engine with clear errors when something is missing, and the two phases of a sheet:
+model and OCR engine with clear errors when something is missing, and the three phases of a sheet, one per step of
+the workflow (docs/pipeline.md §3, "What runs at each step"):
 
-    analyse(job_dir, upload, log)            stage 0a normalisation, deskew, sheet OCR, 1b layout, 1c scale proposals
-    extract(job_dir, session, confirm, log)  stages 2-10 per confirmed drawing, with the confirmed region and scale
+    analyse(job_dir, upload, log)                        stage 0a normalisation, deskew, 1b layout: regions and drawings,
+                                                         no OCR and no model (seconds) -> step 1, building area
+    scale_step(job_dir, session, analysis, confirm,      stage 1c for the confirmed drawings: OCR of the title block, the
+               keys, log, doors=False)                   caption band and the confirmed area, scale bars; the door-width
+                                                         search (the segmenter) only with doors=True -> step 2, scale
+    extract(job_dir, session, confirm, log, progress,    stages 2-10 per confirmed drawing inside its region at its scale,
+            analysis=None)                               the OCR of step 2 reused from the cache -> step 3, run
 
-Both phases are fpx.pipeline.run_document: analyse() calls it with stages=() and keeps the packages in memory;
-extract() calls it again on those packages with the user's confirmations as `overrides` (confirmed region, scale,
-storey, selection). The sheet OCR is cached by run_document in the job folder, so the second call costs no OCR.
+All three are fpx.pipeline.run_document on the same packages (kept in memory in the session, pickled next to the
+job): analyse() with stages=() and scale=False, scale_step() with stages=() and the OCR bounded to boxes, extract()
+with the user's confirmations as `overrides` (confirmed region, scale, storey, selection) and the same boxes.
 """
 import json
 import os
@@ -28,6 +34,9 @@ if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 
 THREADS = int(os.environ.get("FPX_APP_THREADS", "4"))     # the machine is shared: torch and OpenCV threads
+# the OCR cache is keyed by sheet id, raster digest, region and OCR settings (fpx.pipeline._cache_path), so one folder
+# serves every job: the same sheet uploaded again (the demo, a corrected area) costs no OCR
+CACHE_DIR = Path(os.environ.get("FPX_APP_OCR_CACHE") or (REPO / "app" / "data" / "ocr_cache"))
 PREVIEW_MAX = 2200                                         # longer side of the sheet preview (px)
 FLOOR_PLAN = "floor plan"
 
@@ -162,12 +171,11 @@ def _public(d):
 # ---------------------------------------------------------------------------------------------------------------------
 # Phase A: normalisation, layout and scale proposals (run_document without stages)
 
-def analyse(job_dir, upload, log, want_model=True):
-    """Load the upload (fpx.inputs) and run fpx.pipeline.run_document with no stages: deskew, sheet OCR (cached in
-    job_dir/ocr_cache), regions and drawings (fpx.layout) and a scale proposal per drawing (fpx.scale.drawing_scale,
-    with the door-width search for floor plans when the model is available). Writes preview images and
-    analysis.json into job_dir; returns (analysis, session) with the session holding the packages in memory for
-    extract()."""
+def analyse(job_dir, upload, log, want_model=False):
+    """Step 1: load the upload (fpx.inputs) and run fpx.pipeline.run_document with no stages and scale=False: deskew,
+    regions and drawings (fpx.layout, from the ink alone: no OCR, no model). Writes preview images and analysis.json
+    (drawings without a scale record yet) into job_dir; returns (analysis, session) with the session holding the
+    packages in memory for scale_step() and extract(). want_model is accepted for older callers and ignored."""
     from fpx import inputs, pipeline
     from fpx.config import DEFAULT as cfg
     job_dir = Path(job_dir)
@@ -181,27 +189,18 @@ def analyse(job_dir, upload, log, want_model=True):
         raise AppError(str(ex)) from ex
     if not pkgs:
         raise AppError("The file contains no page or layout to process.")
-    eng = engine()                                         # OCR is needed for every text cue (scale notes, captions)
-    mdl = None
-    if want_model:
-        try:
-            mdl = model()                                  # door-width cue when no precise cue exists
-        except AppError as ex:
-            log(f"warning: {ex} (the door-width scale cue is skipped; extraction will fail until the model exists)")
     for pkg in pkgs:
         log(f"sheet {pkg.id}: {pkg.input_class}, {pkg.img.shape[1]} x {pkg.img.shape[0]} px"
             + (f", {pkg.dpi:g} dpi ({pkg.dpi_source})" if pkg.dpi else ", resolution unknown"))
-    log("  reading the sheet text (OCR, this takes a while on large sheets), layout and scale proposals")
-    entries = pipeline.run_document(None, model=mdl, engine=eng, cfg=cfg, stages=(), packages=pkgs,
-                                    cache_dir=job_dir / "ocr_cache", progress=lambda key, stage: log(f"  [{key}] {stage}"))
+    log("  layout from the ink: drawings, title block, legend, notes (no OCR, no model)")
+    entries = pipeline.run_document(None, model=None, engine=None, cfg=cfg, stages=(), packages=pkgs, sheet_ocr=False,
+                                    scale=False, cache_dir=CACHE_DIR, progress=lambda key, stage: log(f"  [{key}] {stage}"))
     session = {"packages": []}
     analysis = {"packages": [], "seconds": None}
     for k, (pkg, entry) in enumerate(zip(pkgs, entries)):
         lay, times, skew = entry["layout"], entry["times"], entry["deskew"]
         if skew and skew.get("applied"):
             log(f"  deskewed by {skew['deg']} degrees")
-        info = pkg.provenance.get("sheet_ocr") or {}
-        log(f"  {info.get('items', 0)} text items in {info.get('seconds', 0)} s" + (" (cached)" if info.get("cached") else ""))
         kinds = {}
         for d in lay["drawings"]:
             kinds[d["kind"]] = kinds.get(d["kind"], 0) + 1
@@ -212,16 +211,11 @@ def analyse(job_dir, upload, log, want_model=True):
         for r in entry["drawings"]:
             d, s = r["drawing"], r["scale"]
             rec = _public(d)
-            rec["scale"] = pipeline._scale_summary(s)
-            if rec["scale"] is not None:
-                rec["scale"]["cue_boxes"] = _cue_boxes(d, s, r.get("texts") or [], r.get("crop_offset") or (0, 0), lay, bars)
-                rec["scale"]["seconds"] = r["times"].get("scale")
+            rec["scale"] = None                            # step 2 fills it (scale_step)
             rec["error"] = r["error"]
             drawings.append(rec)
-            v = s["px_per_m"] if s else None
-            log(f"  {d['id']} {d['kind']}" + (f" '{d['title']}'" if d["title"] else "") + ": "
-                + (f"{v:.1f} px/m ({s['confidence']}: {', '.join(a['cue'] for a in s['consensus']['agreeing'])})"
-                   if v else "no scale cue, to be measured") + (f"; error: {r['error']}" if r["error"] else ""))
+            log(f"  {d['id']} {d['kind']}" + (f" '{d['title']}'" if d["title"] else "") + f": {d['bbox_px']}"
+                + (f"; error: {r['error']}" if r["error"] else ""))
         preview, pf = _preview(pkg.img, job_dir / f"{pkg.id}_preview.jpg")
         analysis["packages"].append({
             "id": pkg.id, "index": k, "summary": pkg.summary(), "deskew": skew, "times": times,
@@ -232,8 +226,104 @@ def analyse(job_dir, upload, log, want_model=True):
         session["packages"].append({"pkg": pkg, "skew": skew})
     analysis["seconds"] = round(time.time() - t_all, 1)
     dump(analysis, job_dir / "analysis.json")
-    log(f"analysis finished in {analysis['seconds']} s")
+    log(f"layout finished in {analysis['seconds']} s")
     return analysis, session
+
+
+def _ocr_boxes(analysis, confirm, keys):
+    """Where the scale cues of the drawings in `keys` sit, as OCR boxes per package (sheet pixels): the confirmed (or
+    detected) area with the caption band around it, the title block, the scale bars. The same boxes serve step 2 and
+    step 3, so the extraction finds the OCR in the cache."""
+    boxes = {}
+    for a_pkg in analysis["packages"]:
+        lay = a_pkg.get("layout") or {}
+        reach = float((lay.get("thresholds_px") or {}).get("caption") or 0.0)
+        regions = {r["id"]: r for r in a_pkg.get("regions", [])}
+        wanted = [d for d in a_pkg["drawings"] if f"{a_pkg['id']}/{d['id']}" in keys]
+        if not wanted:
+            continue
+        out = []
+        for d in wanted:
+            poly = (confirm.get(f"{a_pkg['id']}/{d['id']}") or {}).get("polygon_px") or d["polygon_px"]
+            xs, ys = [p[0] for p in poly], [p[1] for p in poly]
+            out.append((min(xs) - reach, min(ys) - reach, max(xs) + reach, max(ys) + reach))
+        tb = regions.get(lay.get("title_block"))
+        if tb:
+            out.append(tuple(tb["bbox_px"]))
+        for r in a_pkg.get("regions", []):
+            if r["class"] in ("scale bar", "scale note", "caption"):
+                out.append(tuple(r["bbox_px"]))
+        boxes[a_pkg["id"]] = out
+    return boxes
+
+
+def scale_step(job_dir, session, analysis, confirm, keys, log, doors=False):
+    """Step 2: the scale cues of the drawings in `keys` (fpx.scale.drawing_scale through run_document with stages=()),
+    with the sheet OCR bounded to the boxes of _ocr_boxes and the confirmed area as the drawing's region. The
+    door-width search runs only with doors=True (it needs the segmenter). The analysis is updated in place (each
+    drawing's scale record with its cue boxes, the caption and title found by the layout now that text is read) and
+    written again; returns the keys that got a record."""
+    from fpx import pipeline
+    from fpx.config import DEFAULT as cfg
+    job_dir = Path(job_dir)
+    t0 = time.time()
+    eng = engine()
+    mdl = model() if doors else None
+    pkgs = [P["pkg"] for P in session["packages"]]
+    boxes = _ocr_boxes(analysis, confirm, keys)
+    anchors = _anchors(analysis)
+    overrides = {}
+    for key in keys:
+        c = confirm.get(key) or {}
+        overrides[key] = {"polygon_px": c.get("polygon_px") or None, "extract": True, "storey": c.get("storey") or None}
+    log("  reading the scale cues where they sit: title block, caption band, the confirmed area, scale bars"
+        + (" · searching doors with the segmenter" if doors else ""))
+    entries = pipeline.run_document(None, model=mdl, engine=eng, cfg=cfg, stages=(), packages=pkgs, sheet_ocr=True,
+                                    ocr_boxes=boxes, overrides=overrides, anchors=anchors, cache_dir=CACHE_DIR,
+                                    progress=lambda key, stage: log(f"  [{key}] {stage}"))
+    done = []
+    for pkg, entry in zip(pkgs, entries):
+        a_pkg = next((a for a in analysis["packages"] if a["id"] == pkg.id), None)
+        if a_pkg is None:
+            continue
+        lay = entry["layout"]
+        info = pkg.provenance.get("sheet_ocr") or {}
+        log(f"  {pkg.id}: {info.get('items', 0)} text items in {info.get('boxes', 0)} boxes, {info.get('seconds', 0)} s"
+            + (" (cached)" if info.get("cached") else ""))
+        bars = [r for r in lay["regions"] if r["class"] == "scale bar" and r.get("px_per_m")]
+        for r in entry["drawings"]:
+            d, s = r["drawing"], r["scale"]
+            target = next((x for x in a_pkg["drawings"] if x["id"] == d["id"]), None)   # ids anchored to step 1
+            if target is None:
+                continue
+            key = f"{pkg.id}/{target['id']}"
+            if key not in keys:
+                continue
+            target["scale"] = pipeline._scale_summary(s)
+            if target["scale"] is not None:
+                target["scale"]["cue_boxes"] = _cue_boxes(d, s, r.get("texts") or [], r.get("crop_offset") or (0, 0), lay, bars)
+                target["scale"]["seconds"] = r["times"].get("scale")
+            for k in ("title", "caption", "storey", "storey_source", "scale_note", "kind", "kind_reason", "anchored"):
+                if d.get(k) and k in d:
+                    target[k] = d[k] if not isinstance(d[k], dict) or k != "caption" else _public(d[k])
+            target["error"] = r["error"]
+            v = s["px_per_m"] if s else None
+            log(f"  {key}" + (f" '{d['title']}'" if d.get("title") else "") + ": "
+                + (f"{v:.1f} px/m ({s['confidence']}: {', '.join(a['cue'] for a in s['consensus']['agreeing'])})"
+                   if v else "no scale cue, to be measured") + (f"; error: {r['error']}" if r["error"] else ""))
+            done.append(key)
+    analysis["scale_seconds"] = round(time.time() - t0, 1)
+    dump(analysis, job_dir / "analysis.json")
+    log(f"scale cues read in {analysis['scale_seconds']} s")
+    return done
+
+
+def _anchors(analysis):
+    """The drawing records of the analysis per package, for run_document(anchors=...): the later layouts (with text)
+    keep the ids and the drawings the user confirmed in step 1 (a drawing the layout with text no longer finds is
+    kept with its step-1 area)."""
+    return {a_pkg["id"]: {d["id"]: {k: v for k, v in d.items() if k not in ("scale", "error")} for d in a_pkg["drawings"]}
+            for a_pkg in analysis["packages"]}
 
 
 def _preview(img, path):
@@ -299,10 +389,13 @@ def _override(c):
             "note": note}
 
 
-def extract(job_dir, session, confirm, log, progress):
-    """Run the confirmed drawings through stages 2-10. confirm: {"<package>/<drawing>": {"extract": bool,
+def extract(job_dir, session, confirm, log, progress, analysis=None):
+    """Step 3: run the confirmed drawings through stages 2-10. confirm: {"<package>/<drawing>": {"extract": bool,
     "polygon_px": [[x, y], ...] or None, "px_per_m": float or None, "scale_source": str, "measured": {...}, "storey": str}}.
-    Writes <drawing>.json/.dxf, <drawing>_work.jpg, <drawing>_overlay.png and <package>_sheet.json into job_dir/out.
+    With the analysis given, the sheet OCR is bounded to the same boxes as in step 2 (so it comes from the cache) and
+    the drawing ids stay those of step 1 (anchors).
+    Writes <drawing>.json/.dxf, <drawing>_work.jpg, <drawing>_overlay.png and <package>_sheet.json into job_dir/out,
+    and while a drawing runs <key>_live.json with the geometry found so far (the app's live view).
     Returns {"<package>/<drawing>": result record}."""
     import cv2
     from fpx import pipeline
@@ -323,8 +416,20 @@ def extract(job_dir, session, confirm, log, progress):
             log(f"  {key}: building area set by hand ({len(ov['polygon_px'])} corners)")
         if ov["px_per_m"]:
             log(f"  {key}: scale {ov['px_per_m']:.2f} px/m ({ov['note']})")
+    keys = [k for k, c in confirm.items() if c.get("extract") is not False]
+    boxes = _ocr_boxes(analysis, confirm, keys) if analysis else None
+    for stale in out.glob("*_live.json"):                  # live geometry of an earlier run must not show for the new one
+        stale.unlink(missing_ok=True)
+
+    def after(key, stage, sheet):                          # the live view: never let it break the extraction
+        try:
+            _live(out, key, stage, sheet)
+        except Exception as ex:                            # noqa: BLE001
+            log(f"  {key}: live view not written after {stage}: {type(ex).__name__}: {ex}")
+
     entries = pipeline.run_document(None, model=mdl, engine=eng, cfg=cfg, out_dir=out, packages=pkgs, overrides=overrides,
-                                    cache_dir=job_dir / "ocr_cache", progress=progress)
+                                    ocr_boxes=boxes, anchors=_anchors(analysis) if analysis else None,
+                                    cache_dir=CACHE_DIR, progress=progress, after=after)
     results = {}
     for pkg, entry in zip(pkgs, entries):
         for r in entry["drawings"]:
@@ -390,6 +495,53 @@ def load_session(job_dir):
             return pickle.load(f)
     except Exception:                                      # noqa: BLE001
         return None
+
+
+LIVE_STAGES = ("triage", "walls", "openings", "stairs", "rooms")
+
+
+def live_name(key):
+    """The live file of a drawing key '<package>/<drawing>' in the job's out folder."""
+    return f"{key.replace('/', '-')}_live.json"
+
+
+def _rings(g):
+    """Exterior rings of a shapely (multi)polygon in working px, rounded to 0.1 px; [] for anything else."""
+    import shapely
+    if g is None or getattr(g, "is_empty", True):
+        return []
+    polys = list(getattr(g, "geoms", [g]))
+    out = []
+    for p in polys:
+        if p.geom_type != "Polygon":
+            continue
+        out.append([[round(float(x), 1), round(float(y), 1)] for x, y in p.exterior.coords])
+    return out
+
+
+def _live(out, key, stage, sheet):
+    """After a per-drawing stage: the working image (once, after triage) and the geometry found so far, in working
+    px of that image, as <key>_live.json for GET /api/sheets/<id>/live. Only the stages that add geometry write."""
+    import cv2
+    if stage not in LIVE_STAGES:
+        return
+    work = out / f"{sheet.id}_work.jpg"
+    if not work.exists():
+        cv2.imwrite(str(work), cv2.cvtColor(sheet.img, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 88])
+    rec = {"stage": stage, "work": work.name, "size": [int(sheet.img.shape[1]), int(sheet.img.shape[0])], "updated": time.time(),
+           "walls": [], "openings": [], "stairs": [], "rooms": [], "gf": []}
+    if stage != "triage":
+        for p in (getattr(sheet, "wall_polys", None) or []):
+            rec["walls"].extend(_rings(p))
+    if stage in ("openings", "stairs", "rooms"):
+        rec["openings"] = [{"kind": o.get("kind"), "rings": _rings(o.get("poly"))} for o in (getattr(sheet, "openings", None) or [])]
+    if stage in ("stairs", "rooms"):
+        for p in (getattr(sheet, "stairs", None) or []):
+            rec["stairs"].extend(_rings(p))
+    if stage == "rooms":
+        rec["rooms"] = [{"rings": _rings(r.get("poly")), "name": r.get("name")} for r in (getattr(sheet, "rooms", None) or [])]
+        rec["gf"] = _rings(getattr(sheet, "gf", None))
+    dump(rec, out / live_name(key))
 
 
 def _overlay(sheet):

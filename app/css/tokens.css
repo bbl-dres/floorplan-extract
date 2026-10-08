@@ -53,6 +53,7 @@
   --voids: #1f78b4;
   --graph: #0f766e;
   --gf: #111827;
+  --walls-3d: #d6d9df;                /* wall prisms of the 3D view (light, so the shading reads; as in the pilot viewer) */
 
   /* type */
   --font: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

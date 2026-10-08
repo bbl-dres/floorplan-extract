@@ -66,10 +66,20 @@ Stages 1–9 run once per drawing region of type floor plan; stages 0a, 0b, 1b a
 | Upload | Drops sheets (PDF, images; several storeys at once); processing stays on the machine or BBL's servers | 0a |
 | 1 Building area | Confirms the detected drawing outline per sheet and adjusts it so the title block, legend and other drawings stay out | 1b |
 | 2 Scale | Checks the detected scale together with the resolution (scale note, title block or scale bar, highlighted on the sheet); corrects it by measuring a known distance where needed | 1c |
-| 3 Storeys | Orders the drawings by storey, then starts the extraction | 0b, 8 |
+| Results | Opens as the scale is confirmed: the drawing at its working resolution with the walls, openings, stairs and rooms appearing on it as they are found, then the figures, the room list and the exports (Download menu); corrections go back to the area or the scale and run again (ordering and naming the storeys comes later, when several storeys of one building are processed together) | 0b, 8 |
 | Results | Reviews only the flagged rooms and voids (e.g. area far from the stamp, stamp not read), edits them, and exports JSON, DWG, PDF, Excel (IFC later) | 9, 10 |
 
 Each checkpoint is skipped when the pipeline is confident (e.g. a DWG viewport scale, one drawing per sheet) and shown when it is not.
+
+**What runs at each step.** Each step runs only what its decision needs, and nothing runs on the whole sheet that is needed only inside the building area; the confirmed area of step 1 bounds every later stage, OCR included. This keeps the checkpoints fast and loads the segmenter once.
+
+| Step | Runs | Needs | Cost (CPU, one sheet) |
+|---|---|---|---|
+| Upload → 1 Building area | 0a normalisation, 1 preprocessing (deskew), 1b layout rules: drawings, title block, legend, notes, scale bar as regions | no OCR, no model | seconds |
+| 1 confirmed → 2 Scale | 1c scale cues read where they are: OCR of the title block, the captions next to the drawing and the scale-bar labels, and of the dimension strings inside the confirmed area; the consensus of §1c | OCR on a few crops; the segmenter only for the door-width search, which runs on request when no direct cue exists | 5–20 s |
+| 2 confirmed → Results | stages 2–10 inside the confirmed polygon: the text layer reuses the area OCR of step 2 (cached per sheet), segmentation, walls, openings, stairs, rooms, attributes, derived outputs, QA, export | the segmenter, loaded once per session | about a minute, mostly segmentation and the room OCR of large sheets |
+
+Whole-sheet OCR before step 1 is not needed for the building area and was the slowest part of the first app prototype; it belongs to step 2, bounded to the regions that carry scale cues.
 
 ## 4. Data Model
 
@@ -169,14 +179,15 @@ Isolates the content that matters. Output: `regions[]` and `drawings[]` (§4).
 - **Swiss priors** for detection and for synthetic sheets: SIA 400 puts the title block bottom right with plan number, scale(s), revision index, date and format, and key plan, north indication, drawing scales and legends in fields above it; CADexchange 4.3 makes a graphical scale, a north arrow and a key plan mandatory in the title block, requires a cut edge enclosing all content, and allows the title block to be scaled on small formats (so its size is no calibration).
 - **Captions:** each drawing is linked to its caption ("Grundriss 1. OG 1:100"), which gives title, kind, storey and the drawing's own scale note.
 - **Title block:** detect, crop at full resolution, then OCR with key–value parsing (building, plan number, storey, scale, date, revision); a fine-tuned, self-hosted VLM where layouts vary. Zero-shot VLMs do not localise title blocks reliably.
-- **Masks in inference:** stages 3–8 run only inside drawing polygons of kind floor plan (plus a margin for dimension chains). Key plans, details and title-block linework never become walls or a second building.
+- **Masks in inference:** stages 2–9 run only inside drawing polygons of kind floor plan (plus a margin for dimension chains), the OCR of stage 2 included. Key plans, details and title-block linework never become walls or a second building, and the title block is read once per sheet, not per drawing.
+- **When it runs:** at upload, before anything else, without OCR and without the segmenter (the rules read ink; a detector reads the raster), so that the first checkpoint appears within seconds.
 - *Evidence:* region detection reached title block 0.97–1.00 and drawing 0.94–1.00 with a few hundred to 1,400 labelled sheets in three studies; cropping to the drawing raised two baselines by 4–6 mIoU.
 - *Pilot v2:* the drawing region of the CAD print was drawn by hand; the scans have one drawing each.
 - *Pilot v2, wall focus (8 October):* on a sheet loaded whole the rules run as stage 1b, before the text stage: dark scan borders and L-shaped scan edges are dropped, frame, title block, scale bars, legends and north arrows are found, and a band across the sheet whose ink is mostly character-like components (a notes or title strip, its table rules excluded) is not a drawing, all without OCR. The drawing polygons become `drawing_mask`; everything outside is whited out before segmentation and OCR, so title blocks, notes and scan borders never become walls or text. Landgut S3's wall area went from 98.8 m² to 45.4 m² (reference 52.3) once the scan border and the stucco were no longer walls; the USACE sheet's notes strip and title block are masked.
 
 ### 1c. Scale Proposal per Drawing
 
-The segmenter works at one resolution (50 px/m), so each drawing needs a scale before stage 3.
+The segmenter works at one resolution (50 px/m), so each drawing needs a scale before stage 3. The stage runs after the building area is confirmed (step 1) and reads its cues where they are: the title block and the captions next to the drawing for the scale note, the scale-bar region for its labels, the confirmed area for the dimension strings. The door-width search, which needs the segmenter, runs on request when no direct cue exists.
 
 - **Model:** metres per pixel m = N · 25.4 / (1000 · d · r), with N the drawing scale (1:N), d the resolution in dpi, and r the reproduction factor of the print (1 for the original; 0.5 for an A1 sheet copied to A3). Dimension strings, scale bars, area stamps and element sizes measure m directly; a scale note gives N only and needs d and r. SIA 400 expects reductions in √2 steps and requires them to be labelled.
 - **Cues, in trust order, all recorded:**
@@ -200,10 +211,11 @@ The segmenter works at one resolution (50 px/m), so each drawing needs a scale b
 
 ### 2. Text Layer
 
-- Native text from DWG and vector PDF; OCR on the render everywhere else and where the text layer is partial (PP-OCRv6; PaddleOCR-VL or kraken for difficult or hand-lettered text). Merge by overlap.
+- Native text from DWG and vector PDF; OCR on the render everywhere else and where the text layer is partial (PP-OCRv6; PaddleOCR-VL or kraken for difficult or hand-lettered text). Merge by overlap. OCR runs inside the confirmed building area only, once per sheet: the dimension strings read for the scale (stage 1c) and the room stamps read here come from the same cached pass.
 - Keep every string with its polygon, angle and region, and classify its role: room stamp, dimension, level, axis label, caption, title block, legend, other. The region decides first (title block, legend, drawing), the content second.
 - Text inside drawings is not masked for the learned segmenter, which is trained with text on the renders; masking is needed only for classical baselines.
 - *Pilot v1:* room stamps and dimension lines running through rooms split rooms into fragments (classical CV).
+- *Pilot v2, app (8 October):* the app follows the split: at upload `run_document(stages=(), scale=False)` without OCR or model (the layout from the ink; 5 s on the sheet tried, 18 s before), after the area is confirmed `run_document(stages=(), ocr_boxes=...)` reads the scale cues with the OCR bounded to the title block, the caption band and the confirmed area (9 to 13 s; the door-width search only on request; the drawings confirmed in step 1 stay the ones processed: `anchors` keeps their ids through the layout with text and revives a drawing that layout no longer finds, with its confirmed area), and the extraction passes the same boxes so its sheet pre-pass comes from the cache. The whole-sheet OCR at upload (17 s to a minute) is gone. There is no separate run step: confirming the scale starts the extraction, and the results screen (the reduced viewer of the UX study, board 1i) shows the work in progress on the canvas until the drawing is done; the two confirmations are the only steps the user takes.
 
 ### 3. Walls and the Wall Graph
 
