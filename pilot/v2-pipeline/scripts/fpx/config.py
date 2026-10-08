@@ -39,8 +39,9 @@ class Config:
     wall_min_area: float = 0.05         # wall blobs smaller than this are noise (m²)
     column_min_area: float = 0.02       # smallest column cross-section kept (m²): about 15 x 15 cm
     wall_segment_min_length: float = 0.2    # shorter centre-line pieces are skeleton artefacts (m)
-    wall_min_thickness: float = 0.06    # an isolated wall piece thinner than this and than half the sheet's median wall thickness is a single stroke (dimension line, hatching, leader), not a wall: the thinnest partition is 0.08 m; on a coarse plan whose walls are all thin lines nothing is thinner than the median (m)
-    stroke_max_area: float = 0.5        # ... and smaller than this: a 20 m dimension line of one stroke is 0.4 m², a building outline drawn thin is larger (m²)
+    opening_axis_max_depth: float = 0.8     # a door or window blob joins the wall axis as a rectangle no deeper than this, so that the centre line runs on through the opening (an opening is an interval on its wall, not the wall's end); a door label that swallowed its swing is cut back to the wall band (m)
+    stroke_max_length: float = 1.5      # ... and no longer than this (bounding-box diagonal): a longer isolated thin piece is a partition wall drawn as a single line (CVC-FP), which the thin-stroke rule cost 4 points of wall IoU before (m)
+    wall_min_thickness: float = 0.06    # an isolated wall piece thinner than this and than half the sheet's median wall thickness is a stroke (dimension line, hatching, leader) or a furniture partition (workstation, toilet cubicle), not a wall: the thinnest partition wall is 0.08 m; on a coarse plan whose walls are all thin lines nothing is thinner than the median (m)
     railing_max_thickness: float = 0.15 # an isolated piece surrounded by stair treads and thinner than this is a railing or stringer, not a wall (m)
     stair_ring_share: float = 0.6       # share of a wall piece's surroundings that is stair, from which an isolated thin piece counts as part of the stair
     wall_text_prob: float = 0.5         # a wall piece whose pixels lie in text boxes (model v2+ text head) at this mean probability or more is lettering read as wall
@@ -82,6 +83,9 @@ class Config:
     void_min_area: float = 0.5          # smallest void kept (m²)
     separation_prob: float = 0.5        # model v2 boundary head: pixels at this probability or more cut a free region into open-plan areas (1.0: off). The head outlines every area, also where no wall stands: renders merged 297 -> 199, CVC-FP rooms recall 0.64 -> 0.72 at higher precision
     separation_min_area: float = 2.0    # every part of such a cut must reach this area, else the cut is noise around fixtures (m²)
+    separation_line_min_length: float = 1.0   # the shortest drawn line (solid or dashed) tried as an open-plan separation inside a free region with two or more stamps; the cut must leave stamped parts of separation_min_area on both sides (m); 0 turns the rule off
+    separation_line_gap: float = 0.3    # the largest gap bridged in such a line: dashed separation lines (m)
+    separation_reach: float = 0.3       # a thin stroke the wall stage rejected counts as a separation line when both its ends lie within this distance of a wall: a kitchen/dining divider is drawn wall to wall, a leader or furniture line is not (m)
     building_from_interior: bool = True     # model v2 interior head joins the enclosed-barrier rule as the building mask: outside-building misses 157 -> 76 on renders, 27 -> 2 on CVC-FP scans, GF IoU 0.913 -> 0.940; regions need a walled boundary (below), so a blob on empty paper is no room
     building_enclosure: float = 0.5     # with the interior head, a region counts as a room only when this share of its boundary is wall, door or window: a hallucinated blob on empty paper has none
     gf_close: float = 0.3               # closing of the GF outline over small gaps (m)

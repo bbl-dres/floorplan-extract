@@ -277,8 +277,10 @@ class _Sheet:
             touch_h = y <= 0.01 * self.h or y + h >= 0.99 * self.h
             if (touch_v and w <= 0.03 * self.w and h >= 0.2 * self.h) or (touch_h and h <= 0.03 * self.h and w >= 0.2 * self.w):
                 drop[i] = True
-            elif (touch_v or touch_h) and (w >= 0.5 * self.w or h >= 0.5 * self.h) and a < 0.04 * w * h:
+            elif (touch_v or touch_h) and (w >= 0.5 * self.w or h >= 0.5 * self.h) and a < 0.08 * w * h:
                 drop[i] = True                            # an L of dark scan edges: spans the sheet, fills almost none of its box
+            elif touch_h and h <= 0.06 * self.h and w >= 0.2 * self.w and a < 0.6 * w * h:
+                drop[i] = True                            # a torn or smeared scan edge: a wide band with drips below it
         self.scan_edges = drop[lab]
         self.ink = self.ink & ~self.scan_edges
         self.content = self.ink | self.colour
@@ -287,6 +289,9 @@ class _Sheet:
         self.tw = [tuple(v * self.f for v in t["box"]) for t in self.texts]       # boxes in working px
         hs = [min(b[2] - b[0], b[3] - b[1]) for b, t in zip(self.tw, self.texts) if t.get("text", "").strip()]
         self.text_h = float(np.median(hs)) if hs else None
+        if self.text_h is None:                                     # no OCR yet: the mode of the compact components' heights
+            ch = fscale.char_height(self.ink_full)
+            self.text_h = ch * self.f if ch else None
         L = max(self.h, self.w)
         if self.mm:
             self.gap = cfg.layout_gap_mm * self.mm
@@ -790,6 +795,19 @@ def _title_block(S, removed, text_mask, content_box, area):
     return best
 
 
+def _text_ink(ink, S):
+    """Ink pixels of a crop that lie in character-like components (compact, text height): the text share of a
+    cluster when no OCR boxes are known (a notes block is nearly all such ink, a plan's walls are none)."""
+    if ink.size == 0 or not ink.any():
+        return 0
+    n, _, st, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), connectivity=8)
+    w, h, a = st[1:, 2].astype(float), st[1:, 3].astype(float), st[1:, 4].astype(float)
+    hmin = 2 if S.text_h is None else 0.4 * S.text_h
+    hmax = 40 if S.text_h is None else 2.5 * S.text_h
+    ok = (h >= hmin) & (h <= hmax) & (w <= 1.5 * h) & (a >= 0.1 * w * h)
+    return int(a[ok].sum())
+
+
 def _char_count(ink, S):
     """Number of character-like components (compact, text height) in a crop."""
     if ink.size == 0 or not ink.any():
@@ -1019,7 +1037,18 @@ def _drawing_clusters(S, removed, text_mask):
         if ink_px < 20:
             continue
         txt_px = int((with_text[sl] & text_mask[sl] & comp).sum())
-        tshare = txt_px / max(txt_px + ink_px, 1)
+        rule_px = 0
+        if (w >= 4 * h or h >= 4 * w) and max(w, h) >= 0.85 * (S.w if w >= h else S.h):
+            # a band across the sheet (notes strip, title strip): its ruled lines are table borders, not drawing
+            # content, and do not count against its text
+            k = max(10, int(0.1 * max(w, h)))
+            ink_c = (base[sl] & comp).astype(np.uint8)
+            rules = cv2.morphologyEx(ink_c, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (k, 1))) |                 cv2.morphologyEx(ink_c, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, k)))
+            rule_px = int((rules > 0).sum())
+        if S.texts:
+            tshare = txt_px / max(txt_px + ink_px - rule_px, 1)
+        else:                                            # no OCR (the pipeline's layout stage runs before the text stage):
+            tshare = _text_ink(base[sl] & comp, S) / max(ink_px - rule_px, 1)   # character-like components stand in for text boxes
         if tshare >= S.cfg.layout_text_share:
             continue
         m = closed[sl] & comp
@@ -1054,7 +1083,7 @@ def _drawing_clusters(S, removed, text_mask):
         conf = "medium" if max(w, h) >= 2 * S.min_side and tshare < 0.4 else "low"
         out.append({"poly": poly, "confidence": conf, "ink": ink_px,
                     "reason": f"ink cluster {w / S.f:.0f} x {h / S.f:.0f} px (closed over {2 * r / S.f:.0f} px), "
-                              f"{tshare:.0%} text, ink density {density:.2f}"})
+                              f"{tshare:.0%} text{' (band: ruled lines excluded)' if rule_px else ''}, ink density {density:.2f}"})
     # merge clusters that interleave: one lies half or more inside the other's bounding box (wall pieces of a plan
     # whose door openings are drawn as gaps, a wing inside the courtyard of a U); repeated until nothing changes.
     # Separate drawings side by side do not share their bounding boxes.
@@ -1221,6 +1250,18 @@ def mask_sheet(sheet, cfg=DEFAULT):
     strip = lambda d: {k: v for k, v in d.items() if not k.startswith("_")}
     sheet.regions = [strip(r) for r in lay["regions"]]
     drawings = [d for d in lay["drawings"] if d.get("kind") in (None, "floor plan")]
+    if len(drawings) > 1:                                  # a "drawing" along the sheet edge with almost no ink is a scan border
+        H, W = sheet.img.shape[:2]
+        ink = cv2.cvtColor(sheet.img, cv2.COLOR_RGB2GRAY) < 128
+        keep = []
+        for d in drawings:
+            x0, y0, x1, y1 = d["bbox_px"]
+            edge = x0 <= 0.01 * W or y0 <= 0.01 * H or x1 >= 0.99 * W or y1 >= 0.99 * H
+            box = ink[int(max(y0, 0)):int(min(y1, H)), int(max(x0, 0)):int(min(x1, W))]
+            if edge and box.size and box.mean() < 0.03:
+                continue
+            keep.append(d)
+        drawings = keep or drawings
     note = None
     if not drawings:
         note = f"no floor-plan drawing found among {len(lay['drawings'])} drawing(s) and {len(lay['regions'])} region(s): nothing masked"

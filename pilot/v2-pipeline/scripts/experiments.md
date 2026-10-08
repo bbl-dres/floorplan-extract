@@ -1,6 +1,6 @@
 # Training Experiments E1–E3 (Renderer 3.0)
 
-*Command lines for the RunPod runs of §6 item 1 of the [code review](../../../docs/reviews/2026-10-07-pilot-v2-code-review.md). Run from `pilot/v2-pipeline/code/` on the pod with the public data in `data/` (`sd_prepare.py` and `ifc_prepare.py` done, CUDA build of torch, [requirements.txt](requirements.txt)). Public data only on the pod; no BBL sheet.*
+*Command lines for the RunPod runs of §6 item 1 of the [code review](../../../docs/reviews/2026-10-07-pilot-v2-code-review.md). Run from `pilot/v2-pipeline/scripts/` on the pod with the public data in `data/` (`sd_prepare.py` and `ifc_prepare.py` done, CUDA build of torch, [requirements.txt](requirements.txt)). Public data only on the pod; no BBL sheet.*
 
 ## What every run below gets from the renderer (3.0)
 
@@ -42,7 +42,7 @@ python harness.py waffle --out data/harness/waffle-$T.json --model $M
 python fpcad_eval.py --model $M --out data/fpcad-$T --workers 8
 ```
 
-What to read, against model v2 (MODEL_CARD tables):
+What to read, against model v2 (the benchmark tables in the second review, §4.4):
 
 - **E1 vs E2** (heads): CubiCasa door / window IoU (v2: 0.451 / 0.608), render harness rooms recall / precision; the void and swing head IoU on the frozen set (`metrics.json`, `heads`).
 - **E2 vs v2** (M1, M3): CubiCasa door IoU and the share of ground-truth door pixels predicted as window (v1 → v2: 8.6 % → 18.6 %), door recall (0.643 → 0.524), CVC-FP door-as-window (0.016 → 0.13); void head IoU on the frozen set (v2: 0.26, wandering 0.14–0.36).

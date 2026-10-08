@@ -5,8 +5,8 @@ Paths can be overridden with environment variables, so the same code runs locall
 import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent                                 # pilot/v2-pipeline/code: the sources
-PILOT = ROOT.parent                                                     # pilot/v2-pipeline: README, MODEL_CARD, data, viewer
+ROOT = Path(__file__).resolve().parent                                 # pilot/v2-pipeline/scripts: the sources
+PILOT = ROOT.parent                                                     # pilot/v2-pipeline: README, data, viewer
 REPO = ROOT.parents[2]
 DATA = Path(os.environ.get("V2_DATA", PILOT / "data"))                 # gitignored: floors, models, outputs
 FONTS = Path(os.environ.get("V2_FONTS", REPO / "data/public/fonts"))

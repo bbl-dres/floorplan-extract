@@ -73,7 +73,7 @@ def ref_room_at(p):
 def register(d):
     """Translation that aligns a scan's output with the reference (scans only)."""
     gf = shape(d["floor"]["gf"])
-    walls = unary_union([shape(w) for w in d["wall_polygons"]])
+    walls = unary_union([shape(w) for w in d.get("wall_polygons_raw") or d["wall_polygons"]])   # the mask's outline: steadier than the regularised walls
     dx0 = np.array(BUILDING.centroid.coords[0]) - np.array(gf.centroid.coords[0])
     best = max(((iou(shapely.affinity.translate(walls, *(dx0 + [ex, ey])), REF_WALLS), ex, ey)
                 for ex in np.arange(-0.5, 0.51, 0.05) for ey in np.arange(-0.5, 0.51, 0.05)))
@@ -117,6 +117,8 @@ def evaluate(sid):
     res = {"sheet": sid, "shift_m": [round(float(v), 2) for v in shift]}
     res["walls_iou"] = round(iou(pred.walls, REF_WALLS), 3)
     res["walls_area"] = [round(pred.walls.area, 1), round(REF_WALLS.area, 1)]
+    raw = unary_union([shapely.affinity.translate(shape(w), *shift) for w in d.get("wall_polygons_raw", [])])   # the pixel outline of the mask
+    res["walls_iou_raw"] = round(iou(raw, REF_WALLS), 3) if not raw.is_empty else None                         # (wall_polygons is regularised)
     res["gf_iou"] = round(row["gf"]["iou"], 3)
     res["gf_area_error_pct"] = round(row["gf"]["area_err_pct"], 1)
     # rooms: one-to-one matching; each reference room gets the prediction assigned to it (also below IoU 0.5)
@@ -223,7 +225,7 @@ def main(argv=None):
         r = evaluate(sid)
         results.append(r)
         ro, op, co = r["rooms"], r["openings"], r["connectivity"]
-        print(f"{sid}: walls IoU {r['walls_iou']} ({r['walls_area'][0]} vs {r['walls_area'][1]} m²) | GF IoU {r['gf_iou']}, "
+        print(f"{sid}: walls IoU {r['walls_iou']} (regularised; mask {r.get('walls_iou_raw')}) ({r['walls_area'][0]} vs {r['walls_area'][1]} m²) | GF IoU {r['gf_iou']}, "
               f"area {r['gf_area_error_pct']:+}% | rooms {ro['matched_iou50']}/{ro['reference']} IoU>=0.5, mean IoU {ro['mean_iou']}, "
               f"median |area err| {ro['median_abs_area_error_pct']}%, names {ro['names_ok']}/15, stamp areas {ro['stamp_areas_ok']}/15 | "
               f"openings recall {op['recall']} (ext {op['exterior_recall']}, int {op['interior_recall']}), precision {op['precision']} | "

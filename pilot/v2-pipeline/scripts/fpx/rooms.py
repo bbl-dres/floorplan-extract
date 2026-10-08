@@ -3,13 +3,14 @@ and the GF outline."""
 import cv2
 import numpy as np
 from scipy import ndimage
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 
 from .attributes import cluster_stamps, usage
 from .config import DEFAULT
 from .geometry import mask_polys, touches_border
 from .model import DOOR, STAIRS, WINDOW
 from .openings import rough_building
+from .scale import binarise
 
 
 def seal(mask, gray, cfg=DEFAULT):
@@ -151,6 +152,98 @@ def separations(sheet, cc, nxt, cfg=DEFAULT):
     return nxt
 
 
+def _reach(p, d, near, m, ink, slack, max_steps):
+    """Follow a drawn line from p along d to the wall: the walk continues while the line's ink goes on (gaps of up to
+    slack pixels: dashes, faint ends) and ends at the first pixel outside the region, which is the line's end when a
+    barrier lies within reach there (near). None when the ink stops short of a wall (a counter or table edge is not a
+    separation) or the walk leaves the image."""
+    H, W = near.shape
+    last_ink = 0
+    for s in range(max_steps + 1):
+        x, y = p + d * s
+        xi, yi = int(round(x)), int(round(y))
+        if not (0 <= xi < W and 0 <= yi < H):
+            return None
+        if not m[yi, xi]:
+            return np.array([x, y]) if near[yi, xi] and s - last_ink <= slack else None
+        if ink[yi, xi]:
+            last_ink = s
+        elif s - last_ink > slack:
+            return None
+    return None
+
+
+def ink_separations(sheet, cc, nxt, barrier, cfg=DEFAULT):
+    """Open-plan areas divided by a drawn line only, where the segmenter saw no wall (a kitchen against a dining area;
+    SIA 416 counts such areas separately, CVC-FP draws the line, MSD calls it a separation). Inside a free region
+    that holds two or more stamps, straight thin ink lines (solid or dashed: gaps up to separation_line_gap) of at
+    least separation_line_min_length whose ends reach a wall within separation_reach are tried as cuts, longest
+    first; a cut is kept when it leaves two parts of separation_min_area or more that both carry a stamp. Walls,
+    openings, stairs and text are not ink here. The cuts join sheet.separations and the barrier. Returns the next
+    free label."""
+    if not sheet.stamps or cfg.separation_line_min_length <= 0:
+        return nxt
+    gray = cv2.cvtColor(sheet.img, cv2.COLOR_RGB2GRAY)
+    stair = cv2.dilate((sheet.label == STAIRS).astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
+    paper = float(np.median(gray[::7, ::7]))                  # separation lines are often drawn light (grey, dashed): any
+    ink = (gray < 0.8 * paper) & (barrier == 0) & ~stair       # mark visibly darker than the paper counts, not only Otsu ink
+    for t in sheet.text:
+        if not any(ch.isalnum() for ch in t.get("text", "")):   # "= = =": a dashed line the OCR read as text stays a line
+            continue
+        x0, y0, x1, y1 = (int(v) for v in t["box"])
+        ink[max(0, y0 - 2):y1 + 3, max(0, x0 - 2):x1 + 3] = False
+    min_len, gap, reach = cfg.px(cfg.separation_line_min_length), cfg.px(cfg.separation_line_gap), int(cfg.px(cfg.separation_reach))
+    min_part = cfg.px2(cfg.separation_min_area)
+    near = cv2.dilate(barrier, np.ones((2 * reach + 1, 2 * reach + 1), np.uint8)) > 0
+    ink_d = cv2.dilate(ink.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0     # the walk along a line tolerates a pixel of offset
+    pts = [(int((s["box"][1] + s["box"][3]) / 2), int((s["box"][0] + s["box"][2]) / 2)) for s in sheet.stamps]
+    for i, sl, m in list(regions(cc)):
+        if m.sum() < 2 * min_part:
+            continue
+        oy, ox = sl[0].start, sl[1].start
+
+        def stamps_in(m):
+            return [(y - oy, x - ox) for y, x in pts if 0 <= y - oy < m.shape[0] and 0 <= x - ox < m.shape[1] and m[y - oy, x - ox]]
+
+        inside = stamps_in(m)
+        if len(inside) < 2:
+            continue
+        sub = (ink[sl] & m).astype(np.uint8) * 255
+        lines = cv2.HoughLinesP(sub, 1, np.pi / 180, max(int(0.4 * min_len), 10), minLineLength=int(min_len), maxLineGap=int(gap))
+        if lines is None:
+            continue
+        cands = sorted(lines[:, 0, :].astype(float), key=lambda l: -np.hypot(l[2] - l[0], l[3] - l[1]))
+        for x0, y0, x1, y1 in cands[:40]:
+            a, b = np.array([x0, y0]), np.array([x1, y1])
+            d = (b - a) / max(np.linalg.norm(b - a), 1e-6)
+            ends = [_reach(p, sgn * d, near[sl], m, ink_d[sl], int(gap + reach), int(2 * min_len)) for p, sgn in ((a, -1), (b, 1))]
+            if ends[0] is None or ends[1] is None:
+                continue
+            cut = np.zeros(m.shape, np.uint8)
+            cv2.line(cut, tuple(int(round(v)) for v in ends[0]), tuple(int(round(v)) for v in ends[1]), 1, 3)
+            k, parts = cv2.connectedComponents((m & (cut == 0)).astype(np.uint8), connectivity=4)
+            sizes = np.bincount(parts.ravel(), minlength=k)
+            big = [j for j in range(1, k) if sizes[j] >= min_part]
+            if len(big) < 2:
+                continue
+            stamped = {int(parts[y, x]) for y, x in inside if parts[y, x] in big}
+            if len(stamped) < 2:
+                continue
+            keep = np.isin(parts, big)
+            iy, ix = ndimage.distance_transform_edt(~keep, return_distances=False, return_indices=True)
+            owner = parts[iy, ix]
+            for j in big[1:]:                            # the first part keeps the region's label
+                cc[sl][m & (owner == j)] = nxt
+                nxt += 1
+            barrier[sl][(cut > 0) & m] = 1
+            sheet.separations.append({"line": LineString([ends[0] + [ox, oy], ends[1] + [ox, oy]]), "source": "drawn line"})
+            m = cc[sl] == i
+            inside = stamps_in(m)
+            if len(inside) < 2:
+                break
+    return nxt
+
+
 def enclosed(cc, barrier, cfg=DEFAULT):
     """Drop regions whose boundary is mostly not wall, door or window (a blob the interior head put on empty paper)."""
     for i, sl, m in list(regions(cc)):
@@ -158,6 +251,40 @@ def enclosed(cc, barrier, cfg=DEFAULT):
         if ring.any() and (ring & (barrier[sl] > 0)).sum() / ring.sum() < cfg.building_enclosure:
             cc[sl][m] = 0
     return cc
+
+
+def separation_strokes(sheet, cfg=DEFAULT):
+    """Thin strokes the wall stage rejected that run from wall to wall: on open plans a kitchen, a dining area and a
+    living area are divided by such a line only (CVC-FP draws them, MSD calls them separations). Both ends of the
+    stroke's longest axis must lie within separation_reach of the wall mask; furniture partitions and leaders float
+    free and stay out. Returns [LineString] in working pixels."""
+    wall = sheet.wall_mask
+    if wall is None or not sheet.wall_rejects:
+        return []
+    near = cv2.dilate(wall.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+    reach = cfg.px(cfg.separation_reach)
+    H, W = wall.shape
+    out = []
+    for r in sheet.wall_rejects:
+        if r["reason"] != "thin stroke":
+            continue
+        rect = r["poly"].minimum_rotated_rectangle
+        xy = np.asarray(rect.exterior.coords)[:4]
+        e = [np.linalg.norm(xy[i + 1] - xy[i]) for i in range(3)] + [np.linalg.norm(xy[0] - xy[3])]
+        i = int(np.argmax(e))                             # the long sides of the rectangle
+        a, b = (xy[i] + xy[(i + 3) % 4]) / 2, (xy[(i + 1) % 4] + xy[(i + 2) % 4]) / 2
+        if np.linalg.norm(b - a) < cfg.px(cfg.wall_segment_min_length):
+            continue
+        ends_on_wall = 0
+        for pt in (a, b):
+            x, y = int(np.clip(pt[0], 0, W - 1)), int(np.clip(pt[1], 0, H - 1))
+            r0 = int(reach)
+            if near[max(0, y - r0):y + r0 + 1, max(0, x - r0):x + r0 + 1].any():
+                ends_on_wall += 1
+        if ends_on_wall == 2:
+            out.append(LineString([a, b]))
+            r["separation"] = True
+    return out
 
 
 def rooms(sheet, cfg=DEFAULT):
@@ -169,6 +296,10 @@ def rooms(sheet, cfg=DEFAULT):
         if o["kind"] == "passage":
             a, b = o["line"]
             cv2.line(barrier, tuple(int(v) for v in a), tuple(int(v) for v in b), 1, 3)
+    sheet.separations = []
+    for line in separation_strokes(sheet, cfg):         # thin lines from wall to wall divide open areas (no walls)
+        cv2.polylines(barrier, [np.round(np.asarray(line.coords)).astype(np.int32)], False, 1, 3)
+        sheet.separations.append({"line": line, "source": "thin stroke"})
     k = int(cfg.px(cfg.slit_close)) | 1                # close slits between walls and partly labelled openings
     barrier_raw = barrier.copy()                       # voids are measured on the unclosed barrier (the closing eats 0.15 m per side)
     barrier = cv2.morphologyEx(barrier, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
@@ -199,7 +330,8 @@ def rooms(sheet, cfg=DEFAULT):
         for j in range(2, k):
             cc[sl][parts == j] = nxt
             nxt += 1
-    nxt = separations(sheet, cc, nxt, cfg)             # open-plan areas (model v2 boundary head; off by default)
+    nxt = separations(sheet, cc, nxt, cfg)             # open-plan areas (model v2 boundary head)
+    nxt = ink_separations(sheet, cc, nxt, barrier, cfg)   # ... and drawn lines between stamped areas
     out = []
     for i, sl, m in regions(cc):
         if m.sum() < min_room or at_border(sl, m, cc.shape):

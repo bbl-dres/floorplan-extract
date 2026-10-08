@@ -109,20 +109,23 @@ def wall_construction(sheet, cfg=DEFAULT):
     dark = cv2.cvtColor(sheet.img, cv2.COLOR_RGB2GRAY) < 128
     depth = ndimage.distance_transform_edt(wall)
     core = depth >= 2.5
-    skel, order = np.zeros(wall.shape, np.int32), []
-    for s in sheet.wall_segments:                          # every wall pixel belongs to the nearest segment's centre line
-        order.append(s)
-        pts = np.round(np.asarray(s["line"].coords)).astype(np.int32)
-        cv2.polylines(skel, [pts], False, len(order), 1)
-    skel[~wall] = 0
+    order = list(sheet.wall_segments)
+    owner = np.zeros(wall.shape, np.int32)
+    # every segment owns its own rectangle (centre line buffered by half its thickness); where rectangles overlap at
+    # a junction the thicker wall wins (painted last), so a thin wall never claims the core of the wall it joins
+    for k, s in sorted(enumerate(order, 1), key=lambda ks: ks[1]["thickness"]):
+        rect = s["line"].buffer(max(cfg.px(s["thickness"]) / 2, 1.0), cap_style="flat")
+        if not rect.is_empty and rect.geom_type == "Polygon":
+            cv2.fillPoly(owner, [np.round(np.asarray(rect.exterior.coords) * 4).astype(np.int32)], k, shift=2)
+    owner[~wall] = 0
     _, comp = cv2.connectedComponents(wall.astype(np.uint8), connectivity=8)
-    owner, massive, loose = np.zeros(wall.shape, np.int32), np.zeros(wall.shape, bool), 0
+    massive, loose = np.zeros(wall.shape, bool), 0
     for c, sl in enumerate(ndimage.find_objects(comp), 1):
         if sl is None:
             continue
         mc = comp[sl] == c
-        sk = np.where(mc, skel[sl], 0)
-        if sk.any():
+        sk = np.where(mc, owner[sl], 0)
+        if sk.any():                                   # wall pixels outside every rectangle join the nearest owned pixel
             _, (iy, ix) = ndimage.distance_transform_edt(sk == 0, return_indices=True)
             owner[sl][mc] = sk[iy, ix][mc]
         else:                                          # a wall piece without centre line: classified on its own

@@ -26,7 +26,7 @@ FORMAT = "fpx-segmenter"
 
 def build_model(pretrained=True, heads=()):
     """U-Net/ResNet-34 with len(CLASSES) softmax channels followed by one sigmoid channel per extra head.
-    pretrained=True starts the encoder from ImageNet weights (licence question: MODEL_CARD.md)."""
+    pretrained=True starts the encoder from ImageNet weights (licence question: the pilot README, Model)."""
     return smp.Unet("resnet34", encoder_weights="imagenet" if pretrained else None, classes=len(CLASSES) + len(heads))
 
 

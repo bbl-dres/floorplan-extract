@@ -126,8 +126,10 @@ def test_wall_construction(tmp_path):
     assert light and all(w["thickness"] < DEFAULT.massive_wall_min_thickness for w in light)
     assert all(w["construction"] == "massive" for w in data["walls"] if w["thickness"] >= 0.25)
     massive = shapely.unary_union([shapely.geometry.shape(g) for g in data["massive_wall_polygons"]])
-    walls = shapely.unary_union([shapely.geometry.shape(g) for g in data["wall_polygons"]])
+    walls = shapely.unary_union([shapely.geometry.shape(g) for g in data["wall_polygons_raw"]])   # the hatch is cut from the pixel mask
     assert 0 < massive.area < walls.area - 0.1                                        # the stub (0.2 m²) is not hatched
+    regular = shapely.unary_union([shapely.geometry.shape(g) for g in data["wall_polygons"]])
+    assert regular.area == pytest.approx(walls.area, rel=0.05)                       # straight segments with thickness cover the mask
     assert failing(rules) == {"AOID_001"}
 
 

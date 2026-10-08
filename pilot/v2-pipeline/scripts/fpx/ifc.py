@@ -9,8 +9,8 @@ What is written, and how it maps to the data model (docs/motivation-goals.md, do
 - IfcWall per wall segment (centre line swept by the thickness), Pset_WallCommon.IsExternal from the wall kind,
   LoadBearing left unset (unknown); Pset_BBL_Wand with the construction heuristic;
 - IfcDoor per door of any kind (an empty door opening: PredefinedType USERDEFINED, ObjectType "empty opening"),
-  IfcWindow per window, both as the opening polygon extruded to nominal heights, free-standing (hosting as
-  IfcOpeningElement in the wall follows when openings are intervals on the wall graph);
+  IfcWindow per window, both as the opening polygon extruded to nominal heights; where the opening has a host wall
+  it fills an IfcOpeningElement cut from that wall (the wall axis runs on through its openings), else it stands free;
 - IfcStair per room with flights, aggregating one IfcStairFlight per flight polygon; IfcColumn per column;
 - IfcSlab (FLOOR) with the GF polygon, one IfcOpeningElement per deducted void;
 - IfcRelSpaceBoundary (first level) between every door and the two spaces it connects.
@@ -143,6 +143,7 @@ def to_ifc(data, path, cfg=DEFAULT):
         spaces[r["id"]] = s                               # spaces are aggregated into the storey, not contained
         count["spaces"] = count.get("spaces", 0) + 1
     api.aggregate.assign_object(f, products=list(spaces.values()), relating_object=storey)
+    walls_by_id = {}
     for wl in data["walls"]:
         line = shape(wl["centre_line"])
         if line.is_empty or line.length == 0:
@@ -154,6 +155,7 @@ def to_ifc(data, path, cfg=DEFAULT):
         w.pset(e, "Pset_BBL_Wand", {"Kind": wl.get("kind"), "Thickness": wl.get("thickness"), "Construction": wl.get("construction"),
                                      "ConstructionBasis": wl.get("construction_basis"), "LoadBearing": "unknown"})
         add(e, "walls")
+        walls_by_id[wl["id"]] = e
     doors = {}
     for o in data["openings"]:
         poly = _largest(o["geometry"])
@@ -175,6 +177,18 @@ def to_ifc(data, path, cfg=DEFAULT):
             add(e, "windows")
         w.pset(e, "Pset_BBL_Oeffnung", {"Kind": o["kind"], "Width": o.get("width"), "HostWall": o.get("host"), "Source": o.get("source"),
                                          "Connects": ", ".join(str(c) for c in (o.get("connects") or []) if c) or None})
+        host = walls_by_id.get(o.get("host"))
+        if host is not None:                              # the opening is cut from its wall and the door or window fills it
+            void = w.entity("IfcOpeningElement", o["id"], sid, "wall opening", o["id"], predefined_type="OPENING")
+            w.solid(void, poly, h)
+            api.feature.add_feature(f, feature=void, element=host)
+            api.feature.add_filling(f, opening=void, element=e)
+            for name in ("VoidsElements", "HasFillings"):     # the two relationships: GUIDs from the opening id, not from the API
+                v = getattr(void, name, None)
+                for rel in (list(v) if isinstance(v, tuple) else ([v] if v else [])):
+                    rel.GlobalId = guid(sid, rel.is_a(), o["id"])
+                    w.guids.add(rel.GlobalId)
+            count["wall openings"] = count.get("wall openings", 0) + 1
     for k, s in enumerate(data.get("stairs", [])):
         poly = _largest(s)
         if poly is None:
@@ -211,6 +225,7 @@ def to_ifc(data, path, cfg=DEFAULT):
             if rid in spaces:
                 b = f.createIfcRelSpaceBoundary(guid(sid, "boundary", did, rid), None, None, None, spaces[rid], e, None, "PHYSICAL",
                                                 "EXTERNAL" if o.get("exterior") else "INTERNAL")
+                w.guids.add(b.GlobalId)                        # derived from the ids: not renormalised below
                 count["space boundaries"] = count.get("space boundaries", 0) + 1
     for e in f.by_type("IfcRoot"):                        # relationships and property sets got random GUIDs from the API
         if e.GlobalId not in w.guids:

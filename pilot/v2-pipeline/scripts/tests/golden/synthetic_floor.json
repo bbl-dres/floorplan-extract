@@ -504,12 +504,12 @@
      "type": "LineString",
      "coordinates": [
       [
-       5.82,
-       9.86
+       5.85,
+       9.85
       ],
       [
-       3.82,
-       9.86
+       1.17,
+       9.85
       ]
      ]
     },
@@ -518,7 +518,14 @@
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "window",
+      "from": 2.16,
+      "to": 3.36
+     }
+    ]
    },
    {
     "id": "w001",
@@ -526,21 +533,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       5.84,
-       9.84
+       1.15,
+       9.85
       ],
       [
-       5.82,
-       8.66
+       1.15,
+       6.15
       ]
      ]
     },
-    "thickness": 0.3,
-    "kind": "interior",
+    "thickness": 0.32,
+    "kind": "exterior",
     "load_bearing": "unknown",
     "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "construction_basis": "heuristic: 0.32 m thick (massive from 0.17 m)",
+    "fill_share": 1.0,
+    "openings": []
    },
    {
     "id": "w002",
@@ -548,21 +556,28 @@
      "type": "LineString",
      "coordinates": [
       [
-       5.86,
-       9.86
+       5.85,
+       9.845
       ],
       [
-       7.36,
-       9.88
+       5.85,
+       6.155
       ]
      ]
     },
     "thickness": 0.3,
-    "kind": "exterior",
+    "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "window",
+      "from": 1.32,
+      "to": 2.35
+     }
+    ]
    },
    {
     "id": "w003",
@@ -570,12 +585,12 @@
      "type": "LineString",
      "coordinates": [
       [
-       10.52,
-       9.86
+       5.85,
+       9.85
       ],
       [
-       8.82,
-       9.86
+       10.55,
+       9.85
       ]
      ]
     },
@@ -584,7 +599,14 @@
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "window",
+      "from": 1.62,
+      "to": 2.84
+     }
+    ]
    },
    {
     "id": "w004",
@@ -592,12 +614,12 @@
      "type": "LineString",
      "coordinates": [
       [
-       10.54,
-       9.84
+       10.55,
+       9.845
       ],
       [
-       10.54,
-       6.18
+       10.55,
+       6.155
       ]
      ]
     },
@@ -606,7 +628,8 @@
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": []
    },
    {
     "id": "w005",
@@ -614,21 +637,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       10.56,
-       9.86
+       10.55,
+       9.85
       ],
       [
-       17.16,
-       9.88
+       17.17,
+       9.85
       ]
      ]
     },
-    "thickness": 0.3,
+    "thickness": 0.32,
     "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 0.99
+    "construction_basis": "heuristic: 0.32 m thick (massive from 0.17 m)",
+    "fill_share": 0.99,
+    "openings": []
    },
    {
     "id": "w006",
@@ -636,25 +660,28 @@
      "type": "LineString",
      "coordinates": [
       [
-       1.14,
-       6.18
+       1.155,
+       6.15
       ],
       [
-       1.14,
-       9.84
-      ],
-      [
-       2.36,
-       9.88
+       5.85,
+       6.15
       ]
      ]
     },
     "thickness": 0.3,
-    "kind": "exterior",
+    "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "door",
+      "from": 1.83,
+      "to": 2.75
+     }
+    ]
    },
    {
     "id": "w007",
@@ -662,21 +689,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       1.16,
-       6.16
+       1.15,
+       6.15
       ],
       [
-       2.86,
-       6.18
+       1.15,
+       4.35
       ]
      ]
     },
     "thickness": 0.3,
-    "kind": "interior",
+    "kind": "exterior",
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": []
    },
    {
     "id": "w008",
@@ -684,21 +712,28 @@
      "type": "LineString",
      "coordinates": [
       [
-       1.14,
-       6.14
+       5.85,
+       6.15
       ],
       [
-       1.14,
-       4.38
+       10.55,
+       6.15
       ]
      ]
     },
     "thickness": 0.3,
-    "kind": "exterior",
+    "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "door",
+      "from": 2.14,
+      "to": 3.04
+     }
+    ]
    },
    {
     "id": "w009",
@@ -706,21 +741,28 @@
      "type": "LineString",
      "coordinates": [
       [
-       5.84,
-       6.18
+       10.55,
+       6.15
       ],
       [
-       5.86,
-       7.38
+       17.145,
+       6.15
       ]
      ]
     },
     "thickness": 0.3,
-    "kind": "interior",
+    "kind": "exterior",
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "door",
+      "from": 4.93,
+      "to": 5.85
+     }
+    ]
    },
    {
     "id": "w010",
@@ -728,21 +770,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       5.82,
-       6.16
+       17.15,
+       6.15
       ],
       [
-       4.02,
-       6.16
+       17.15,
+       8.67
       ]
      ]
     },
-    "thickness": 0.3,
-    "kind": "interior",
+    "thickness": 0.32,
+    "kind": "exterior",
     "load_bearing": "unknown",
     "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "construction_basis": "heuristic: 0.32 m thick (massive from 0.17 m)",
+    "fill_share": 0.85,
+    "openings": []
    },
    {
     "id": "w011",
@@ -750,12 +793,12 @@
      "type": "LineString",
      "coordinates": [
       [
-       5.86,
-       6.16
+       17.15,
+       6.15
       ],
       [
-       7.86,
-       6.18
+       17.15,
+       4.35
       ]
      ]
     },
@@ -764,7 +807,8 @@
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 0.84,
+    "openings": []
    },
    {
     "id": "w012",
@@ -772,12 +816,12 @@
      "type": "LineString",
      "coordinates": [
       [
-       10.52,
-       6.16
+       1.155,
+       4.35
       ],
       [
-       9.02,
-       6.16
+       8.15,
+       4.35
       ]
      ]
     },
@@ -786,7 +830,14 @@
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "door",
+      "from": 3.83,
+      "to": 4.75
+     }
+    ]
    },
    {
     "id": "w013",
@@ -794,21 +845,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       10.56,
-       6.16
+       1.15,
+       4.35
       ],
       [
-       15.36,
-       6.18
+       1.15,
+       1.15
       ]
      ]
     },
-    "thickness": 0.3,
+    "thickness": 0.32,
     "kind": "exterior",
     "load_bearing": "unknown",
     "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "construction_basis": "heuristic: 0.32 m thick (massive from 0.17 m)",
+    "fill_share": 1.0,
+    "openings": []
    },
    {
     "id": "w014",
@@ -816,12 +868,12 @@
      "type": "LineString",
      "coordinates": [
       [
-       17.14,
-       6.18
+       1.17,
+       1.15
       ],
       [
-       17.16,
-       8.68
+       8.15,
+       1.15
       ]
      ]
     },
@@ -830,7 +882,14 @@
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 0.84
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "door",
+      "from": 1.3,
+      "to": 2.24
+     }
+    ]
    },
    {
     "id": "w015",
@@ -838,21 +897,28 @@
      "type": "LineString",
      "coordinates": [
       [
-       17.12,
-       6.16
+       17.145,
+       4.35
       ],
       [
-       16.52,
-       6.16
+       8.15,
+       4.35
       ]
      ]
     },
     "thickness": 0.3,
-    "kind": "exterior",
+    "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": [
+     {
+      "kind": "door",
+      "from": 5.25,
+      "to": 6.17
+     }
+    ]
    },
    {
     "id": "w016",
@@ -860,21 +926,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       17.14,
-       6.14
+       17.15,
+       4.35
       ],
       [
-       17.14,
-       4.38
+       17.15,
+       1.15
       ]
      ]
     },
-    "thickness": 0.3,
+    "thickness": 0.32,
     "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 0.84
+    "construction_basis": "heuristic: 0.32 m thick (massive from 0.17 m)",
+    "fill_share": 0.85,
+    "openings": []
    },
    {
     "id": "w017",
@@ -882,21 +949,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       1.16,
-       4.36
+       17.13,
+       1.15
       ],
       [
-       4.86,
-       4.38
+       8.15,
+       1.15
       ]
      ]
     },
     "thickness": 0.3,
-    "kind": "interior",
+    "kind": "exterior",
     "load_bearing": "unknown",
     "construction": "massive",
     "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "fill_share": 1.0,
+    "openings": []
    },
    {
     "id": "w018",
@@ -904,25 +972,22 @@
      "type": "LineString",
      "coordinates": [
       [
-       1.14,
-       4.34
+       8.15,
+       4.345
       ],
       [
-       1.14,
-       1.18
-      ],
-      [
-       2.36,
-       1.18
+       8.15,
+       3.75
       ]
      ]
     },
-    "thickness": 0.3,
-    "kind": "exterior",
+    "thickness": 0.32,
+    "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "construction_basis": "heuristic: 0.32 m thick (massive from 0.17 m)",
+    "fill_share": 1.0,
+    "openings": []
    },
    {
     "id": "w019",
@@ -930,160 +995,437 @@
      "type": "LineString",
      "coordinates": [
       [
-       17.12,
-       4.36
+       8.15,
+       1.155
       ],
       [
-       12.02,
-       4.36
+       8.15,
+       2.47
       ]
      ]
     },
-    "thickness": 0.3,
+    "thickness": 0.32,
     "kind": "interior",
     "load_bearing": "unknown",
     "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
-   },
-   {
-    "id": "w020",
-    "centre_line": {
-     "type": "LineString",
-     "coordinates": [
-      [
-       17.14,
-       4.34
-      ],
-      [
-       17.12,
-       1.16
-      ],
-      [
-       8.16,
-       1.16
-      ]
-     ]
-    },
-    "thickness": 0.3,
-    "kind": "exterior",
-    "load_bearing": "unknown",
-    "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 0.95
-   },
-   {
-    "id": "w021",
-    "centre_line": {
-     "type": "LineString",
-     "coordinates": [
-      [
-       8.12,
-       4.36
-      ],
-      [
-       6.02,
-       4.36
-      ]
-     ]
-    },
-    "thickness": 0.3,
-    "kind": "interior",
-    "load_bearing": "unknown",
-    "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
-   },
-   {
-    "id": "w022",
-    "centre_line": {
-     "type": "LineString",
-     "coordinates": [
-      [
-       8.14,
-       4.34
-      ],
-      [
-       8.12,
-       3.76
-      ]
-     ]
-    },
-    "thickness": 0.3,
-    "kind": "interior",
-    "load_bearing": "unknown",
-    "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
-   },
-   {
-    "id": "w023",
-    "centre_line": {
-     "type": "LineString",
-     "coordinates": [
-      [
-       8.16,
-       4.36
-      ],
-      [
-       10.86,
-       4.38
-      ]
-     ]
-    },
-    "thickness": 0.3,
-    "kind": "interior",
-    "load_bearing": "unknown",
-    "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
-   },
-   {
-    "id": "w024",
-    "centre_line": {
-     "type": "LineString",
-     "coordinates": [
-      [
-       8.14,
-       1.18
-      ],
-      [
-       8.16,
-       2.48
-      ]
-     ]
-    },
-    "thickness": 0.3,
-    "kind": "interior",
-    "load_bearing": "unknown",
-    "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
-   },
-   {
-    "id": "w025",
-    "centre_line": {
-     "type": "LineString",
-     "coordinates": [
-      [
-       8.12,
-       1.16
-      ],
-      [
-       3.52,
-       1.16
-      ]
-     ]
-    },
-    "thickness": 0.3,
-    "kind": "exterior",
-    "load_bearing": "unknown",
-    "construction": "massive",
-    "construction_basis": "heuristic: 0.30 m thick (massive from 0.17 m)",
-    "fill_share": 1.0
+    "construction_basis": "heuristic: 0.32 m thick (massive from 0.17 m)",
+    "fill_share": 1.0,
+    "openings": []
    }
   ],
   "wall_polygons": [
+   {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       2.49,
+       10.0
+      ],
+      [
+       2.49,
+       9.7
+      ],
+      [
+       1.31,
+       9.7
+      ],
+      [
+       1.31,
+       6.3
+      ],
+      [
+       2.981,
+       6.3
+      ],
+      [
+       2.981,
+       6.0
+      ],
+      [
+       1.3,
+       6.0
+      ],
+      [
+       1.3,
+       4.5
+      ],
+      [
+       4.983,
+       4.5
+      ],
+      [
+       4.983,
+       4.2
+      ],
+      [
+       1.31,
+       4.2
+      ],
+      [
+       1.31,
+       1.3
+      ],
+      [
+       2.47,
+       1.3
+      ],
+      [
+       2.47,
+       1.0
+      ],
+      [
+       1.17,
+       1.0
+      ],
+      [
+       1.17,
+       1.15
+      ],
+      [
+       0.99,
+       1.15
+      ],
+      [
+       0.99,
+       4.5
+      ],
+      [
+       1.0,
+       4.5
+      ],
+      [
+       1.0,
+       6.0
+      ],
+      [
+       0.99,
+       6.0
+      ],
+      [
+       0.99,
+       9.85
+      ],
+      [
+       1.17,
+       9.85
+      ],
+      [
+       1.17,
+       10.0
+      ],
+      [
+       2.49,
+       10.0
+      ]
+     ]
+    ]
+   },
+   {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       3.69,
+       10.0
+      ],
+      [
+       7.47,
+       10.0
+      ],
+      [
+       7.47,
+       9.7
+      ],
+      [
+       6.0,
+       9.7
+      ],
+      [
+       6.0,
+       8.521
+      ],
+      [
+       5.7,
+       8.521
+      ],
+      [
+       5.7,
+       9.7
+      ],
+      [
+       3.69,
+       9.7
+      ],
+      [
+       3.69,
+       10.0
+      ]
+     ]
+    ]
+   },
+   {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       5.7,
+       6.3
+      ],
+      [
+       5.7,
+       7.499
+      ],
+      [
+       6.0,
+       7.499
+      ],
+      [
+       6.0,
+       6.3
+      ],
+      [
+       7.99,
+       6.3
+      ],
+      [
+       7.99,
+       6.0
+      ],
+      [
+       3.904,
+       6.0
+      ],
+      [
+       3.904,
+       6.3
+      ],
+      [
+       5.7,
+       6.3
+      ]
+     ]
+    ]
+   },
+   {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       10.975,
+       4.2
+      ],
+      [
+       8.31,
+       4.2
+      ],
+      [
+       8.31,
+       3.75
+      ],
+      [
+       7.99,
+       3.75
+      ],
+      [
+       7.99,
+       4.2
+      ],
+      [
+       5.905,
+       4.2
+      ],
+      [
+       5.905,
+       4.5
+      ],
+      [
+       10.975,
+       4.5
+      ],
+      [
+       10.975,
+       4.2
+      ]
+     ]
+    ]
+   },
+   {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       3.41,
+       1.3
+      ],
+      [
+       7.99,
+       1.3
+      ],
+      [
+       7.99,
+       2.47
+      ],
+      [
+       8.31,
+       2.47
+      ],
+      [
+       8.31,
+       1.3
+      ],
+      [
+       16.99,
+       1.3
+      ],
+      [
+       16.99,
+       4.2
+      ],
+      [
+       11.896,
+       4.2
+      ],
+      [
+       11.896,
+       4.5
+      ],
+      [
+       17.0,
+       4.5
+      ],
+      [
+       17.0,
+       6.0
+      ],
+      [
+       16.403,
+       6.0
+      ],
+      [
+       16.403,
+       6.3
+      ],
+      [
+       16.99,
+       6.3
+      ],
+      [
+       16.99,
+       8.67
+      ],
+      [
+       17.31,
+       8.67
+      ],
+      [
+       17.31,
+       6.0
+      ],
+      [
+       17.3,
+       6.0
+      ],
+      [
+       17.3,
+       4.5
+      ],
+      [
+       17.31,
+       4.5
+      ],
+      [
+       17.31,
+       1.15
+      ],
+      [
+       17.13,
+       1.15
+      ],
+      [
+       17.13,
+       1.0
+      ],
+      [
+       3.41,
+       1.0
+      ],
+      [
+       3.41,
+       1.3
+      ]
+     ]
+    ]
+   },
+   {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       10.4,
+       9.7
+      ],
+      [
+       8.69,
+       9.7
+      ],
+      [
+       8.69,
+       10.0
+      ],
+      [
+       10.4,
+       10.0
+      ],
+      [
+       10.4,
+       10.01
+      ],
+      [
+       17.17,
+       10.01
+      ],
+      [
+       17.17,
+       9.69
+      ],
+      [
+       10.7,
+       9.69
+      ],
+      [
+       10.7,
+       6.3
+      ],
+      [
+       15.481,
+       6.3
+      ],
+      [
+       15.481,
+       6.0
+      ],
+      [
+       8.89,
+       6.0
+      ],
+      [
+       8.89,
+       6.3
+      ],
+      [
+       10.4,
+       6.3
+      ],
+      [
+       10.4,
+       9.7
+      ]
+     ]
+    ]
+   }
+  ],
+  "wall_polygons_raw": [
    {
     "type": "Polygon",
     "coordinates": [
@@ -1588,11 +1930,13 @@
     ]
    }
   ],
+  "wall_rejects": [],
   "wall_bridges": [],
+  "separations": [],
   "wall_construction": {
    "method": "heuristic",
    "rule": "massive if at least 0.17 m thick, or drawn solid (>= 60% ink in the wall core) and at least 0.1 m thick; otherwise lightweight",
-   "massive_segments": 26,
+   "massive_segments": 20,
    "lightweight_segments": 0,
    "massive_pieces_without_centre_line": 1,
    "massive_area": 24.97,
@@ -2108,7 +2452,7 @@
    {
     "id": "o000",
     "kind": "door",
-    "host": "w010",
+    "host": "w006",
     "exterior": false,
     "width": 0.88,
     "connects": [
@@ -2147,7 +2491,7 @@
    {
     "id": "o001",
     "kind": "door",
-    "host": "w012",
+    "host": "w008",
     "exterior": false,
     "width": 0.88,
     "connects": [
@@ -2186,7 +2530,7 @@
    {
     "id": "o002",
     "kind": "door",
-    "host": "w015",
+    "host": "w009",
     "exterior": false,
     "width": 0.88,
     "connects": [
@@ -2225,7 +2569,7 @@
    {
     "id": "o003",
     "kind": "door",
-    "host": "w021",
+    "host": "w012",
     "exterior": false,
     "width": 0.88,
     "connects": [
@@ -2264,7 +2608,7 @@
    {
     "id": "o004",
     "kind": "door",
-    "host": "w019",
+    "host": "w015",
     "exterior": false,
     "width": 0.88,
     "connects": [
@@ -2303,7 +2647,7 @@
    {
     "id": "o005",
     "kind": "exterior door",
-    "host": "w025",
+    "host": "w014",
     "exterior": true,
     "width": 0.88,
     "connects": [
@@ -2414,7 +2758,7 @@
    {
     "id": "o008",
     "kind": "interior opening",
-    "host": "w009",
+    "host": "w002",
     "exterior": false,
     "width": 0.98,
     "connects": [
@@ -2453,7 +2797,7 @@
    {
     "id": "o009",
     "kind": "passage",
-    "host": "w022",
+    "host": "w018",
     "exterior": false,
     "width": 1.0,
     "connects": [
@@ -5255,8 +5599,9 @@
     "storey_height": 3.0,
     "counts": {
      "spaces": 8,
-     "walls": 26,
+     "walls": 20,
      "doors": 7,
+     "wall openings": 10,
      "windows": 3,
      "stair flights": 2,
      "columns": 1,
@@ -5269,7 +5614,7 @@
  "dxf": {
   "V_BEMASSUNG DIMENSION": 2,
   "A_SCHRAFFUR HATCH": 7,
-  "A_ARCHITEKTUR LWPOLYLINE": 20,
+  "A_ARCHITEKTUR LWPOLYLINE": 18,
   "R_GESCHOSSPOLYGON LWPOLYLINE": 1,
   "R_RAUMPOLYGON LWPOLYLINE": 8,
   "R_RAUMPOLYGON-ABZUG LWPOLYLINE": 1,

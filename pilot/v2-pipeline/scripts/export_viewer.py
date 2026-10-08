@@ -31,8 +31,8 @@ except FileNotFoundError:
 
 OUT = DATA / "out"
 BENCH = DATA / "bench"
-BENCH_DIRS = [BENCH, DATA / "curated-test", DATA / "curated-v1", DATA / "curated-v2"]
-LANDGUT_DIRS = [OUT, DATA / "out-v2b"]                    # v1 and the current v2 run (out-v2 was v2 before the code review)
+BENCH_DIRS = [BENCH, DATA / "curated-test", DATA / "curated-v1", DATA / "curated-v2", DATA / "curated-v3"]
+LANDGUT_DIRS = [OUT, DATA / "out-v2b", DATA / "out-v3"]   # v1, the v2 run after the code review (out-v2 was v2 before it) and v3
 LANDGUT = "Landgut Lohn, 1. OG (BBL)"
 GROUPS = {"cubicasa": "CubiCasa5K (benchmark, CC BY-NC-SA)", "cvcfp": "CVC-FP (benchmark, CC BY-NC)",
           "waffle": "WAFFLE benchmark (Wikimedia Commons)", "commons": "Swiss plans on Wikimedia Commons (public domain)"}

@@ -74,6 +74,7 @@
   .pick b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
   .pick .sub { color: var(--muted); }
   .pick .caret { font-size: 9px; color: var(--muted); }
+  .pick.narrow .sub { color: var(--accent-ink); font-weight: 600; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; min-width: 0; }
   #grid { display: grid; grid-template-columns: 260px minmax(0, 1fr) 300px; min-height: 0; }
   #grid.lc { grid-template-columns: 36px minmax(0, 1fr) 300px; }
@@ -240,8 +241,32 @@
   /* ---------- menus and help ---------- */
   .pop { position: fixed; z-index: 20; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .14); }
   .menu { width: 440px; max-width: calc(100vw - 16px); max-height: 72vh; overflow: auto; padding: 8px; }
-  .mfilter { display: flex; gap: 6px; padding: 4px 4px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
-  .mfilter select { flex: 1; min-width: 0; height: 30px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); padding: 0 6px; }
+  .mhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 8px 8px; border-bottom: 1px solid var(--border);
+    margin-bottom: 4px; font-size: 12px; color: var(--muted); }
+  .mempty { padding: 12px 8px; color: var(--muted); }
+  /* the sheet filter: groups of checkboxes flowing in columns */
+  .filterpop { width: 820px; max-width: calc(100vw - 16px); max-height: 82vh; overflow: auto; padding: 12px 16px; }
+  .fhead { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .fhead .n { font-size: 12px; }
+  .fhead .link2:disabled { color: var(--disabled); text-decoration: none; cursor: default; }
+  .fbody { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 20px; padding-top: 2px; }
+  .fcol { min-width: 0; }
+  .fgroup { padding-bottom: 6px; }
+  .fgroup.fspan { grid-column: 1 / -1; }
+  .fgroup.fspan .fopts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 20px; }
+  .fcap { display: flex; align-items: baseline; gap: 5px; padding: 8px 0 3px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); }
+  .fcap > span:first-child { flex: 1; min-width: 0; }
+  .fcap .link2 { font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+  .fcap .dot { color: var(--border); }
+  .fsub { font-size: 11px; font-weight: 600; color: var(--text); padding: 5px 0 1px; }
+  .fopt { display: flex; align-items: baseline; gap: 6px; padding: 2px 0; cursor: pointer; font-size: 12px; line-height: 1.35; }
+  .fopt input { margin: 0; accent-color: var(--accent); flex: none; position: relative; top: 2px; }
+  .fopt .t { flex: 1; min-width: 0; }
+  .fopt .fd { color: var(--muted); font-size: 11px; }
+  .fopt .n { margin-left: 0; font-size: 11px; }
+  .fopt.zero, .fopt.zero .fd { color: var(--disabled); }
+  .fhint { padding-top: 8px; border-top: 1px solid var(--border); margin-top: 4px; font-size: 11px; color: var(--muted); }
   .mgroup { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 10px 8px 4px; }
   .mitem { display: flex; flex-direction: column; width: 100%; border: 0; background: none; text-align: left; padding: 6px 8px; border-radius: 6px; }
   .mitem:hover { background: var(--hover); }
@@ -255,6 +280,7 @@
     #grid.lc { grid-template-columns: 36px minmax(0, 1fr) 300px; }
     #grid.rc { grid-template-columns: 240px minmax(0, 1fr) 36px; }
     .pick b { max-width: 220px; }
+    .filterpop { width: 700px; }
   }
   @media (max-width: 860px) {
     html, body { height: auto; }
@@ -275,6 +301,7 @@
     .snav { width: 34px; height: 34px; }
     .snav.l { left: 8px; }
     .snav.r { right: 8px; }
+    .fbody, .fgroup.fspan .fopts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 </style>
 </head>
@@ -283,8 +310,8 @@
   <header id="top">
     <div class="brand"><span class="logo">fpx</span><span>Pilot v2 viewer</span></div>
     <div class="picker">
-      <button type="button" class="pick" id="pick" aria-haspopup="true" aria-expanded="false" title="Sheets of this group"><b id="pickname">Sheet</b><span class="sub" id="picksub"></span><span class="caret">▼</span></button>
-      <button type="button" class="pick" id="pickall" aria-haspopup="true" aria-expanded="false" title="Every sheet in the data">All sheets<span class="caret">▼</span></button>
+      <button type="button" class="pick" id="pick" aria-haspopup="true" aria-expanded="false" title="Choose a sheet"><b id="pickname">Sheet</b><span class="sub" id="picksub"></span><span class="caret">▼</span></button>
+      <button type="button" class="pick" id="pickall" aria-haspopup="true" aria-expanded="false" title="Narrow the sheet list by collection, run and tags"><b>Filter</b><span class="sub" id="filtsub"></span><span class="caret">▼</span></button>
     </div>
     <div class="actions">
       <button type="button" class="btn" id="copylink">Copy link<span class="long"> to view</span></button>
@@ -342,6 +369,7 @@
   </div>
 </div>
 <div id="menu" class="pop menu" role="menu" hidden></div>
+<div id="filter" class="pop filterpop" role="group" aria-label="Sheet filter" hidden></div>
 <div id="help" class="pop helppop" hidden>
   <h3>Using the viewer</h3>
   <table class="kv lft">
@@ -350,11 +378,11 @@
     <tr><td>Hover</td><td>Outlines a room, opening, void or the walls</td></tr>
     <tr><td>Click</td><td>Pins it: the popup stays until × or Esc, a click elsewhere replaces it</td></tr>
     <tr><td>1–9, 0</td><td>Toggle the first ten layers in list order</td></tr>
-    <tr><td>← → or [ ]</td><td>Previous and next sheet</td></tr>
+    <tr><td>← → or [ ]</td><td>Previous and next sheet of the filtered list</td></tr>
     <tr><td>F</td><td>Fit to rooms</td></tr>
   </table>
   <p>Everything shown is read from <code>data/out/viewer-data.js</code> (written by <code>export_viewer.py</code>) on this machine; nothing is
-    uploaded. Review checks and the panel state are kept in this browser only. Upload, the confirmation steps before a run, editing and the
+    uploaded. Review checks, the panel state and the sheet filter are kept in this browser only. Upload, the confirmation steps before a run, editing and the
     downloads of the workflow study need the app and are not part of this viewer.</p>
 </div>
 
@@ -383,7 +411,13 @@ const LABEL = { bg: "rgba(255, 255, 255, 0.88)", text: "#1d2330", muted: "#5b647
 const AXES = { category: "Category", drawing_type: "Drawing type", challenges: "Challenges", building_type: "Building type",
                wall_style: "Wall style", input: "Input", era: "Era", content: "Content", language: "Language", use: "Use",
                source: "Source" };
-const DATASETS = { cubicasa: "CubiCasa", cvcfp: "CVC-FP", waffle: "WAFFLE", commons: "Commons" };
+const DATASETS = { cubicasa: "CubiCasa5K", cvcfp: "CVC-FP", waffle: "WAFFLE", commons: "Commons" };
+// the sheet filter in the header: collections, runs and these tag axes of the curated set narrow the sheet list
+const TAG_FILTER = ["drawing_type", "input", "wall_style", "era", "building_type", "challenges"];
+const FILTER_AXES = ["coll", "run", ...TAG_FILTER];
+const FILTER_NAMES = { coll: "Collection", run: "Run", ...AXES };
+const FILTER_LAYOUT = [["coll"], ["run", "wall_style"], ["drawing_type", "input"], ["era", "building_type"]];   // the panel's columns; other axes (challenges) span the width below
+const FILTER_KEY = "fpx-viewer:filter";
 // board 1i order: rooms, structure, analysis; keys 1-9, 0 toggle the first ten
 const LAYERS = [
   ["rooms", "Room fill", "Rooms", true], ["labels", "Room labels", "Rooms", true], ["graph", "Room graph", "Rooms", true],
@@ -400,7 +434,7 @@ const CONF_TIP = { high: "Stamp area within 5 % and exactly one stamp", medium: 
 const PANELS_KEY = "fpx-viewer:panels";
 const NARROW = window.matchMedia("(max-width: 860px)");
 
-const state = { i: 0, view: "2d", colour: "room", opacity: 1, tag: "", tab: "rooms", L: {}, pin: null, hover: null, sort: null,
+const state = { i: 0, view: "2d", colour: "room", opacity: 1, off: {}, tab: "rooms", L: {}, pin: null, hover: null, sort: null,
                 focus: false, compare: false, menu: null, help: false, measure: null, allFlags: false, allQa: false, more: false,
                 closed: {}, panels: { left: false, right: false } };
 LAYERS.forEach((l) => (state.L[l.key] = l.on));
@@ -417,8 +451,20 @@ const hasRef = (s) => refOf(s).rooms.length + refOf(s).walls.length > 0;
 const hasRoomRef = (s) => refOf(s).rooms.length > 0;
 const refName = (s) => (isBench(s) ? "Reference" : "2005 reference");
 const kindOf = (o) => (o.kind === "window" ? "windows" : o.kind.includes("door") ? "doors" : "passages");
-const hasTag = (s, tag) => { if (!tag) return true; const i = tag.indexOf(":");
-  return !!s.curated && (s.curated.tags[tag.slice(0, i)] || []).includes(tag.slice(i + 1)); };
+const slug = (t) => String(t ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const planKey = (s) => (s.curated ? `plan:${s.curated.id}` : `sheet:${s.id}`);        // the same plan in several runs shares a key
+const datasetOf = (s) => { const g = (s.group || "").toLowerCase();                   // public benchmark sheets: the dataset from the group name
+  return g.includes("cubicasa") ? "cubicasa" : g.includes("cvc") ? "cvcfp" : g.includes("waffle") ? "waffle" : g.includes("commons") ? "commons" : slug(s.group || "benchmark"); };
+// run folders as readable names: out → v1 run, out-v2b → v2 run, curated-v2 → curated v2 run, bench → benchmark run
+function runLabel(run) {
+  let m;
+  if ((m = /^out(?:-v(\d+)\w*)?$/.exec(run))) return `v${m[1] || 1} run`;
+  if ((m = /^curated-v(\d+)\w*$/.exec(run))) return `curated v${m[1]} run`;
+  if (run === "curated-test") return "curated test run";
+  if (run === "bench") return "benchmark run";
+  return run === "(none)" ? "no run folder" : run;
+}
+const runRank = (run) => { if (run === "out") return 1; const m = /^(?:out|curated)-v(\d+)/.exec(run); return m ? +m[1] : run === "bench" ? 50 : 99; };
 const same = (a, b) => !!a && !!b && a.type === b.type && a.id === b.id && a.idx === b.idx;
 const roomById = (s, id) => s.rooms.find((r) => r.id === id);
 // fields the pipeline exports now (fpx.export.to_json); absent in older viewer data, so every reader tolerates null
@@ -949,14 +995,15 @@ function sheetGroups() {      // Landgut Lohn (and other plain groups), the cura
   return groups;
 }
 const groupName = (g) => (g.key === "curated" ? "Curated set" : g.key === "bench" ? "Benchmarks" : g.key.slice(2));
-const groupOf = (i) => GROUPS.find((g) => g.items.includes(i)) || { key: "g:Sheets", items: [i] };
 function renderHeader() {
-  const s = S(), g = groupOf(state.i);
+  const s = S(), n = navList().length, t = D.sheets.length, nr = narrowed();
   $("pickname").textContent = s.title;
   $("picksub").textContent = pickSub(s);
-  $("pick").title = `${groupName(g)}: ${g.items.length} sheet${g.items.length === 1 ? "" : "s"}`;
-  $("pickall").title = `${D.sheets.length} sheets in ${GROUPS.length} group${GROUPS.length === 1 ? "" : "s"}`;
-  for (const [id, key] of [["pick", "sheet"], ["pickall", "all"]]) {
+  $("pick").title = `${nr ? `${n} of ${t}` : t} sheet${t === 1 ? "" : "s"} in ${GROUPS.length} group${GROUPS.length === 1 ? "" : "s"}`;
+  $("filtsub").textContent = nr ? `${n} of ${t}` : `all ${t}`;
+  $("pickall").classList.toggle("narrow", nr);
+  $("pickall").title = nr ? `${n} of ${t} sheets pass the filter` : "Narrow the sheet list by collection, run and tags";
+  for (const [id, key] of [["pick", "sheet"], ["pickall", "filter"]]) {
     $(id).classList.toggle("on", state.menu === key);
     $(id).setAttribute("aria-expanded", state.menu === key);
   }
@@ -967,37 +1014,136 @@ function sheetMeta(s) {
     return sc.wall_iou != null ? `walls IoU ${sc.wall_iou}${sc.rooms_ref != null ? ` · rooms ${sc.rooms_matched}/${sc.rooms_ref}` : ""}` : "no ground truth"; }
   return pickSub(s);
 }
-function tagOptions() {
-  const counts = {};
-  for (const s of D.sheets) if (s.curated) for (const [k, vs] of Object.entries(s.curated.tags)) for (const v of vs) counts[`${k}:${v}`] = (counts[`${k}:${v}`] || 0) + 1;
-  const n = D.sheets.filter((s) => s.curated).length;
-  let html = `<option value="">All plans (${n} in the curated set)</option>`;
-  for (const [axis, name] of Object.entries(AXES)) {
-    const keys = Object.keys(counts).filter((k) => k.startsWith(`${axis}:`)).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
-    if (keys.length) html += `<optgroup label="${esc(name)}">${keys.map((k) => `<option value="${esc(k)}"${k === state.tag ? " selected" : ""}>${esc(k.slice(axis.length + 1))} (${counts[k]})</option>`).join("")}</optgroup>`;
+
+// ---------- sheet filter: collections, runs and tags as checkboxes; state.off holds the unchecked keys per axis ----------
+let FACETS = {}, FV = [];       // FACETS[axis] = { name, values: [{ key, label, sub, section }], keys }; FV[i][axis] = the keys of sheet i
+function buildFacets() {
+  const vals = {};
+  FILTER_AXES.forEach((ax) => (vals[ax] = new Map()));
+  const add = (ax, key, label, sub, section, rank) => {
+    if (!vals[ax].has(key)) vals[ax].set(key, { key, label, sub, section, rank, n: 0 });
+    vals[ax].get(key).n++;
+  };
+  FV = D.sheets.map((s) => {
+    const fv = {};
+    if (s.curated) { const c = (s.curated.tags.category || [])[0] || "Curated"; fv.coll = [`curated:${slug(c)}`]; add("coll", fv.coll[0], c, "", "Curated set", 1); }
+    else if (isBench(s)) { const k = datasetOf(s); fv.coll = [`bench:${k}`]; add("coll", fv.coll[0], DATASETS[k] || s.group, "", "Benchmarks", 2); }
+    else { const g = s.group || "Sheets"; fv.coll = [`g:${slug(g)}`]; add("coll", fv.coll[0], g, "", "", 0); }
+    const run = runOf(s) || "(none)";
+    fv.run = [run];
+    add("run", run, runLabel(run), run === "(none)" ? "" : run, "", runRank(run));
+    for (const ax of TAG_FILTER) {
+      const t = s.curated ? s.curated.tags[ax] : null;
+      fv[ax] = (Array.isArray(t) ? t : t ? [t] : []).map(String);
+      for (const v of fv[ax]) add(ax, v, v, "", "", 0);
+    }
+    return fv;
+  });
+  const outFirst = (v) => (v.key === "out" || v.key.startsWith("out-") ? 0 : 1);
+  for (const ax of FILTER_AXES) {
+    const list = [...vals[ax].values()];
+    if (ax === "run") list.sort((a, b) => a.rank - b.rank || outFirst(a) - outFirst(b) || a.key.localeCompare(b.key));
+    else if (ax === "coll") list.sort((a, b) => a.rank - b.rank);                        // sections in order, data order within
+    else list.sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
+    FACETS[ax] = { name: FILTER_NAMES[ax], values: list, keys: new Set(list.map((v) => v.key)) };
   }
-  return html;
 }
-function renderMenu() {
+// a sheet passes an axis when one of its keys is still checked; sheets without tags (BBL, benchmark-only) pass a tag axis only while it is not narrowed
+const passesAxis = (i, ax) => { const off = state.off[ax]; return !off || !off.size || FV[i][ax].some((k) => !off.has(k)); };
+const passes = (i) => FILTER_AXES.every((ax) => passesAxis(i, ax));
+const passesExcept = (i, skip) => FILTER_AXES.every((ax) => ax === skip || passesAxis(i, ax));
+const narrowed = () => FILTER_AXES.some((ax) => state.off[ax] && state.off[ax].size > 0);
+const isOnly = (ax, key) => { const off = state.off[ax]; return !!off && !off.has(key) && FACETS[ax].values.every((v) => v.key === key || off.has(v.key)); };
+function facetCounts(ax) {      // sheets per value, given the other axes
+  const counts = {};
+  D.sheets.forEach((s, i) => { if (passesExcept(i, ax)) for (const k of FV[i][ax]) counts[k] = (counts[k] || 0) + 1; });
+  return counts;
+}
+// the filter in the hash (f.coll, f.run, f.era, ...) and in localStorage: per axis the checked keys, or "!" and the unchecked ones when
+// that is shorter; "" = none checked
+const SEP = ",";
+function filterEntries() {
+  const out = [];
+  for (const ax of FILTER_AXES) {
+    const off = state.off[ax];
+    if (!off || !off.size) continue;
+    const keys = FACETS[ax].values.map((v) => v.key), ex = keys.filter((k) => off.has(k)), on = keys.filter((k) => !off.has(k));
+    if (ex.length) out.push([ax, on.length <= ex.length ? on.join(SEP) : `!${ex.join(SEP)}`]);
+  }
+  return out;
+}
+function parseFilter(get, tag) {       // get(axis) → the stored string or null; tag: an "axis:value" link of the earlier viewer
+  const off = {};
+  for (const ax of FILTER_AXES) {
+    const raw = get(ax);
+    if (typeof raw !== "string") continue;
+    const keys = [...FACETS[ax].keys];
+    if (raw.startsWith("!")) off[ax] = new Set(raw.slice(1).split(SEP).filter((k) => FACETS[ax].keys.has(k)));
+    else { const on = new Set(raw === "" ? [] : raw.split(SEP)); off[ax] = new Set(keys.filter((k) => !on.has(k))); }
+  }
+  if (tag) {
+    const i = tag.indexOf(":"), k = tag.slice(0, i), v = tag.slice(i + 1), ax = k === "category" ? "coll" : k, key = k === "category" ? `curated:${slug(v)}` : v;
+    if (FACETS[ax] && !off[ax] && FACETS[ax].keys.has(key)) off[ax] = new Set([...FACETS[ax].keys].filter((x) => x !== key));
+  }
+  return off;
+}
+const saveFilter = () => { const o = {}; for (const [ax, v] of filterEntries()) o[ax] = v; store.set(FILTER_KEY, o); };
+function renderFilter() {
+  const f = $("filter");
+  if (state.menu !== "filter") { f.hidden = true; return; }
+  const top = f.hidden ? 0 : f.scrollTop, n = navList().length, t = D.sheets.length;
+  const act = document.activeElement, keep = act && f.contains(act) && act.dataset.ax ? [act.dataset.ax, act.dataset.key] : null;
+  const cap = (ax) => `<div class="fcap"><span>${esc(FACETS[ax].name)}</span><button type="button" class="link2" data-all="${ax}">all</button><span class="dot">·</span><button type="button" class="link2" data-none="${ax}">none</button></div>`;
+  const opt = (ax, v, cnt) => `<label class="fopt${cnt ? "" : " zero"}"><input type="checkbox" data-ax="${ax}" data-key="${esc(v.key)}"${state.off[ax] && state.off[ax].has(v.key) ? "" : " checked"}><span class="t">${esc(v.label)}${v.sub ? ` <span class="fd">(${esc(v.sub)})</span>` : ""}</span><span class="n">${cnt}</span></label>`;
+  const group = (ax, cols) => {           // one group; a wide group lists its values in `cols` columns
+    const F = FACETS[ax], counts = facetCounts(ax), per = Math.ceil(F.values.length / cols), lists = [];
+    if (!F.values.length) return "";
+    for (let c = 0; c < cols; c++) {
+      let sec = null, h = "";
+      for (const v of F.values.slice(c * per, (c + 1) * per)) {
+        if (v.section !== sec) { sec = v.section; if (sec) h += `<div class="fsub">${esc(sec)}</div>`; }
+        h += opt(ax, v, counts[v.key] || 0);
+      }
+      lists.push(`<div>${h}</div>`);
+    }
+    return `<div class="fgroup${cols > 1 ? " fspan" : ""}">${cap(ax)}<div class="fopts">${lists.join("")}</div></div>`;
+  };
+  const placed = new Set(FILTER_LAYOUT.flat());
+  let html = `<div class="fhead"><b>Filter sheets</b><span class="n">${n} of ${t} sheet${t === 1 ? "" : "s"}</span><button type="button" class="link2" id="freset"${narrowed() ? "" : " disabled"}>Reset</button></div><div class="fbody">`;
+  for (const col of FILTER_LAYOUT) html += `<div class="fcol">${col.filter((ax) => FACETS[ax]).map((ax) => group(ax, 1)).join("")}</div>`;
+  for (const ax of FILTER_AXES) if (!placed.has(ax)) html += group(ax, 4);
+  html += `</div><div class="fhint">Tags belong to the curated plans: narrowing a tag group hides the sheets without tags (Landgut Lohn and the plain benchmark sheets). Counts are the sheets left given the other groups.</div>`;
+  f.innerHTML = html;
+  f.hidden = false;
+  const r = $("pickall").getBoundingClientRect();
+  f.style.left = `${clamp(r.left + r.width / 2 - f.offsetWidth / 2, 8, window.innerWidth - f.offsetWidth - 8)}px`;
+  f.style.top = `${r.bottom + 6}px`;
+  f.scrollTop = top;
+  if (keep) { const el = f.querySelector(`input[data-ax="${keep[0]}"][data-key="${CSS.escape(keep[1])}"]`); if (el) el.focus({ preventScroll: true }); }
+}
+function renderMenu() {           // the sheet dropdown: every group, only the sheets that pass the filter
   const m = $("menu");
-  if (!state.menu) { m.hidden = true; return; }
-  const groups = state.menu === "all" ? GROUPS : [groupOf(state.i)];
-  const curated = groups.some((g) => g.key === "curated");
-  let html = curated ? `<div class="mfilter"><select id="tagfilter" aria-label="Filter curated plans by tag">${tagOptions()}</select><button type="button" class="btn" id="tagclear" title="Show all plans">All</button></div>` : "";
-  for (const g of groups) {
+  renderFilter();
+  if (state.menu !== "sheet") { m.hidden = true; return; }
+  const list = navList(), on = new Set(list), t = D.sheets.length;
+  const item = (i) => { const s = D.sheets[i];
+    return `<button type="button" class="mitem${i === state.i ? " on" : ""}" role="menuitem" data-i="${i}"><span>${esc(s.title)}${runOf(s) ? ` · ${esc(runOf(s))}` : ""}</span><span class="mm">${esc(sheetMeta(s))}</span></button>`; };
+  let html = `<div class="mhead"><span>${list.length} of ${t} sheet${t === 1 ? "" : "s"}</span><button type="button" class="link2" id="mfilter">${narrowed() ? "Edit filter" : "Filter"}</button></div>`;
+  if (!on.has(state.i)) html += `<div class="mgroup">Current sheet · outside the filter</div>${item(state.i)}`;
+  for (const g of GROUPS) {
     let cap = null;
     for (const i of g.items) {
-      const s = D.sheets[i];
-      if (g.key === "curated" && !hasTag(s, state.tag)) continue;
-      const sub = s.curated ? s.curated.tags.category[0] : isBench(s) ? s.group : "";
-      const c = groups.length > 1 ? `${groupName(g)}${sub ? ` · ${sub}` : ""}` : sub || groupName(g);
+      if (!on.has(i)) continue;
+      const s = D.sheets[i], sub = s.curated ? s.curated.tags.category[0] : isBench(s) ? s.group : "";
+      const c = `${groupName(g)}${sub ? ` · ${sub}` : ""}`;
       if (c !== cap) { cap = c; html += `<div class="mgroup">${esc(c)}</div>`; }
-      html += `<button type="button" class="mitem${i === state.i ? " on" : ""}" role="menuitem" data-i="${i}"><span>${esc(s.title)}${runOf(s) ? ` · ${esc(runOf(s))}` : ""}</span><span class="mm">${esc(sheetMeta(s))}</span></button>`;
+      html += item(i);
     }
   }
+  if (!list.length) html += '<div class="mempty">No sheet passes the filter.</div>';
   m.innerHTML = html;
   m.hidden = false;
-  const a = $(state.menu === "all" ? "pickall" : "pick"), r = a.getBoundingClientRect();
+  const r = $("pick").getBoundingClientRect();
   m.style.left = `${clamp(r.left + r.width / 2 - m.offsetWidth / 2, 8, window.innerWidth - m.offsetWidth - 8)}px`;
   m.style.top = `${r.bottom + 6}px`;
 }
@@ -1256,12 +1402,18 @@ function measureRes(s) {
       <span>Lengths · areas</span><span>× ${num(f, 3)} · × ${num(f * f, 3)}</span></div>
     <div class="hint">Not saved: the pilot does not rerun a sheet from the viewer.</div>`;
 }
+// a tag chip narrows the filter to that value (and back); axes the filter does not carry are plain chips
+function chipHtml(k, v) {
+  const ax = k === "category" ? "coll" : k, key = k === "category" ? `curated:${slug(v)}` : String(v);
+  if (!FACETS[ax] || !FACETS[ax].keys.has(key)) return `<span class="chip">${esc(v)}</span>`;
+  const only = isOnly(ax, key);
+  return `<button type="button" class="chip${only ? " on" : ""}" data-fax="${ax}" data-fkey="${esc(key)}" title="${only ? "Show every sheet again" : `Show only the sheets tagged ${esc(v)}`}">${esc(v)}</button>`;
+}
 function planInfo(c) {
   const a = c.attribution || {}, credit = [a.author, a.date].filter(Boolean).map(esc).join(", ");
   const page = a.page ? `<a href="${esc(a.page)}" target="_blank" rel="noopener noreferrer">source page</a>` : "";
   const restricted = c.use === "benchmark only" || c.use === "BBL internal";
-  const chips = Object.entries(AXES).filter(([k]) => (c.tags[k] || []).length).map(([k, name]) => [name, `<span class="chips">${c.tags[k].map((v) =>
-    `<button type="button" class="chip${state.tag === `${k}:${v}` ? " on" : ""}" data-tag="${esc(`${k}:${v}`)}" title="Show only plans tagged ${esc(v)}">${esc(v)}</button>`).join("")}</span>`]);
+  const chips = Object.entries(AXES).filter(([k]) => (c.tags[k] || []).length).map(([k, name]) => [name, `<span class="chips">${c.tags[k].map((v) => chipHtml(k, v)).join("")}</span>`]);
   return `<h3>Plan <span class="id">${esc(c.id)}</span></h3><p class="why">${esc(c.why)}</p>${kv([
     ["Source", esc(c.source)], ["Licence", `${esc(c.licence)} – <span class="${restricted ? "warn" : ""}">${esc(c.use)}</span>`],
     credit || page ? ["Attribution", [credit, page].filter(Boolean).join(" · ")] : null,
@@ -1341,16 +1493,28 @@ function select(i) {
   Object.assign(state, { i, pin: null, hover: null, focus: false, compare: false, measure: null, sort: null, allFlags: false, allQa: false, more: false, menu: null });
   loadChecks(); renderAll(); fitRooms();
 }
-const navList = () => D.sheets.map((s, i) => i).filter((i) => !state.tag || hasTag(D.sheets[i], state.tag));
+const navList = () => D.sheets.map((s, i) => i).filter((i) => passes(i));       // the sheets that pass the filter, in data order
 function step(d) {
   const l = navList(), k = l.indexOf(state.i);
   if (l.length) select(k < 0 ? l[d > 0 ? 0 : l.length - 1] : l[(k + d + l.length) % l.length]);
 }
-function setTag(tag) {
-  state.tag = tag && D.sheets.some((s) => hasTag(s, tag)) ? tag : "";
-  if (state.tag && !hasTag(S(), state.tag)) { const menu = state.menu; select(D.sheets.findIndex((s) => hasTag(s, state.tag))); state.menu = menu; }
+// a changed filter keeps the current sheet, unless the same plan passes in another run (e.g. only "v3 run" checked): then that run is shown
+function setFilter(off) {
+  state.off = off;
+  saveFilter();
+  if (!passes(state.i)) {
+    const key = planKey(S()), alt = navList().find((i) => planKey(D.sheets[i]) === key);
+    if (alt != null) { const menu = state.menu; select(alt); state.menu = menu; }
+  }
   renderAll();
 }
+function checkFilter(ax, key, on) {
+  const off = new Set(state.off[ax] || []);
+  if (on) off.delete(key); else off.add(key);
+  setFilter({ ...state.off, [ax]: off });
+}
+const checkAll = (ax, on) => setFilter({ ...state.off, [ax]: new Set(on ? [] : FACETS[ax].keys) });
+const checkOnly = (ax, key) => setFilter({ ...state.off, [ax]: isOnly(ax, key) ? new Set() : new Set([...FACETS[ax].keys].filter((k) => k !== key)) });
 function toggleLayer(key, on = !state.L[key]) {
   state.L[key] = on;
   if (!on && state.hover && ((state.hover.type === "opening" && kindOf(S().openings[state.hover.idx]) === key) || (state.hover.type === "void" && key === "voids"))) state.hover = null;
@@ -1382,30 +1546,33 @@ function writeHash() {
   if (state.colour !== "room") p.set("colour", state.colour);
   for (const l of LAYERS) if (state.L[l.key] !== l.on) p.set(l.key, state.L[l.key] ? "1" : "0");
   if (state.opacity !== 1) p.set("opacity", state.opacity);
-  if (state.tag) p.set("tag", state.tag);
+  for (const [ax, v] of filterEntries()) p.set(`f.${ax}`, v);
   if (state.tab !== "rooms") p.set("tab", state.tab);
   if (state.pin && state.pin.type === "room") p.set("pin", state.pin.id);
   if (state.panels.left) p.set("left", "0");
   if (state.panels.right) p.set("right", "0");
   try { history.replaceState(null, "", `#${p.toString()}`); } catch (e) { /* file:// may refuse; the link button still works */ }
 }
-// initial state from the URL hash, e.g. #sheet=s2&view=3d&colour=confidence&graph=0&pin=r006&left=0, or #tag=challenges:columns;
-// sheet takes a sheet id or a curated plan id; the layer and tab keys of the earlier viewers still work
+// initial state from the URL hash, e.g. #sheet=s2&view=3d&colour=confidence&graph=0&pin=r006&left=0, or #f.run=out-v3&f.era=before+1850;
+// sheet takes a sheet id or a curated plan id; the layer and tab keys and tag=axis:value of the earlier viewers still work
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
+  let named = false;
   if (p.has("sheet")) {
     const want = p.get("sheet"), all = D.sheets.map((s, i) => [s, i]).filter(([s]) => s.id === want || (s.curated && s.curated.id === want));
-    if (all.length) state.i = (all[+p.get("run") || 0] || all[0])[1];
+    if (all.length) { state.i = (all[+p.get("run") || 0] || all[0])[1]; named = true; }
   }
   if (p.get("view") === "3d") { state.view = "3d"; Object.assign(cam, { az: 20, el: 37 }); }
   if (["room", "confidence", "accuracy"].includes(p.get("colour"))) state.colour = p.get("colour");
   for (const [old, keys] of Object.entries(OLD_KEYS)) if (p.has(old)) keys.forEach((k) => (state.L[k] = p.get(old) === "1"));
   for (const l of LAYERS) if (p.has(l.key) && !(l.key in OLD_KEYS)) state.L[l.key] = p.get(l.key) === "1";
   if (p.has("opacity")) state.opacity = clamp(+p.get("opacity") || 0, 0, 1);
-  if (p.has("tag") && D.sheets.some((s) => hasTag(s, p.get("tag")))) {
-    state.tag = p.get("tag");
-    if (!p.has("sheet") || !hasTag(S(), state.tag)) state.i = D.sheets.findIndex((s) => hasTag(s, state.tag));
-  }
+  // the filter: from the link when it carries one; a link without one shows everything; a plain open (no hash) restores the filter
+  // last used in this browser. A sheet named in the link is kept even outside the filter; otherwise the first passing sheet is shown.
+  const inLink = FILTER_AXES.some((ax) => p.has(`f.${ax}`)) || p.has("tag");
+  const stored = !inLink && ![...p.keys()].length ? store.get(FILTER_KEY) : null;
+  state.off = inLink ? parseFilter((ax) => p.get(`f.${ax}`), p.get("tag")) : stored && typeof stored === "object" ? parseFilter((ax) => stored[ax]) : {};
+  if (!named && !passes(state.i)) { const l = navList(); if (l.length) state.i = l[0]; }
   const tab = { results: "review", review: "review", sheet: "details", details: "details", rooms: "rooms" }[p.get("tab")];
   if (tab) state.tab = tab;
   for (const side of ["left", "right"]) if (p.has(side)) state.panels[side] = p.get(side) === "0";
@@ -1420,18 +1587,25 @@ function openMenu(which) {
   renderHeader(); renderMenu();
 }
 $("pick").addEventListener("click", () => openMenu("sheet"));
-$("pickall").addEventListener("click", () => openMenu("all"));
+$("pickall").addEventListener("click", () => openMenu("filter"));
 $("prev").addEventListener("click", () => step(-1));
 $("next").addEventListener("click", () => step(1));
 $("menu").addEventListener("click", (e) => {
   const it = e.target.closest(".mitem");
   if (it) select(+it.dataset.i);
-  else if (e.target.id === "tagclear") setTag("");
+  else if (e.target.id === "mfilter") openMenu("filter");
 });
-$("menu").addEventListener("change", (e) => { if (e.target.id === "tagfilter") setTag(e.target.value); });
+$("filter").addEventListener("change", (e) => { const d = e.target.dataset; if (d.ax) checkFilter(d.ax, d.key, e.target.checked); });
+$("filter").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || b.disabled) return;
+  if (b.id === "freset") setFilter({});
+  else if (b.dataset.all) checkAll(b.dataset.all, true);
+  else if (b.dataset.none) checkAll(b.dataset.none, false);
+});
 const within = (e, sel) => e.target instanceof Element && !!e.target.closest(sel);
 document.addEventListener("pointerdown", (e) => {
-  if (state.menu && !within(e, "#menu, .pick")) { state.menu = null; renderHeader(); renderMenu(); }
+  if (state.menu && !within(e, "#menu, #filter, .pick")) { state.menu = null; renderHeader(); renderMenu(); }
   if (state.help && !within(e, "#help, #helpbtn")) { state.help = false; $("help").hidden = true; $("helpbtn").setAttribute("aria-expanded", "false"); }
 });
 $("helpbtn").addEventListener("click", () => {
@@ -1500,7 +1674,7 @@ function action(act) {
   }
 }
 function panelClick(e) {
-  const el = e.target.closest("[data-act], [data-room], [data-flag], [data-sort], [data-tag], [data-tab]");
+  const el = e.target.closest("[data-act], [data-room], [data-flag], [data-sort], [data-fax], [data-tab]");
   if (!el || el.disabled) return;
   e.preventDefault();
   const s = S(), d = el.dataset;
@@ -1511,7 +1685,7 @@ function panelClick(e) {
     state.sort = { key: d.sort, dir: cur.key === d.sort ? -cur.dir : 1 };
     renderRight(); return;
   }
-  if (d.tag) { setTag(state.tag === d.tag ? "" : d.tag); return; }
+  if (d.fax) { checkOnly(d.fax, d.fkey); return; }
   if (d.tab) { setTab(d.tab); return; }
   action(d.act);
 }
@@ -1566,6 +1740,7 @@ if (!D || !D.sheets || !D.sheets.length) {
 } else {
   readColours();
   GROUPS = sheetGroups();
+  buildFacets();
   const params = readHash();
   loadChecks();
   renderPanels();
@@ -1574,7 +1749,7 @@ if (!D || !D.sheets || !D.sheets.length) {
   fitRooms();
   if (params.has("pin") && roomById(S(), params.get("pin"))) setPin({ type: "room", id: params.get("pin") });
   if (params.get("review") === "1") nextFlag(null);
-  if (["all", "sheet", "curated", "bench"].includes(params.get("menu"))) { state.menu = params.get("menu") === "sheet" ? "sheet" : "all"; renderHeader(); renderMenu(); }
+  if (["all", "filter", "sheet", "curated", "bench"].includes(params.get("menu"))) { state.menu = params.get("menu") === "sheet" ? "sheet" : "filter"; renderHeader(); renderMenu(); }
   if (params.has("measure")) {
     const v = params.get("measure").split(",").map(Number);
     if (v.length >= 4 && v.every(Number.isFinite)) { state.measure = { on: false, a: v.slice(0, 2), b: v.slice(2, 4), real: v[4] || null }; state.tab = "details"; renderRight(); draw(); }

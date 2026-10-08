@@ -39,9 +39,13 @@ def test_ifc_round_trip(exported):
     import ifcopenshell.util.element as ue
     out, sheet, data = exported
     summary = data["exports"]["ifc_summary"]
-    assert summary["counts"] == {"spaces": 2, "walls": len(data["walls"]), "doors": 1, "windows": 1, "slabs": 1, "space boundaries": 2}
+    assert summary["counts"] == {"spaces": 2, "walls": len(data["walls"]), "doors": 1, "windows": 1, "slabs": 1, "space boundaries": 2,
+                                 "wall openings": 2}                                      # both openings are cut from their host wall
     f = ifcopenshell.open(str(out / "t.ifc"))
     assert f.schema == "IFC4X3"
+    voids = f.by_type("IfcRelVoidsElement")
+    assert len(voids) == 2 and all(v.RelatingBuildingElement.is_a("IfcWall") for v in voids)
+    assert len(f.by_type("IfcRelFillsElement")) == 2
     spaces = f.by_type("IfcSpace")
     assert len(spaces) == 2 and {s.PredefinedType for s in spaces} == {"INTERNAL"}
     by_name = {s.Name: s for s in spaces}

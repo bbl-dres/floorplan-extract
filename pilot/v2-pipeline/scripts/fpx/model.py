@@ -193,7 +193,8 @@ class Sheet:
     wall_rejects: list = field(default_factory=list)    # [{"reason", "area", "poly"}] wall-labelled pieces that are no wall (stage 3b: stair railings, fixture outlines, strokes, text)
     wall_polys_raw: list = field(default_factory=list)  # [Polygon] the pixel outline of the wall mask; wall_polys is the regularised one (straight segments with thickness)
     drawing_mask: Optional[np.ndarray] = None           # stage 1b on a sheet loaded whole: True inside the floor-plan drawing(s), everything else is whited out
-    wall_polys: list = field(default_factory=list)      # [Polygon]
+    wall_polys: list = field(default_factory=list)      # [Polygon] the regularised walls without their openings
+    separations: list = field(default_factory=list)     # [{"line", "source"}] lines that divide open-plan areas without a wall (stage 6: rejected thin strokes, drawn lines between stamped areas)
     building_rough: Optional[np.ndarray] = None         # rough building mask, from walls and openings
     openings: list = field(default_factory=list)        # [Opening]
     stairs: list = field(default_factory=list)          # [Polygon], one per flight

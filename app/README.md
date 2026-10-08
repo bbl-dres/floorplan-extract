@@ -39,7 +39,7 @@ anything missing (model file, OCR engine, a library, a DWG converter) is named t
       bridge.py         the only module that touches the pipeline: PIPELINE_DIR, model/OCR loading, analyse(), extract()
       data/             uploads and outputs, one folder per sheet job (gitignored)
 
-`bridge.PIPELINE_DIR` points at `pilot/v2-pipeline` and switches to `pilot/v2-pipeline/code` when that folder holds
+`bridge.PIPELINE_DIR` points at `pilot/v2-pipeline` and switches to `pilot/v2-pipeline/scripts` when that folder holds
 `fpx` (the refactor). Nothing else in the app knows where the pipeline lives.
 
 Per sheet job (`app/data/sheets/<id>/`): the upload, `<package>_preview.jpg`, `analysis.json` (regions, drawings,

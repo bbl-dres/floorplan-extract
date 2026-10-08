@@ -91,7 +91,7 @@ Severity: **bug** (wrong output), **accuracy**, **robustness**, **performance**,
 
 ## 3. Implementation Log (7–8 October 2026)
 
-All tests pass (162: 152 before plus 10 new). The sources moved afterwards into `pilot/v2-pipeline/code/` (the pilot folder keeps README, MODEL_CARD, `data/` and `viewer.html`); the paths below are relative to `code/`.
+All tests pass (162: 152 before plus 10 new). The sources moved afterwards into `pilot/v2-pipeline/code/` (renamed `scripts/` on 8 October) (the pilot folder keeps README, MODEL_CARD, `data/` and `viewer.html`); the paths below are relative to `code/`.
 
 - `fpx/walls.py`: `bridge_gaps` (ink band test, de-duplicated per gap), `wall_graph` with `contract_degree2`, `end_direction` shared with the passage detector, thickness without the +1 px; `sheet.wall_bridges`.
 - `fpx/openings.py`: `rough_building(anchors=)`, `host_wall` along extended centre lines, `passages` between facing ends only; blob statistics by `bincount` and `ndimage.mean`.

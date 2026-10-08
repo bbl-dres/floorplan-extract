@@ -22,8 +22,8 @@ REPO = APP.parent
 
 # The pipeline: pilot/v2-pipeline today, its code/ subfolder once the refactor moves the sources there.
 PIPELINE_DIR = REPO / "pilot" / "v2-pipeline"
-if (PIPELINE_DIR / "code" / "fpx").is_dir():
-    PIPELINE_DIR = PIPELINE_DIR / "code"
+if (PIPELINE_DIR / "scripts" / "fpx").is_dir():
+    PIPELINE_DIR = PIPELINE_DIR / "scripts"
 if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 

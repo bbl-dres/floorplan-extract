@@ -24,10 +24,10 @@ Per plan the manifest records:
 - `reference`: what ground truth exists and where it comes from;
 - the tags `drawing_type` (construction drawing, FM plan, survey drawing, permit or design drawing, publication plan, marketing plan, diagram, synthetic), `input`, `wall_style`, `era`, `building_type`, `content`, `language` and `challenges`, plus `why` (one sentence) and `category` (the viewer group).
 
-[`pilot/v2-pipeline/code/curated.py`](../../pilot/v2-pipeline/code/curated.py) validates the manifest against its own vocabularies and loads the plans:
+[`pilot/v2-pipeline/scripts/curated.py`](../../pilot/v2-pipeline/scripts/curated.py) validates the manifest against its own vocabularies and loads the plans:
 
 ```
-cd pilot/v2-pipeline/code
+cd pilot/v2-pipeline/scripts
 python curated.py                    # validate plans.json (+ plans.local.json); exit 1 on errors; counts per tag
 python curated.py render [ids]       # draw the synthetic renders again (image, label map, rooms)
 python curated.py run ids|all [--model PATH]   # stages 0-10 through bench.py, outputs in data/curated-test

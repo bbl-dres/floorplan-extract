@@ -126,12 +126,14 @@ def to_json(sheet, cfg=DEFAULT, walls=None):
                   "box": geo(shapely.box(*t["box"]))} for t in sheet.text],
         "walls": [{"id": s["id"], "centre_line": geo(s["line"]), "thickness": s["thickness"], "kind": s.get("kind", "unknown"),
                    "load_bearing": "unknown", "construction": s.get("construction"),
-                   "construction_basis": s.get("construction_basis"), "fill_share": s.get("fill_share")} for s in sheet.wall_segments],
+                   "construction_basis": s.get("construction_basis"), "fill_share": s.get("fill_share"),
+                   "openings": s.get("openings", [])} for s in sheet.wall_segments],   # door/window intervals along the centre line (m from its start)
         "wall_polygons": [geo(p) for p in sheet.wall_polys],            # regularised: straight segments with thickness
         "wall_polygons_raw": [geo(p) for p in sheet.wall_polys_raw],    # the pixel outline of the wall mask
         "wall_rejects": [{"reason": r["reason"], "area": r["area"], "geometry": geo(r["poly"])} for r in sheet.wall_rejects],
         "wall_bridges": [{"centre_line": geo(w["line"]), "length": w["length"], "thickness": w["thickness"]}
                          for w in sheet.wall_bridges],
+        "separations": [{"centre_line": geo(l["line"]), "source": l["source"]} for l in sheet.separations],   # open-plan dividers without a wall
         "wall_construction": walls[1],
         "massive_wall_polygons": [geo(p) for p in walls[0]],
         "openings": [{"id": o["id"], "kind": o["kind"], "host": o["host"], "exterior": o["exterior"],

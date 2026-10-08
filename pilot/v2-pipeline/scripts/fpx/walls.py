@@ -207,8 +207,8 @@ def reject_pieces(sheet, wall, cfg=DEFAULT):
             reason = "text"
         elif not other and stair_share >= cfg.stair_ring_share and th < cfg.railing_max_thickness:
             reason = "stair railing"
-        elif not other and th < min(cfg.wall_min_thickness, typical / 2) and stats[i, cv2.CC_STAT_AREA] < cfg.px2(cfg.stroke_max_area):
-            reason = "thin stroke"
+        elif not other and th < min(cfg.wall_min_thickness, typical / 2) and                 np.hypot(ys.stop - ys.start, xs.stop - xs.start) / m <= cfg.stroke_max_length:
+            reason = "thin stroke"                        # a longer thin isolated piece is a single-line partition wall
         else:
             continue
         keep[i] = False
@@ -249,12 +249,95 @@ def railing_edges(G, lab, dist, cfg=DEFAULT):
 
 
 def _snap(angle, dom, tol):
-    """Angle snapped to the nearest dominant direction (dom + k * 90) when within tol degrees, else unchanged."""
-    best = min((dom + k * 90 for k in range(-2, 4)), key=lambda c: abs(((angle - c) + 90) % 180 - 90))
-    return best if abs(((angle - best) + 90) % 180 - 90) <= tol else angle
+    """Angle snapped to the nearest dominant direction (dom + k * 90, on the full circle so the piece keeps pointing
+    the way it runs) when within tol degrees, else unchanged."""
+    diff = lambda a, b: abs(((a - b) + 180) % 360 - 180)
+    best = min((dom + k * 90 for k in range(-2, 4)), key=lambda c: diff(angle, c))
+    return best if diff(angle, best) <= tol else angle
 
 
-def regularise(G, dist, cfg=DEFAULT):
+def path_thickness(path, mask, dist, n=25):
+    """Thickness of a wall along a skeleton path in pixels and the offset of the wall's centre from the path along the
+    path's left normal: the median width of the wall mask's cross-section at up to n points, measured along the normal
+    of the local path direction and capped by the inscribed disc there (2 x EDT + 1: a normal that runs into a
+    crossing wall at a junction must not count), and the median of half the difference between the two sides (the
+    skeleton of a wall of even width sits half a pixel off its centre). Points inside an opening band (no wall pixel)
+    are skipped; with fewer than three measurable points the inscribed disc decides and the offset is 0. (2 x EDT - 1
+    alone is a pixel thin on even widths.) Returns (thickness, offset)."""
+    H, W = mask.shape
+    idx = np.linspace(2, len(path) - 3, min(n, max(len(path) - 4, 1))).astype(int) if len(path) >= 5 else np.arange(len(path))
+    widths, discs, offsets = [], [], []
+    for i in idx:
+        xi, yi = int(round(path[i][0])), int(round(path[i][1]))
+        if not (0 <= xi < W and 0 <= yi < H) or not mask[yi, xi]:
+            continue
+        disc = 2 * float(dist[yi, xi]) + 1
+        discs.append(disc)
+        if i < 2 or i + 2 >= len(path):
+            continue
+        t = path[i + 2] - path[i - 2]
+        L = np.hypot(*t)
+        if L < 1e-6:
+            continue
+        nrm = np.array([-t[1], t[0]]) / L
+        side = {}
+        for sgn in (1, -1):
+            side[sgn] = 0
+            for s in range(1, 200):
+                x, y = path[i] + sgn * nrm * s
+                xj, yj = int(round(x)), int(round(y))
+                if not (0 <= xj < W and 0 <= yj < H) or not mask[yj, xj]:
+                    break
+                side[sgn] += 1
+        w = 1 + side[1] + side[-1]
+        if w <= disc:                                      # a clean cross-section: its centre is trusted too
+            offsets.append((side[1] - side[-1]) / 2)
+        widths.append(min(float(w), disc))
+    if len(widths) >= 3:
+        return float(np.median(widths)), (float(np.median(offsets)) if len(offsets) >= 3 else 0.0)
+    if discs:
+        return max(float(np.median(discs)) - 2, 1.0), 0.0
+    return max(2 * float(np.median(dist[path[:, 1].astype(int), path[:, 0].astype(int)])) - 1, 1.0), 0.0
+
+
+def refit(a, b, mask, th_px):
+    """Fit a straight piece to the wall mask: cross-sections of the mask at samples along the piece give the median
+    centre offset along the left normal and the median width; samples off the mask (an opening band, a gap) or with
+    a side that runs away (a crossing wall at a junction) are skipped. Returns (shift vector, width) in pixels, or
+    (zero, th_px) with fewer than three usable samples."""
+    H, W = mask.shape
+    d = b - a
+    L = float(np.hypot(*d))
+    if L < 3:
+        return np.zeros(2), th_px
+    d /= L
+    nrm = np.array([-d[1], d[0]])
+    cap = int(3 * th_px + 2)
+    offs, widths = [], []
+    for f in np.linspace(0.08, 0.92, max(5, min(40, int(L / 4)))):
+        p = a + d * f * L
+        xi, yi = int(round(p[0])), int(round(p[1]))
+        if not (0 <= xi < W and 0 <= yi < H) or not mask[yi, xi]:
+            continue
+        side = {}
+        for sgn in (1, -1):
+            side[sgn] = 0
+            for s in range(1, cap + 1):
+                x, y = p + sgn * nrm * s
+                xj, yj = int(round(x)), int(round(y))
+                if not (0 <= xj < W and 0 <= yj < H) or not mask[yj, xj]:
+                    break
+                side[sgn] += 1
+        if side[1] >= cap or side[-1] >= cap:
+            continue
+        offs.append((side[1] - side[-1]) / 2)
+        widths.append(1 + side[1] + side[-1])
+    if len(offs) < 3:
+        return np.zeros(2), th_px
+    return float(np.median(offs)) * nrm, float(np.median(widths))
+
+
+def regularise(G, dist, cfg=DEFAULT, mask=None, mask_dist=None):
     """Straight wall segments with thickness from the skeleton graph: every edge path is simplified at a share of its
     wall's thickness, cut at the vertices, each piece snapped to the plan's dominant directions when within
     wall_snap_angle, junction stubs shorter than the thickness dropped, and the end pieces extended to the junction
@@ -266,7 +349,10 @@ def regularise(G, dist, cfg=DEFAULT):
         path = d["path"]
         if len(path) < 2:
             continue
-        th_px = max(2 * float(np.median(dist[path[:, 1].astype(int), path[:, 0].astype(int)])) - 1, 1.0)
+        if mask is not None:
+            th_px, offset = path_thickness(path, mask, mask_dist if mask_dist is not None else dist)
+        else:
+            th_px, offset = max(2 * float(np.median(dist[path[:, 1].astype(int), path[:, 0].astype(int)])) - 1, 1.0), 0.0
         tol = max(cfg.px(cfg.line_simplify), th_px * cfg.wall_simplify_share)
         pts = np.asarray(LineString(path).simplify(tol).coords)
         pieces = []
@@ -299,23 +385,102 @@ def regularise(G, dist, cfg=DEFAULT):
                 b2 = mid + dv * float(np.dot(last - mid, dv))
             if np.linalg.norm(b2 - a2) < 1.0:
                 continue
-            segs.append({"id": f"w{len(segs):03d}", "line": LineString([a2, b2]), "thickness": round(th_px / m, 3),
+            # the piece is refitted to the mask's cross-sections (the skeleton of a wall of even width sits half a
+            # pixel off its centre, and jambs and niches pull it); skeleton coordinates index pixels while the
+            # polygons of the pipeline follow pixel edges, so the line also moves to the pixel centres (+0.5)
+            shift, width = (refit(a2, b2, mask, th_px) if mask is not None else (offset * np.array([-dv[1], dv[0]]), th_px))
+            width = min(width, 1.5 * th_px)                # a cross-section through a blob is not the wall's width
+            segs.append({"id": f"w{len(segs):03d}", "line": LineString([a2 + shift + 0.5, b2 + shift + 0.5]), "thickness": round(width / m, 3),
                          "angle": round(ang % 180, 1), "nodes": (u, v)})
     return segs
 
 
+def opening_bands(lab, cfg=DEFAULT):
+    """Door and window blobs as rectangles no deeper than opening_axis_max_depth (a door label that includes its swing
+    is cut back to the wall band), added to the wall mask so that the wall axis runs on through the openings."""
+    op = clean(np.isin(lab, (DOOR, WINDOW)), cfg.px2(cfg.opening_min_area))
+    out = np.zeros(lab.shape, np.uint8)
+    cap = cfg.px(cfg.opening_axis_max_depth)
+    if not op.any() or cap <= 0:                              # 0 turns the rule off: the axis stops at the jambs
+        return out > 0
+    n, cl, st, _ = cv2.connectedComponentsWithStats(op.astype(np.uint8), connectivity=8)
+    for i in range(1, n):
+        x, y, w, h, a = st[i]
+        ys, xs = np.nonzero(cl[y:y + h, x:x + w] == i)
+        (cx, cy), (rw, rh), ang = cv2.minAreaRect(np.column_stack([xs + x, ys + y]).astype(np.float32))
+        rw, rh = max(rw, 1.0), max(rh, 1.0)
+        if min(rw, rh) > cap:
+            rw, rh = (cap, rh) if rw < rh else (rw, cap)
+        cv2.fillPoly(out, [np.round(cv2.boxPoints(((cx, cy), (rw, rh), ang))).astype(np.int32)], 1)
+    return out > 0
+
+
+def opening_intervals(line, near, lab, cfg=DEFAULT):
+    """Door and window intervals along a segment's centre line: runs of opening pixels (near: the door and window
+    masks dilated by one pixel) at least half opening_min_length long, as (from, to, kind) in pixels from the line's
+    start; the kind is the label that dominates the run."""
+    a, b = np.asarray(line.coords[0]), np.asarray(line.coords[-1])
+    n = max(int(line.length) + 1, 2)
+    pts = a + (b - a) * np.linspace(0.0, 1.0, n)[:, None]
+    H, W = lab.shape
+    xi = np.clip(np.round(pts[:, 0]).astype(int), 0, W - 1)
+    yi = np.clip(np.round(pts[:, 1]).astype(int), 0, H - 1)
+    hit = {k: m[yi, xi] for k, m in near.items()}
+    v = hit["door"] | hit["window"]
+    step = line.length / (n - 1)
+    min_run = cfg.px(cfg.opening_min_length) / 2
+    runs, k = [], 0
+    while k < n:
+        if not v[k]:
+            k += 1
+            continue
+        j = k
+        while j < n and v[j]:
+            j += 1
+        if (j - k) * step >= min_run:
+            nd, nw = int(hit["door"][k:j].sum()), int(hit["window"][k:j].sum())
+            runs.append((k * step, (j - 1) * step, "door" if nd >= nw else "window"))
+        k = j
+    return runs
+
+
 def segment_polys(G, segs, cfg=DEFAULT):
-    """Wall polygons of the regularised segments: each centre line buffered by half its thickness (flat ends), plus
-    a square of the thickest incident wall at every junction so that corners close."""
-    parts = [s["line"].buffer(cfg.px(s["thickness"]) / 2, cap_style="flat", join_style="mitre") for s in segs]
+    """Wall polygons of the regularised segments: each centre line, without its opening intervals, buffered by half
+    its thickness (flat ends); at a junction every incident segment's end is extended by half the thickness of the
+    thickest other wall there, so that corners close without a square that would stick out of a thin wall."""
     by_node = {}
     for s in segs:
         for n in s["nodes"]:
-            by_node[n] = max(by_node.get(n, 0.0), s["thickness"])
-    for n, t in by_node.items():
-        if G.degree(n) >= 2:
-            x, y = G.nodes[n]["xy"]
-            parts.append(Point(x, y).buffer(cfg.px(t) / 2, cap_style="square"))
+            by_node.setdefault(n, []).append(s)
+    parts = []
+    for s in segs:
+        line, half = s["line"], cfg.px(s["thickness"]) / 2
+        a, b = np.asarray(line.coords[0]), np.asarray(line.coords[-1])
+        L = float(np.linalg.norm(b - a))
+        if L < 1e-6:
+            continue
+        d = (b - a) / L
+        ext = [0.0, 0.0]
+        for n in s["nodes"]:
+            others = [o for o in by_node.get(n, []) if o is not s]
+            if G.degree(n) < 2 or not others:
+                continue
+            xy = G.nodes[n]["xy"] + 0.5                   # pixel-edge coordinates, as the segment lines
+            e = max(cfg.px(o["thickness"]) for o in others) / 2
+            for k, end in enumerate((a, b)):
+                if np.linalg.norm(end - xy) <= half + 3:
+                    ext[k] = max(ext[k], e)
+        t, pieces = 0.0, []
+        for t0, t1, _ in s.get("_openings_px", []):
+            if t0 - t >= 1.0:
+                pieces.append((t, t0))
+            t = max(t, t1)
+        if L - t >= 1.0:
+            pieces.append((t, L))
+        for t0, t1 in pieces:
+            p0 = a + d * (t0 - (ext[0] if t0 <= 0.0 else 0.0))
+            p1 = a + d * (t1 + (ext[1] if t1 >= L else 0.0))
+            parts.append(LineString([p0, p1]).buffer(half, cap_style="flat", join_style="mitre"))
     u = unary_union(parts)
     return [p.simplify(cfg.px(cfg.poly_simplify)) for p in getattr(u, "geoms", [u])
             if p.geom_type == "Polygon" and p.area >= cfg.px2(cfg.wall_min_area)]
@@ -358,7 +523,23 @@ def walls(sheet, cfg=DEFAULT):
     sheet.wall_mask, sheet.column_mask = wall, column
     sheet.wall_bridges = [{"line": LineString([a, b]), "length": round(float(np.linalg.norm(b - a)) / m, 2),
                            "thickness": round(2 * half / m, 3)} for a, b, half in bridges]
-    segs = [s for s in regularise(G, dist, cfg) if s["line"].length >= cfg.px(cfg.wall_segment_min_length)]
+    # the axis runs on through doors and windows: an opening is an interval on its wall, not the wall's end, so the
+    # piers between the windows of a facade are one wall and the exterior wall closes around the building
+    bands = opening_bands(lab, cfg)
+    axis, dist_wall = wall, dist
+    if bands.any():
+        axis = wall | bands
+        dist = ndimage.distance_transform_edt(axis)
+        G = wall_graph(axis, dist, cfg)
+    near = {k: cv2.dilate((lab == c).astype(np.uint8), np.ones((3, 3), np.uint8)) > 0 for k, c in (("door", DOOR), ("window", WINDOW))}
+    segs = []
+    for s in regularise(G, dist, cfg, mask=wall, mask_dist=dist_wall):     # thickness from the wall mask, not the opening bands
+        if s["line"].length < cfg.px(cfg.wall_segment_min_length):
+            continue
+        runs = opening_intervals(s["line"], near, lab, cfg) if bands.any() else []
+        s["_openings_px"] = runs
+        s["openings"] = [{"kind": k, "from": round(t0 / m, 2), "to": round(t1 / m, 2)} for t0, t1, k in runs]
+        segs.append(s)
     sheet.wall_graph, sheet.wall_segments = G, segs
     sheet.wall_polys_raw = [p.simplify(cfg.px(cfg.poly_simplify)) for p in mask_polys(wall, cfg.px2(cfg.wall_min_area))]
     sheet.wall_polys = segment_polys(G, segs, cfg) or sheet.wall_polys_raw

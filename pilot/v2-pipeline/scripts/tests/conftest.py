@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))         # pilot/v2-pipeline/code: fpx, fpeval, the scripts
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))         # pilot/v2-pipeline/scripts: fpx, fpeval, the scripts
 
 from common import DATA, FONTS, REPO  # noqa: E402
 from fpx import DEFAULT, Sheet  # noqa: E402

@@ -60,4 +60,11 @@ def dominant_angle(segments):
     if not ang:
         return 0.0
     hist, edges = np.histogram(ang, bins=90, range=(0, 90), weights=w)
-    return float(edges[np.argmax(hist + np.roll(hist, 1) + np.roll(hist, -1))] + 0.5)
+    k = int(np.argmax(hist + np.roll(hist, 1) + np.roll(hist, -1)))
+    centre = edges[k] + 0.5
+    # the length-weighted mean of the directions within the mode's three bins, not the bin centre: a plan drawn at
+    # exactly 0 degrees would otherwise be snapped to 0.5 and every long wall rotated by half a degree
+    ang, w = np.asarray(ang), np.asarray(w)
+    rel = (ang - centre + 45) % 90 - 45
+    sel = np.abs(rel) <= 1.5
+    return float((centre + np.average(rel[sel], weights=w[sel])) % 90) if sel.any() and w[sel].sum() > 0 else float(centre)

@@ -1,6 +1,6 @@
 # Published Baselines for the Model Card
 
-*Status: notes as delivered on 7 October 2026; the "to fill" rows are filled in the [model card](../../pilot/v2-pipeline/MODEL_CARD.md#evaluation). Correction: the code-level points marked "code check" (SymPoint's log(1 + length) weights, CADTransformer's micro F1 over the foreground classes, CubiCasa's `original_size=True`, rotation test-time augmentation, pooled `runningScore` and openings kept as Wall) were confirmed later the same day in local read-only clones of the official repositories (`research/code/`).*
+*Status: notes as delivered on 7 October 2026; the "to fill" rows are filled in the [second review §4.4](../reviews/2026-10-08-pilot-v2-second-review.md#44-published-protocols) (formerly the model card, merged into the [pilot README](../../pilot/v2-pipeline/README.md#model) on 8 October). Correction: the code-level points marked "code check" (SymPoint's log(1 + length) weights, CADTransformer's micro F1 over the foreground classes, CubiCasa's `original_size=True`, rotation test-time augmentation, pooled `runningScore` and openings kept as Wall) were confirmed later the same day in local read-only clones of the official repositories (`research/code/`).*
 
 Published results of established floor plan models on FloorPlanCAD, CubiCasa5K, WAFFLE, CVC-FP and a few other benchmarks, with each benchmark's protocol and what we must do so that our zero-shot numbers can be compared.
 
@@ -343,7 +343,7 @@ Other papers on CubiCasa5K:
 | 2026-zhang-readout-vectorization T2 p.6, T4 p.9 | Corrected "skv4" annotations, official ids 3,328 / 318 / 296 (plans that convert); 256 px input; own "fpeval" | Wall F1 at tolerance 0.05 of a 1,024-unit frame, room F1, opening F1, edit cost | Raster2Seq + reconciliation (cc5k) wall F1 0.769, rooms 0.777, openings 0.840; mix 0.781 / 0.784 / 0.848; wall-first decoder 0.747–0.751; graph readout 0.818 | Single-paper protocol; would need their converter |
 | 2023-yang-vectorfloorseg T2 p.6 | Walls-only vector input, room-type labels; 4,192 / 399 / 400; 256 px | Room mIoU / mAcc / RI (test) | DFPR 47.73 / 58.68 / 38.57; DeepLabV3+ R50 58.18 / 71.75 / 35.16; OCRNet R101 57.13 / 70.62 / 41.89; VectorFloorSeg (R101) 62.49 / 75.48 / 67.51 | No (different input and task) |
 | 2026-gong-textcad T1 p.15 | SVG primitives as panoptic symbol spotting (10 thing + 2 stuff classes); 4,200 / 400 / 400 | PQ / PQ-Thing / PQ-Stuff / F1 / wF1 | e.g. SymPoint 89.16 / 90.58 / 50.47 / 93.6 / 88.7; VecFormer 94.58 / 95.59 / 86.95 / 96.2 / 96.4; TextCAD 96.53 / 97.23 / 91.48 / 98.1 / 98.3 (all ten baselines in the paper) | No (vector input; the CubiCasa SVG is the annotation, not a drawing) |
-| Pilot v2 (`pilot/v2-pipeline/MODEL_CARD.md`, not a paper) | Official test, 400 plans, **zero-shot**; `F1_scaled.png` resampled to 50 px/m with 1 m padding | Pixel IoU, pooled confusion matrix | Wall 0.57, door 0.49, window 0.57, column 0.09, stairs 0.38 | Our current numbers; see §2.4 |
+| Pilot v2 (`pilot/v2-pipeline/README.md`, not a paper) | Official test, 400 plans, **zero-shot**; `F1_scaled.png` resampled to 50 px/m with 1 m padding | Pixel IoU, pooled confusion matrix | Wall 0.57, door 0.49, window 0.57, column 0.09, stairs 0.38 | Our current numbers; see §2.4 |
 
 ### 2.3 In-domain vs. zero-shot
 
